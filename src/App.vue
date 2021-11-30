@@ -1,6 +1,7 @@
 <template>
   <img style="height: 100px" alt="DoubleDice 🎲🎲" src="./assets/logo.png" />
   <HelloWorld msg="DoubleDice 🎲🎲" />
+  <Graph />
   <Vpf />
 </template>
 

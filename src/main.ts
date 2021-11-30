@@ -1,14 +1,40 @@
+import { ApolloClient, createHttpLink, InMemoryCache } from '@apollo/client/core'
 import detectEthereumProvider from '@metamask/detect-provider'
-import { createApp } from 'vue'
+import { createApolloProvider } from '@vue/apollo-option'
+import { createApp, h } from 'vue'
 import App from './App.vue'
 
-async function main() {
-  const provider = await detectEthereumProvider()
+const GRAPHQL_QUERIES_URL = 'http://127.0.0.1:8000/subgraphs/name/doubledice-com/doubledice-platform'
+const GRAPHQL_SUBSCRIPTIONS_URL = 'http://127.0.0.1:8001/subgraphs/name/doubledice-com/doubledice-platform'
 
-  if (provider) {
+async function main() {
+  const ethereumProvider = await detectEthereumProvider()
+
+  // HTTP connection to the API
+  const httpLink = createHttpLink({ uri: GRAPHQL_QUERIES_URL })
+  // const httpLink = createHttpLink({ uri: GRAPHQL_SUBSCRIPTIONS_URL })
+
+  // Cache implementation
+  const cache = new InMemoryCache()
+
+  // Create the apollo client
+  const apolloClient = new ApolloClient({
+    link: httpLink,
+    cache
+  })
+
+  const apolloProvider = createApolloProvider({
+    defaultClient: apolloClient
+  })
+
+  if (ethereumProvider) {
     // From now on, this should always be true:
     // provider === window.ethereum
-    createApp(App).mount('#app')
+    const app = createApp({
+      render: () => h(App)
+    })
+    app.use(apolloProvider)
+    app.mount('#app')
   } else {
     alert('🦊 Please install MetaMask! 🦊')
   }

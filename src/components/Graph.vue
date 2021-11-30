@@ -2,7 +2,7 @@
   <div class="hello">
     <h1>{{ msg }}</h1>
     <p>{{ counter }}</p>
-    <table class="info">
+    <table>
       <tr>
         <th>Network (🦊)</th>
         <td>{{ networkDescription }}</td>
@@ -25,60 +25,26 @@
       </tr>
     </table>
   </div>
-  <div>
-    <table>
-      <thead>
-        <tr>
-          <th>id</th>
-          <th>timestamp</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="virtualFloor in virtualFloors" :key="virtualFloor.id">
-          <td>{{ virtualFloor.id.slice(0, 10) }}</td>
-          <td>{{ virtualFloor.timestamp }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
   <hr />
 </template>
 
 <script lang="ts">
+
 import { EthereumProvider, EthereumProviderHelper } from '@/mm'
 import { ethers } from 'ethers'
 import { Options, Vue } from 'vue-class-component'
 // eslint-disable-next-line camelcase
 import { DoubleDice__factory, IERC20Metadata__factory } from '../../../doubledice-platform/typechain-types'
-import gql from 'graphql-tag'
-
-import { VirtualFloor } from '../../../doubledice-platform/generated/schema'
 
 const MAIN_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
-
-const VIRTUAL_FLOORS_QUERY = gql`query {
-  virtualFloors(
-    orderBy: timestamp,
-    orderDirection: desc,
-    first: 3
-  ) {
-    id
-    timestamp
-  }
-}`
 
 @Options({
   props: {
     msg: String
-  },
-  apollo: {
-    virtualFloors: VIRTUAL_FLOORS_QUERY
   }
 })
 export default class HelloWorld extends Vue {
   msg!: string
-
-  virtualFloors!: VirtualFloor[]
 
   counter = 0
 
@@ -115,7 +81,7 @@ export default class HelloWorld extends Vue {
     this.account = await signer.getAddress()
 
     const { name: networkName, chainId: networkChainId } = await provider.getNetwork()
-    this.networkDescription = `${networkName}(🔗${networkChainId})`
+    this.networkDescription = `${networkName} (🔗${networkChainId})`
 
     const mainContract = DoubleDice__factory.connect(MAIN_CONTRACT_ADDRESS, provider)
 
@@ -130,7 +96,7 @@ export default class HelloWorld extends Vue {
     const tokenName = await tokenContract.name()
     const tokenSymbol = await tokenContract.symbol()
     const tokenDecimals = await tokenContract.decimals()
-    this.tokenDescription = `${tokenName}(${tokenSymbol}, ${1 / (10 ** tokenDecimals)})`
+    this.tokenDescription = `${tokenName} (${tokenSymbol}, ${1 / (10 ** tokenDecimals)})`
   }
 }
 </script>
@@ -156,7 +122,7 @@ table {
   /* font-size: xx-large; */
   text-align: left;
 }
-.info th::after {
+th::after {
   content: ":";
 }
 </style>

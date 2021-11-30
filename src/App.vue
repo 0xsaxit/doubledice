@@ -1,18 +1,21 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js + TypeScript App"/>
+  <img style="height: 100px" alt="DoubleDice 🎲🎲" src="./assets/logo.png" />
+  <HelloWorld msg="DoubleDice 🎲🎲" />
+  <Vpf />
 </template>
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component'
 import HelloWorld from './components/HelloWorld.vue'
+import Vpf from './components/Vpf.vue'
 
 @Options({
   components: {
-    HelloWorld
+    HelloWorld,
+    Vpf
   }
 })
-export default class App extends Vue {}
+export default class App extends Vue { }
 </script>
 
 <style>

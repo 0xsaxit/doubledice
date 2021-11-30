@@ -1,38 +1,41 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-typescript" target="_blank" rel="noopener">typescript</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+    <p>{{ counter }}</p>
+    <table>
+      <tr>
+        <th>Network (🦊)</th>
+        <td>{{ networkDescription }}</td>
+      </tr>
+      <tr>
+        <th>Account (🦊)</th>
+        <td>{{ account }}</td>
+      </tr>
+      <tr>
+        <th>Owner</th>
+        <td>{{ owner }}</td>
+      </tr>
+      <tr>
+        <th>Fee beneficiary</th>
+        <td>{{ feeBeneficiary }}</td>
+      </tr>
+      <tr>
+        <th>Token</th>
+        <td>{{ tokenDescription }}</td>
+      </tr>
+    </table>
   </div>
+  <hr />
 </template>
 
 <script lang="ts">
+import { EthereumProvider, EthereumProviderHelper } from '@/mm'
+import { ethers } from 'ethers'
 import { Options, Vue } from 'vue-class-component'
+// eslint-disable-next-line camelcase
+import { DoubleDice__factory, IERC20Metadata__factory } from '../../../doubledice-platform/typechain-types'
+
+const MAIN_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
 
 @Options({
   props: {
@@ -41,6 +44,59 @@ import { Options, Vue } from 'vue-class-component'
 })
 export default class HelloWorld extends Vue {
   msg!: string
+
+  counter = 0
+
+  account?: string
+
+  owner?: string
+
+  networkDescription?: string
+
+  tokenDescription?: string
+
+  feeBeneficiary?: string
+
+  beta?: number
+
+  async mounted(): Promise<void> {
+    console.log('Mounted 🐴')
+
+    setInterval(() => {
+      this.counter++
+    }, 1000)
+
+    const ethereum = window.ethereum as EthereumProvider
+
+    const eth = new EthereumProviderHelper(ethereum)
+
+    await eth.init()
+
+    // We must specify the network as 'any' for ethers to allow network changes
+    const provider = new ethers.providers.Web3Provider(ethereum, 'any')
+
+    const signer = provider.getSigner()
+
+    this.account = await signer.getAddress()
+
+    const { name: networkName, chainId: networkChainId } = await provider.getNetwork()
+    this.networkDescription = `${networkName} (🔗${networkChainId})`
+
+    const mainContract = DoubleDice__factory.connect(MAIN_CONTRACT_ADDRESS, provider)
+
+    this.owner = await mainContract.owner()
+
+    this.feeBeneficiary = await mainContract._feeBeneficiary()
+
+    const tokenAddress = await mainContract._token()
+
+    const tokenContract = IERC20Metadata__factory.connect(tokenAddress, provider)
+
+    const tokenName = await tokenContract.name()
+    const tokenSymbol = await tokenContract.symbol()
+    const tokenDecimals = await tokenContract.decimals()
+    this.tokenDescription = `${tokenName} (${tokenSymbol}, ${1 / (10 ** tokenDecimals)})`
+  }
 }
 </script>
 
@@ -59,5 +115,13 @@ li {
 }
 a {
   color: #42b983;
+}
+table {
+  font-family: monospace;
+  /* font-size: xx-large; */
+  text-align: left;
+}
+th::after {
+  content: ":";
 }
 </style>

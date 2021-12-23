@@ -1,0 +1,30 @@
+specVersion: 0.0.2
+description: DoubleDice platform
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: DoubleDice
+    network: mainnet
+    source:
+      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      abi: DoubleDice
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      entities:
+        - VirtualFloor
+      abis:
+        - name: DoubleDice
+          file: ../abi/DoubleDice.json
+      eventHandlers:
+        - event: VirtualFloorCreation(indexed bytes32,uint256,uint32,uint32,uint8)
+          handler: handleVirtualFloorCreation
+        - event: UserCommitment(indexed bytes32,indexed uint8,indexed uint256,uint256,uint256)
+          handler: handleUserCommitment
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleTransferSingle
+        - event: VirtualFloorResolution(indexed bytes32,uint8,uint8,uint256,uint256)
+          handler: handleVirtualFloorResolution
+      file: ./mapping.ts

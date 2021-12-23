@@ -15,14 +15,15 @@ async function main() {
 
   const ownerSigner = await ethers.getSigner(OWNER_ADDRESS);
 
-  const tokenContract = await new DummyUSDCoin__factory(ownerSigner).deploy();
+  const tokenContract = await new DummyUSDCoin__factory(ownerSigner).deploy({ nonce: 0 });
   process.stdout.write(`Deploying token contract to: ${tokenContract.address}...\n`);
   await tokenContract.deployed();
 
   const mainContract = await new DoubleDice__factory(ownerSigner).deploy(
     'http://localhost:8080/token/{id}',
     tokenContract.address,
-    FEE_BENEFICIARY_ADDRESS
+    FEE_BENEFICIARY_ADDRESS,
+    { nonce: 1 }
   );
   process.stdout.write(`Deploying main  contract to: ${mainContract.address}...\n`);
   await mainContract.deployed();

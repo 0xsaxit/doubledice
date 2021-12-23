@@ -1,0 +1,10 @@
+overwrite: true
+schema: "./src/generated/schema.graphql"
+generates:
+  src/generated/graphql.ts:
+    plugins:
+      - typescript
+    config:
+      scalars:
+        BigDecimal: string
+        BigInt: string

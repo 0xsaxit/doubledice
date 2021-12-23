@@ -34,6 +34,13 @@ async function main() {
       render: () => h(App)
     })
     app.use(apolloProvider)
+
+    // app.config.globalProperties.$filters = {
+    //   formatTimestamp(timestamp: string | number): string {
+    //     return new Date(parseInt(timestamp.toString()) * 1000).toISOString().slice(0, 19).replace(/-/g, '\u2011')
+    //   }
+    // }
+
     app.mount('#app')
   } else {
     alert('🦊 Please install MetaMask! 🦊')

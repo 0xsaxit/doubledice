@@ -1,9 +1,9 @@
 <template>
   <section>
-    <!-- <h2>New VPF</h2> -->
+    <h2>New VPF</h2>
     <table>
       <tr>
-        <th>Beta</th>
+        <th>betaGradient</th>
         <td>
           <input v-model.number="betaGradient" type="number" />
         </td>
@@ -30,22 +30,27 @@
     <div>
       <button @click="createVpf">Create VPF</button>
     </div>
-
-    <pre>{{ json }}</pre>
+    <!-- <pre>{{ json }}</pre> -->
   </section>
 </template>
 
 <script lang="ts">
-import { EthereumProvider, EthereumProviderHelper } from '@/mm'
-import { ethers } from 'ethers'
-import { Vue } from 'vue-class-component'
+import { BigNumber as EthersBigNumber, ethers } from 'ethers'
+import { PropType } from 'vue'
+import { Options, Vue } from 'vue-class-component'
 // eslint-disable-next-line camelcase
-import { DoubleDice, DoubleDice__factory } from '../../../doubledice-platform/typechain-types'
+import { DoubleDice as DoubleDiceContract } from '../../../doubledice-platform/typechain-types'
+import { tryCatch } from '../utils'
 
 const MAIN_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
 
-export default class Vpf extends Vue {
-  contract!: DoubleDice
+@Options({
+  props: {
+    contract: Object as PropType<DoubleDiceContract>
+  }
+})
+export default class NewVirtualFloor extends Vue {
+  contract!: DoubleDiceContract
 
   betaGradient = 1
 
@@ -55,28 +60,22 @@ export default class Vpf extends Vue {
 
   nOutcomes = 2
 
-  async mounted(): Promise<void> {
-    const ethereum = window.ethereum as EthereumProvider
-    const eth = new EthereumProviderHelper(ethereum)
-    await eth.init()
-    const provider = new ethers.providers.Web3Provider(ethereum, 'any')
-    const signer = provider.getSigner()
-    this.contract = DoubleDice__factory.connect(MAIN_CONTRACT_ADDRESS, signer)
-  }
-
   async createVpf(): Promise<void> {
     const vpfId = ethers.utils.randomBytes(32)
     const betaGradient = this.betaGradient
     const tClose = new Date(this.tClose).getTime() / 1000
     const tResolve = new Date(this.tResolve).getTime() / 1000
     const nOutcomes = this.nOutcomes
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const tx = await this.contract.createVirtualFloor(vpfId, betaGradient, tClose, tResolve, nOutcomes)
-    const { hash } = tx
-    const txUrl = `https://polygonscan.com/tx/${hash}`
-    console.log(`Sent ${txUrl}`)
-    await tx.wait()
-    console.log(`⛏ Mined ${txUrl}`)
+
+    // eslint-disable-next-line space-before-function-paren
+    tryCatch(async () => {
+      const tx = await this.contract.createVirtualFloor(vpfId, EthersBigNumber.from(10).pow(18).mul(betaGradient), tClose, tResolve, nOutcomes)
+      const { hash } = tx
+      const txUrl = `https://polygonscan.com/tx/${hash}`
+      console.log(`Sent ${txUrl}`)
+      await tx.wait()
+      console.log(`⛏ Mined ${txUrl}`)
+    })
   }
 
   get json(): string {
@@ -90,7 +89,6 @@ export default class Vpf extends Vue {
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 h3 {
   margin: 40px 0 0;

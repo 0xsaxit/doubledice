@@ -1,0 +1,152 @@
+scalar BigDecimal
+scalar BigInt
+# References:
+# - https://thegraph.com/docs/developer/assemblyscript-api
+# - https://thegraph.academy/developers/defining-a-subgraph/
+# - https://dev.to/dabit3/building-graphql-apis-on-ethereum-4poa
+# - https://github.com/ensdomains/ens-subgraph
+# - https://github.com/graphprotocol/dharma-subgraph
+
+enum VirtualFloorState {
+  RUNNING_OR_CLOSED,
+  COMPLETED,
+  CANCELLED_BECAUSE_NO_WINNERS,
+  CANCELLED_BECAUSE_ALL_WINNERS
+}
+
+type VirtualFloor @entity {
+  id: ID!
+
+  # children
+  outcomes: [Outcome!]! @derivedFrom(field: "virtualFloor")
+  virtualFloorTimeslots: [VirtualFloorTimeslot!]! @derivedFrom(field: "virtualFloor")
+
+  # properties
+  timestamp: BigInt!
+  betaGradient: BigDecimal!
+  tClose: BigInt!
+  tResolve: BigInt!
+  state: VirtualFloorState!
+  winningOutcome: Int!
+
+  # aggregates
+  totalSupply: BigDecimal!
+}
+
+type Outcome @entity {
+  id: ID!
+
+  # parents
+  virtualFloor: VirtualFloor!
+
+  # children
+  outcomeTimeslots: [OutcomeTimeslot!]! @derivedFrom(field: "outcome")
+  userOutcomeTimeslots: [UserOutcomeTimeslot!]! @derivedFrom(field: "outcome")
+  userOutcomes: [UserOutcome!]! @derivedFrom(field: "outcome")
+
+  # properties
+  title: String!
+  index: Int!
+
+  # aggregates
+  totalSupply: BigDecimal!
+  totalWeightedSupply: BigDecimal!
+}
+
+type Timeslot @entity {
+  id: ID!
+
+  # children
+  outcomeTimeslots: [OutcomeTimeslot!]! @derivedFrom(field: "timeslot")
+  userOutcomeTimeslots: [UserOutcomeTimeslot!]! @derivedFrom(field: "timeslot")
+  virtualFloorTimeslots: [VirtualFloorTimeslot!]! @derivedFrom(field: "timeslot")
+
+  # properties
+  minTimestamp: BigInt!
+  maxTimestamp: BigInt!
+}
+
+type User @entity {
+  id: ID!
+
+  # children
+  userOutcomeTimeslots: [UserOutcomeTimeslot!]! @derivedFrom(field: "user")
+  userOutcomes: [UserOutcome!]! @derivedFrom(field: "user")
+  outcomeTimeslotTransfersTo: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "to")
+  outcomeTimeslotTransfersFrom: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "from")
+}
+
+type UserOutcome @entity {
+  id: ID!
+
+  # parents
+  user: User!
+  outcome: Outcome!
+
+  # properties
+  totalBalance: BigDecimal!
+  totalWeightedBalance: BigDecimal!
+}
+
+type OutcomeTimeslot @entity {
+  id: ID!
+
+  # parents
+  outcome: Outcome!
+  timeslot: Timeslot!
+
+  # children
+  userOutcomeTimeslots: [UserOutcomeTimeslot!]! @derivedFrom(field: "outcomeTimeslot")
+  outcomeTimeslotTransfers: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "outcomeTimeslot")
+
+  # properties
+  totalSupply: BigDecimal!
+}
+
+type UserOutcomeTimeslot @entity {
+  id: ID!
+
+  # parents
+  user: User!
+  outcome: Outcome!
+  timeslot: Timeslot!
+  outcomeTimeslot: OutcomeTimeslot!
+
+  # # children
+  # outcomeTimeslotTransfersFrom: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "fromUserOutcomeTimeslot")
+  # outcomeTimeslotTransfersTo: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "toUserOutcomeTimeslot")
+
+  # properties
+  balance: BigDecimal!
+}
+
+type VirtualFloorTimeslot @entity {
+  id: ID!
+
+  #parents
+  virtualFloor: VirtualFloor!
+  timeslot: Timeslot!
+}
+
+type OutcomeTimeslotTransfer @entity {
+  id: ID!
+
+  # parents
+  outcomeTimeslot: OutcomeTimeslot!
+  from: User!
+  to: User!
+  # fromUserOutcomeTimeslot: UserOutcomeTimeslot!
+  # toUserOutcomeTimeslot: UserOutcomeTimeslot!
+
+  # properties
+  timestamp: BigInt!
+
+  # """
+  # Position of the associated event log in the block.
+  
+  # All transfers could be sorted chronologically by ordering by `[timestamp, logIndex]`
+  # """
+  # logIndex: Int!
+
+  amount: BigDecimal!
+}

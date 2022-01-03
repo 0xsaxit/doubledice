@@ -4,6 +4,7 @@
     "clean": "rimraf abi artifacts build cache generated typechain-types",
     "test": "hardhat test",
     "start": "docker-compose up",
+    "stop": "docker-compose down",
     "contracts:deploy:local": "  hardhat run ./scripts/deploy.ts --network localhost",
     "contracts:deploy:rinkeby": "hardhat run ./scripts/deploy.ts --network rinkeby",
     "build:sol-interface-for-remix": "cat ./abi/DoubleDice.json | abi-to-sol --solidity-version=0.8.10 IDoubleDice > ./abi/IDoubleDice.sol",

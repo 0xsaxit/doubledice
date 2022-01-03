@@ -63,8 +63,8 @@ describe('DoubleDice', function () {
 
     const virtualFloorId = '0x0000000000000000000000000000000000000000000000000000000000012345';
     const betaGradient = BigNumber.from(10).pow(18).div(3600); // 1 unit per hour
-    const tClose = toTimestamp('2022-01-01T12:00:00');
-    const tResolve = toTimestamp('2022-01-02T00:00:00');
+    const tClose = toTimestamp('2032-01-01T12:00:00');
+    const tResolve = toTimestamp('2032-01-02T00:00:00');
     const nOutcomes = 3;
 
     interface UserCommitment {
@@ -83,14 +83,14 @@ describe('DoubleDice', function () {
 
 
     {
-      await setNextBlockTimestamp('2022-01-01T00:00:00');
+      await setNextBlockTimestamp('2032-01-01T00:00:00');
 
       const {
         events: [virtualFloorCreatedEvent],
         blockHash
       } = await (await contract.createVirtualFloor(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes)).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
-      expect(timestamp).to.eq(toTimestamp('2022-01-01T00:00:00'));
+      expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
 
       expect(virtualFloorCreatedEvent).to.containSubset({
         event: 'VirtualFloorCreation',
@@ -105,7 +105,7 @@ describe('DoubleDice', function () {
       const amount = $(10);
 
 
-      await setNextBlockTimestamp('2022-01-01T01:00:00');
+      await setNextBlockTimestamp('2032-01-01T01:00:00');
 
       const { events, blockHash } = await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)).wait();
 
@@ -125,50 +125,50 @@ describe('DoubleDice', function () {
       expect(virtualFloorCommitmentArgs.outcomeIndex).to.eq(outcomeIndex);
       expect(virtualFloorCommitmentArgs.amount).to.eq(amount);
       expect(virtualFloorCommitmentArgs.tokenId).to.eq(nftId);
-      expect(virtualFloorCommitmentArgs.timeslot).to.eq(toTimestamp('2022-01-01T01:00:00'));
+      expect(virtualFloorCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T01:00:00'));
 
-      expect((await ethers.provider.getBlock(blockHash)).timestamp).to.eq(toTimestamp('2022-01-01T01:00:00'));
+      expect((await ethers.provider.getBlock(blockHash)).timestamp).to.eq(toTimestamp('2032-01-01T01:00:00'));
 
     }
 
 
-    await setNextBlockTimestamp('2022-01-01T02:00:00');
+    await setNextBlockTimestamp('2032-01-01T02:00:00');
     {
       const { events } = await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId, 1, $(10))).wait();
       const userCommitmentArgs = findUserCommitmentEvent(events);
-      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2022-01-01T02:00:00'));
+      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T02:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 1, $(10))).wait();
       const userCommitmentArgs = findUserCommitmentEvent(events);
-      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2022-01-01T02:00:00'));
+      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T02:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
 
-    await setNextBlockTimestamp('2022-01-01T06:00:00');
+    await setNextBlockTimestamp('2032-01-01T06:00:00');
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 1, $(10))).wait();
       const userCommitmentArgs = findUserCommitmentEvent(events);
-      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2022-01-01T06:00:00'));
+      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T06:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10))).wait();
       const userCommitmentArgs = findUserCommitmentEvent(events);
-      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2022-01-01T06:00:00'));
+      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T06:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
 
-    await setNextBlockTimestamp('2022-01-01T10:00:00');
+    await setNextBlockTimestamp('2032-01-01T10:00:00');
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10))).wait();
       const userCommitmentArgs = findUserCommitmentEvent(events);
-      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2022-01-01T10:00:00'));
+      expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T10:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
 
-    // await setNextBlockTimestamp('2022-01-01T12:00:00')
+    // await setNextBlockTimestamp('2032-01-01T12:00:00')
     // expect(contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10))).to.be.revertedWith('MARKET_CLOSED')
 
     // const virtualFloor = await contract._virtualFloors(virtualFloorId)
@@ -191,7 +191,7 @@ describe('DoubleDice', function () {
       $(10)
     ));
     expect(aggregateCommitments[0].weightedAmount).to.eq(sumOf(
-      $(10).mul(betaAt('2022-01-01T01:00:00'))
+      $(10).mul(betaAt('2032-01-01T01:00:00'))
     ));
 
     expect(aggregateCommitments[1].amount).to.eq(sumOf(
@@ -200,9 +200,9 @@ describe('DoubleDice', function () {
       $(10),
     ));
     expect(aggregateCommitments[1].weightedAmount).to.eq(sumOf(
-      $(10).mul(betaAt('2022-01-01T02:00:00')),
-      $(10).mul(betaAt('2022-01-01T02:00:00')),
-      $(10).mul(betaAt('2022-01-01T06:00:00')),
+      $(10).mul(betaAt('2032-01-01T02:00:00')),
+      $(10).mul(betaAt('2032-01-01T02:00:00')),
+      $(10).mul(betaAt('2032-01-01T06:00:00')),
     ));
 
     expect(aggregateCommitments[2].amount).to.eq(sumOf(
@@ -210,14 +210,14 @@ describe('DoubleDice', function () {
       $(10),
     ));
     expect(aggregateCommitments[2].weightedAmount).to.eq(sumOf(
-      $(10).mul(betaAt('2022-01-01T06:00:00')),
-      $(10).mul(betaAt('2022-01-01T10:00:00')),
+      $(10).mul(betaAt('2032-01-01T06:00:00')),
+      $(10).mul(betaAt('2032-01-01T10:00:00')),
     ));
 
-    // await setNextBlockTimestamp('2022-01-01T23:59:59')
+    // await setNextBlockTimestamp('2032-01-01T23:59:59')
     // expect(contract.resolve(virtualFloorId, 1)).to.be.revertedWith('TOO_EARLY_TO_RESOLVE')
 
-    await setNextBlockTimestamp('2022-01-02T00:00:00');
+    await setNextBlockTimestamp('2032-01-02T00:00:00');
     {
       const { events } = await (await contract.resolve(virtualFloorId, 1)).wait();
       const {
@@ -242,11 +242,11 @@ describe('DoubleDice', function () {
       // console.log(allUserCommitments)
 
 
-      // user3 gives user2 5$ worth of commitment made at 2022-01-01T02:00:00
+      // user3 gives user2 5$ worth of commitment made at 2032-01-01T02:00:00
       await (await contract.connect(user3Signer).safeTransferFrom(
         user3Signer.address,
         user2Signer.address,
-        tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2022-01-01T02:00:00' }),
+        tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
         $(5),
         '0x'
       )).wait();
@@ -255,8 +255,8 @@ describe('DoubleDice', function () {
       //   user3Signer.address,
       //   user4Signer.address,
       //   [
-      //     tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2022-01-01T02:00:00' }),
-      //     tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2022-01-01T02:00:00' }),
+      //     tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
+      //     tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
       //   ], // ids
       //   [], // amounts
       //   '0x'
@@ -267,7 +267,7 @@ describe('DoubleDice', function () {
       const tx1 = await (await contract.connect(user2Signer).claim({
         virtualFloorId,
         outcomeIndex: 1,
-        timeslot: toTimestamp('2022-01-01T02:00:00')
+        timeslot: toTimestamp('2032-01-01T02:00:00')
       })).wait();
 
       console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
@@ -275,7 +275,7 @@ describe('DoubleDice', function () {
       const tx2 = await (await contract.connect(user3Signer).claim({
         virtualFloorId,
         outcomeIndex: 1,
-        timeslot: toTimestamp('2022-01-01T02:00:00')
+        timeslot: toTimestamp('2032-01-01T02:00:00')
       })).wait();
 
       console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
@@ -283,7 +283,7 @@ describe('DoubleDice', function () {
       const tx3 = await (await contract.connect(user3Signer).claim({
         virtualFloorId,
         outcomeIndex: 1,
-        timeslot: toTimestamp('2022-01-01T06:00:00')
+        timeslot: toTimestamp('2032-01-01T06:00:00')
       })).wait();
 
       console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);

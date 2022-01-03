@@ -54,9 +54,11 @@ export default class NewVirtualFloor extends Vue {
 
   betaGradient = 1
 
-  tClose = '2022-01-01T00:00:00'
+  // in 1 week's time
+  tClose = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19)
 
-  tResolve = '2022-01-02T00:00:00'
+  // in 2 weeks' time
+  tResolve = new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19)
 
   nOutcomes = 2
 

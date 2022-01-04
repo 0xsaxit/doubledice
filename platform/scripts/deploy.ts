@@ -26,6 +26,10 @@ async function main() {
   );
   process.stdout.write(`Deploying main  contract to: ${mainContract.address}...\n`);
   await mainContract.deployed();
+
+  const PAYMENT_TOKEN_WHITELISTER_ROLE = await mainContract.PAYMENT_TOKEN_WHITELISTER_ROLE();
+  await (await mainContract.connect(ownerSigner).grantRole(PAYMENT_TOKEN_WHITELISTER_ROLE, ownerSigner.address)).wait();
+  await (await mainContract.connect(ownerSigner).updatePaymentTokenWhitelist(tokenContract.address, true)).wait();
 }
 
 main()

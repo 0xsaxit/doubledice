@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./IDoubleDice.sol";
-
+import "./HasPaymentTokenWhitelist.sol";
 
 uint256 constant _TIMESLOT_DURATION = 60 seconds;
 
@@ -84,7 +84,8 @@ function _calculateTokenId(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 t
 contract DoubleDice is
     IDoubleDice,
     ERC1155,
-    AccessControl
+    AccessControl,
+    HasPaymentTokenWhitelist
 {
     using SafeERC20 for IERC20;
 
@@ -110,6 +111,7 @@ contract DoubleDice is
         require(block.timestamp < tClose, "Error: tClose <= t");
         require(tClose < tResolve, "Error: tResolve <= tClose");
         require(nOutcomes >= 2, "Error: nOutcomes < 2");
+        require(isPaymentTokenWhitelisted(paymentToken), "Error: Payment token is not whitelisted");
 
         virtualFloor.state = VirtualFloorState.RunningOrClosed;
         virtualFloor.paymentToken = paymentToken;

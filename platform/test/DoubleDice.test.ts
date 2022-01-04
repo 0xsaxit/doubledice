@@ -21,6 +21,7 @@ function tokenIdOf({ virtualFloorId, outcomeIndex, datetime }: { virtualFloorId:
 describe('DoubleDice', function () {
 
   let ownerSigner: SignerWithAddress;
+  let paymentTokenWhitelister: SignerWithAddress;
   let feeBeneficiarySigner: SignerWithAddress;
   let user1Signer: SignerWithAddress;
   let user2Signer: SignerWithAddress;
@@ -32,6 +33,7 @@ describe('DoubleDice', function () {
   it('should go through the entire VPF cycle successfully', async function () {
     [
       ownerSigner,
+      paymentTokenWhitelister,
       feeBeneficiarySigner,
       user1Signer,
       user2Signer,
@@ -46,6 +48,25 @@ describe('DoubleDice', function () {
     await contract.deployed();
 
     expect(await contract.feeBeneficiary()).to.eq(feeBeneficiarySigner.address);
+
+    {
+      await expect(contract.connect(ownerSigner).updatePaymentTokenWhitelist(token.address, true)).to.be.reverted;
+      await expect(contract.connect(paymentTokenWhitelister).updatePaymentTokenWhitelist(token.address, true)).to.be.reverted;
+      const PAYMENT_TOKEN_WHITELISTER_ROLE = await contract.PAYMENT_TOKEN_WHITELISTER_ROLE();
+      expect(await contract.hasRole(PAYMENT_TOKEN_WHITELISTER_ROLE, paymentTokenWhitelister.address)).to.be.false;
+      await (await contract.connect(ownerSigner).grantRole(PAYMENT_TOKEN_WHITELISTER_ROLE, paymentTokenWhitelister.address)).wait();
+      expect(await contract.hasRole(PAYMENT_TOKEN_WHITELISTER_ROLE, paymentTokenWhitelister.address)).to.be.true;
+      expect(await contract.isPaymentTokenWhitelisted(token.address)).to.be.false;
+      const { events } = await (await contract.connect(paymentTokenWhitelister).updatePaymentTokenWhitelist(token.address, true)).wait();
+      expect(events).to.have.lengthOf(1);
+      expect(events[0]).to.containSubset({
+        event: 'PaymentTokenWhitelistUpdate',
+        args: {
+          token: token.address,
+          enabled: true
+        },
+      });
+    }
 
     const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber => BigNumber.from(1000000).mul(dollars).add(millionths);
 

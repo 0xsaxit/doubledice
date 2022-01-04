@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.11;
 
+import "@openzeppelin/contracts/access/IAccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -12,8 +13,10 @@ struct VirtualFloorOutcomeTimeslot {
 
 enum VirtualFloorResolutionType { NoWinners, SomeWinners, AllWinners }
 
-interface IDoubleDice is IERC1155 {
-
+interface IDoubleDice is
+    IAccessControl,
+    IERC1155
+{
     event VirtualFloorCreation(
         bytes32 indexed virtualFloorId,
         uint256 betaGradient,

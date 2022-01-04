@@ -184,7 +184,7 @@ export default class App extends Vue {
 
   account?: string
 
-  owner?: string
+  owner?: boolean
 
   networkDescription?: string
 
@@ -302,7 +302,7 @@ export default class App extends Vue {
 
     this.contract = mainContract
 
-    this.owner = await mainContract.owner()
+    this.owner = await mainContract.hasRole(await mainContract.DEFAULT_ADMIN_ROLE(), this.account)
 
     this.feeBeneficiary = await mainContract.feeBeneficiary()
 

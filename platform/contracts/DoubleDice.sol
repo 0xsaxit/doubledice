@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -84,7 +84,7 @@ function _calculateTokenId(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 t
 contract DoubleDice is
     IDoubleDice,
     ERC1155,
-    Ownable
+    AccessControl
 {
     using SafeERC20 for IERC20;
 
@@ -93,13 +93,15 @@ contract DoubleDice is
     constructor(string memory uri_, address feeBeneficiary_)
         ERC1155(uri_) // ToDo: Override uri() to avoid SLOADs
     {
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         feeBeneficiary = feeBeneficiary_;
     }
 
     mapping(bytes32 => VirtualFloor) public _virtualFloors;
 
     function createVirtualFloor(bytes32 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken)
-        external onlyOwner
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
@@ -156,7 +158,8 @@ contract DoubleDice is
     }
 
     function resolve(bytes32 virtualFloorId, uint8 outcomeIndex)
-        external onlyOwner
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
@@ -257,6 +260,15 @@ contract DoubleDice is
         // to track VirtualFloor in/out-flows
     }
 
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(IERC165, ERC1155, AccessControl)
+        returns (bool)
+    {
+        return ERC1155.supportsInterface(interfaceId) || AccessControl.supportsInterface(interfaceId);
+    }
+
     // ***** INFORMATIONAL *****
 
     function getVirtualFloorAggregateCommitments(bytes32 virtualFloorId, uint8 outcomeIndex)
@@ -279,7 +291,10 @@ contract DoubleDice is
     /// Eventually uri would be fixed in constructor,
     /// and even better would be passed as "" to super constructor,
     /// and uri() overridden to avoid SLOADs
-    function setURI(string calldata newuri) external onlyOwner {
+    function setURI(string calldata newuri)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _setURI(newuri);        
     }
 }

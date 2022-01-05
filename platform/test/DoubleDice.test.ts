@@ -4,7 +4,7 @@ import chaiSubset from 'chai-subset';
 import { BigNumber, BigNumberish, Event as ContractEvent } from 'ethers';
 import { ethers } from 'hardhat';
 import { formatUsdc, sumOf } from '../lib';
-import { DoubleDice, DoubleDice__factory, DummyUSDCoin, DummyUSDCoin__factory } from '../typechain-types';
+import { DoubleDice, DoubleDice__factory, DummyERC20, DummyUSDCoin__factory } from '../typechain-types';
 
 chai.use(chaiSubset);
 
@@ -28,7 +28,7 @@ describe('DoubleDice', function () {
   let user3Signer: SignerWithAddress;
   let user4Signer: SignerWithAddress;
   let contract: DoubleDice;
-  let token: DummyUSDCoin;
+  let token: DummyERC20;
 
   it('should go through the entire VPF cycle successfully', async function () {
     [

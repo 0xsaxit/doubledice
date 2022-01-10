@@ -24,7 +24,7 @@
       <td>{{ formatTimestamp(tClose) }}</td>
       <td>{{ formatTimestamp(tResolve) }}</td>
       <td>{{ virtualFloor.state }}</td>
-      <td>{{ virtualFloor.paymentToken }}</td>
+      <td>{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
       <td>{{ virtualFloor.totalSupply }}</td>
       <template v-for="outcome in virtualFloor.outcomes" :key="outcome.id">
         <Outcome

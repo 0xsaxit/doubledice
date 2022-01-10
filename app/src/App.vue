@@ -121,7 +121,10 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
   ) {
     id
     timestamp
-    paymentToken
+    paymentToken {
+      symbol
+      decimals
+    }
     tClose
     tResolve
     state

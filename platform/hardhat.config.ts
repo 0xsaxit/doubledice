@@ -23,6 +23,7 @@ export default <HardhatUserConfig>{
     only: [
       ':DoubleDice$',
       ':DummyUSDCoin$',
+      ':IERC20Metadata$',
     ],
     runOnCompile: true,
   },

@@ -85,7 +85,12 @@ export default class NewVirtualFloor extends Vue {
   }
 
   async createVpf(): Promise<void> {
-    const vpfId = ethers.utils.randomBytes(32)
+    // Generate a virtualFloorId in the hex form 00_0000000000000000000000000000000000000000000000_XXXXXXXXXXXXXXXX
+    // - First byte = 0x00, meaning "virtualfloor token type"
+    // - Next 23 bytes are all 0x00 to save intrinsic-gas on all future calls that will reference this virtualfloor-id
+    // - Lower 8 bytes are actually used for virtualFloorId
+    const virtualFloorId = ethers.utils.randomBytes(8)
+
     const betaGradient = EthersBigNumber.from(10).pow(18).mul(this.betaGradient)
     const tClose = new Date(this.tClose).getTime() / 1000
     const tResolve = new Date(this.tResolve).getTime() / 1000
@@ -94,7 +99,7 @@ export default class NewVirtualFloor extends Vue {
 
     // eslint-disable-next-line space-before-function-paren
     tryCatch(async () => {
-      const tx = await this.contract.createVirtualFloor(vpfId, betaGradient, tClose, tResolve, nOutcomes, paymentToken)
+      const tx = await this.contract.createVirtualFloor(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes, paymentToken)
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`
       console.log(`Sent ${txUrl}`)

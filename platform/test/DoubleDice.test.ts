@@ -15,7 +15,9 @@ const setNextBlockTimestamp = async (datetime: string) => {
 };
 
 function tokenIdOf({ virtualFloorId, outcomeIndex, datetime }: { virtualFloorId: BigNumberish; outcomeIndex: number; datetime: string }): BigNumber {
-  return BigNumber.from(ethers.utils.solidityKeccak256(['uint256', 'uint8', 'uint256'], [virtualFloorId, outcomeIndex, toTimestamp(datetime)]));
+  const bytes = ethers.utils.arrayify(ethers.utils.solidityKeccak256(['uint256', 'uint8', 'uint256'], [virtualFloorId, outcomeIndex, toTimestamp(datetime)]));
+  bytes[0] = 0x01; // commitment tokenIds must start 0x01...
+  return BigNumber.from(bytes);
 }
 
 describe('DoubleDice', function () {

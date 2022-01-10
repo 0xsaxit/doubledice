@@ -16,6 +16,9 @@ uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 256;
 
 uint256 constant _FEE_RATE_E18 = 0.01e18;
 
+uint256 constant _TOKENID_TYPE_MASK         = 0xff << 248;
+uint256 constant _TOKENID_TYPE_VIRTUALFLOOR = 0x00 << 248;
+uint256 constant _TOKENID_TYPE_COMMITMENT   = 0x01 << 248;
 
 struct AggregateCommitment {
     uint256 amount;
@@ -73,12 +76,15 @@ struct VirtualFloor {
     uint256 winnerProfits;
 }
 
-function _calculateTokenId(uint256 virtualFloorId, uint8 outcomeIndex, uint256 timeslot) pure returns (uint256 tokenId) {
+function _calcCommitmentERC1155TokenId(uint256 virtualFloorId, uint8 outcomeIndex, uint256 timeslot) pure returns (uint256 tokenId) {
     tokenId = uint256(keccak256(abi.encodePacked(
         virtualFloorId,
         outcomeIndex,
         timeslot
     )));
+
+    // tokenId highest byte overwritten with 0x01 to mark it as a commitment-type ERC-1155 tokenId
+    tokenId = (tokenId & ~_TOKENID_TYPE_MASK) | _TOKENID_TYPE_COMMITMENT;
 }
 
 contract DoubleDice is
@@ -104,6 +110,10 @@ contract DoubleDice is
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        // highest byte must be 0x00, so that virtualfloorId may be used as ERC-1155 token id,
+        // and all tokens with 32-byte tokenId starting 0x00 would represent virtual-floors.
+        require(virtualFloorId & _TOKENID_TYPE_MASK == _TOKENID_TYPE_VIRTUALFLOOR, "INVALID_VIRTUAL_FLOOR_ID");
+
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
 
@@ -144,7 +154,7 @@ contract DoubleDice is
         uint256 weightedAmount = beta * amount;
         aggregateCommitments.amount += amount;
         aggregateCommitments.weightedAmount += weightedAmount;
-        uint256 tokenId = _calculateTokenId(virtualFloorId, outcomeIndex, timeslot);
+        uint256 tokenId = _calcCommitmentERC1155TokenId(virtualFloorId, outcomeIndex, timeslot);
 
         // From the Graph's point of view...
         // First we declare the parameters bound to a particular tokenId...
@@ -231,7 +241,7 @@ contract DoubleDice is
             // ToDo: Because of this requirement, losing tokens can never be burnt... would we like to burn them? 
             require(context.outcomeIndex == virtualFloor.outcome, "NOT_WINNING_OUTCOME");
 
-            uint256 tokenId = _calculateTokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
+            uint256 tokenId = _calcCommitmentERC1155TokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             uint256 beta = 1e18 + virtualFloor.betaGradient * (virtualFloor.tClose - context.timeslot);
             uint256 weightedAmount = beta * amount;
@@ -241,7 +251,7 @@ contract DoubleDice is
             _burn(_msgSender(), tokenId, amount);
             virtualFloor.paymentToken.transfer(_msgSender(), payout);
         } else if (virtualFloor.state == VirtualFloorState.Cancelled) {
-            uint256 tokenId = _calculateTokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
+            uint256 tokenId = _calcCommitmentERC1155TokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);

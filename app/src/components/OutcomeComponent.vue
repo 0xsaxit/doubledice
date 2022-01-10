@@ -3,13 +3,13 @@
     <table style="width: 100%">
       <tr>
         <th>total</th>
-        <td>${{ outcomeTotalSupply }}</td>
+        <td>{{ outcomeTotalSupply }} {{ virtualFloor.paymentToken.symbol }}</td>
         <td>×</td>
         <td>{{ outcomeAverageBeta }}</td>
       </tr>
       <tr>
         <th>user</th>
-        <td>${{ userTotalBalance }}</td>
+        <td>{{ userTotalBalance }} {{ virtualFloor.paymentToken.symbol }}</td>
         <td>×</td>
         <td>{{ userAverageBeta }}</td>
       </tr>
@@ -19,7 +19,7 @@
             style="display: block; width: 100%"
             @click="commit"
             :disabled="!canCommit"
-          >Commit $1</button>
+          >Commit 1 {{ virtualFloor.paymentToken.symbol }}</button>
         </td>
       </tr>
       <tr>
@@ -42,6 +42,7 @@
 
 <script lang="ts">
 import { BigNumber as BigDecimal } from 'bignumber.js'
+import { BigNumber } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 import { DoubleDice as DoubleDiceContract } from '../../../platform/typechain-types'
@@ -99,8 +100,9 @@ export default class OutcomeComponent extends Vue {
   }
 
   async commit(): Promise<void> {
+    const amount = BigNumber.from(10).pow(this.virtualFloor.paymentToken.decimals).mul(1)
     try {
-      const tx = await this.contract.commitToVirtualFloor(this.virtualFloor.id, this.outcome.index, 1_000000)
+      const tx = await this.contract.commitToVirtualFloor(this.virtualFloor.id, this.outcome.index, amount)
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`
       console.log(`Sent ${txUrl}`)

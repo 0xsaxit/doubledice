@@ -14,8 +14,8 @@ const setNextBlockTimestamp = async (datetime: string) => {
   await ethers.provider.send('evm_setNextBlockTimestamp', [toTimestamp(datetime).toNumber()]);
 };
 
-function tokenIdOf({ virtualFloorId, outcomeIndex, datetime }: { virtualFloorId: string; outcomeIndex: number; datetime: string }): BigNumber {
-  return BigNumber.from(ethers.utils.solidityKeccak256(['bytes32', 'uint8', 'uint256'], [virtualFloorId, outcomeIndex, toTimestamp(datetime)]));
+function tokenIdOf({ virtualFloorId, outcomeIndex, datetime }: { virtualFloorId: BigNumberish; outcomeIndex: number; datetime: string }): BigNumber {
+  return BigNumber.from(ethers.utils.solidityKeccak256(['uint256', 'uint8', 'uint256'], [virtualFloorId, outcomeIndex, toTimestamp(datetime)]));
 }
 
 describe('DoubleDice', function () {
@@ -80,14 +80,14 @@ describe('DoubleDice', function () {
     await (await token.connect(user2Signer).approve(contract.address, $(100))).wait();
     await (await token.connect(user3Signer).approve(contract.address, $(100))).wait();
 
-    const virtualFloorId = '0x0000000000000000000000000000000000000000000000000000000000012345';
+    const virtualFloorId = 12345;
     const betaGradient = BigNumber.from(10).pow(18).div(3600); // 1 unit per hour
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
     const nOutcomes = 3;
 
     interface UserCommitment {
-      virtualFloorId: string;
+      virtualFloorId: BigNumber;
       outcomeIndex: number;
       timeslot: BigNumber;
       amount: BigNumber;
@@ -111,12 +111,8 @@ describe('DoubleDice', function () {
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
 
-      expect(virtualFloorCreatedEvent).to.containSubset({
-        event: 'VirtualFloorCreation',
-        args: {
-          virtualFloorId
-        }
-      });
+      expect(virtualFloorCreatedEvent.event).to.eq('VirtualFloorCreation');
+      expect(virtualFloorCreatedEvent.args.virtualFloorId).to.eq(virtualFloorId);
     }
 
     {

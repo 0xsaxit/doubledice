@@ -73,7 +73,7 @@ struct VirtualFloor {
     uint256 winnerProfits;
 }
 
-function _calculateTokenId(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 timeslot) pure returns (uint256 tokenId) {
+function _calculateTokenId(uint256 virtualFloorId, uint8 outcomeIndex, uint256 timeslot) pure returns (uint256 tokenId) {
     tokenId = uint256(keccak256(abi.encodePacked(
         virtualFloorId,
         outcomeIndex,
@@ -98,9 +98,9 @@ contract DoubleDice is
         feeBeneficiary = feeBeneficiary_;
     }
 
-    mapping(bytes32 => VirtualFloor) public _virtualFloors;
+    mapping(uint256 => VirtualFloor) public _virtualFloors;
 
-    function createVirtualFloor(bytes32 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken)
+    function createVirtualFloor(uint256 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -124,7 +124,7 @@ contract DoubleDice is
         emit VirtualFloorCreation(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes, paymentToken);
     }
 
-    function commitToVirtualFloor(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 amount)
+    function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount)
         external
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
@@ -159,7 +159,7 @@ contract DoubleDice is
         });
     }
 
-    function resolve(bytes32 virtualFloorId, uint8 outcomeIndex)
+    function resolve(uint256 virtualFloorId, uint8 outcomeIndex)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
@@ -273,7 +273,7 @@ contract DoubleDice is
 
     // ***** INFORMATIONAL *****
 
-    function getVirtualFloorAggregateCommitments(bytes32 virtualFloorId, uint8 outcomeIndex)
+    function getVirtualFloorAggregateCommitments(uint256 virtualFloorId, uint8 outcomeIndex)
         external view returns (AggregateCommitment memory)
     {
         return _virtualFloors[virtualFloorId].aggregateCommitments[outcomeIndex];

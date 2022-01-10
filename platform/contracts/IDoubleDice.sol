@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 struct VirtualFloorOutcomeTimeslot {
-    bytes32 virtualFloorId;
+    uint256 virtualFloorId;
     uint8 outcomeIndex;
     uint256 timeslot;
 }
@@ -18,7 +18,7 @@ interface IDoubleDice is
     IERC1155
 {
     event VirtualFloorCreation(
-        bytes32 indexed virtualFloorId,
+        uint256 indexed virtualFloorId,
         uint256 betaGradient,
         uint32 tClose,
         uint32 tResolve,
@@ -27,7 +27,7 @@ interface IDoubleDice is
     );
 
     event UserCommitment(
-        bytes32 indexed virtualFloorId,
+        uint256 indexed virtualFloorId,
         uint8 indexed outcomeIndex,
         uint256 indexed timeslot,
         uint256 amount,
@@ -35,7 +35,7 @@ interface IDoubleDice is
     );
 
     event VirtualFloorResolution(
-        bytes32 indexed virtualFloorId,
+        uint256 indexed virtualFloorId,
         uint8 outcomeIndex,
         VirtualFloorResolutionType resolutionType,
         uint256 winnerProfits,
@@ -43,11 +43,11 @@ interface IDoubleDice is
     );
 
 
-    function createVirtualFloor(bytes32 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken) external;
+    function createVirtualFloor(uint256 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken) external;
 
-    function commitToVirtualFloor(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
+    function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
 
-    function resolve(bytes32 virtualFloorId, uint8 outcomeIndex) external;
+    function resolve(uint256 virtualFloorId, uint8 outcomeIndex) external;
 
     function claim(VirtualFloorOutcomeTimeslot calldata context) external;
 

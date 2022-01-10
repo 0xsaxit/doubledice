@@ -232,9 +232,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "bytes32",
+        "internalType": "uint256",
         "name": "virtualFloorId",
-        "type": "bytes32"
+        "type": "uint256"
       },
       {
         "indexed": true,
@@ -269,9 +269,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "bytes32",
+        "internalType": "uint256",
         "name": "virtualFloorId",
-        "type": "bytes32"
+        "type": "uint256"
       },
       {
         "indexed": false,
@@ -312,9 +312,9 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "bytes32",
+        "internalType": "uint256",
         "name": "virtualFloorId",
-        "type": "bytes32"
+        "type": "uint256"
       },
       {
         "indexed": false,
@@ -399,9 +399,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "uint256",
         "name": "",
-        "type": "bytes32"
+        "type": "uint256"
       }
     ],
     "name": "_virtualFloors",
@@ -503,9 +503,9 @@
       {
         "components": [
           {
-            "internalType": "bytes32",
+            "internalType": "uint256",
             "name": "virtualFloorId",
-            "type": "bytes32"
+            "type": "uint256"
           },
           {
             "internalType": "uint8",
@@ -533,9 +533,9 @@
       {
         "components": [
           {
-            "internalType": "bytes32",
+            "internalType": "uint256",
             "name": "virtualFloorId",
-            "type": "bytes32"
+            "type": "uint256"
           },
           {
             "internalType": "uint8",
@@ -561,9 +561,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "uint256",
         "name": "virtualFloorId",
-        "type": "bytes32"
+        "type": "uint256"
       },
       {
         "internalType": "uint8",
@@ -584,9 +584,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "uint256",
         "name": "virtualFloorId",
-        "type": "bytes32"
+        "type": "uint256"
       },
       {
         "internalType": "uint256",
@@ -654,9 +654,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "uint256",
         "name": "virtualFloorId",
-        "type": "bytes32"
+        "type": "uint256"
       },
       {
         "internalType": "uint8",
@@ -793,9 +793,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes32",
+        "internalType": "uint256",
         "name": "virtualFloorId",
-        "type": "bytes32"
+        "type": "uint256"
       },
       {
         "internalType": "uint8",

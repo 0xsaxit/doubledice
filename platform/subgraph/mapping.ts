@@ -193,7 +193,10 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
     loadOrCreateEntity<User>(User.load, nobodyId);
   }
 
-  const userId = event.transaction.from.toHex();
+  // Note: We use an explicit `committer` param rather than relying on the underlying `event.transaction.from`
+  // as if the transaction were being relayed by a 3rd party,
+  // the commitment would be mistakenly attributed to the relayer.
+  const userId = event.params.committer.toHex();
   {
     loadOrCreateEntity<User>(User.load, userId);
   }

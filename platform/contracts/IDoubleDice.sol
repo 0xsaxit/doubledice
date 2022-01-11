@@ -29,8 +29,9 @@ interface IDoubleDice is
 
     event UserCommitment(
         uint256 indexed virtualFloorId,
-        uint8 indexed outcomeIndex,
-        uint256 indexed timeslot,
+        address indexed committer,
+        uint8 outcomeIndex,
+        uint256 timeslot,
         uint256 amount,
         uint256 tokenId
     );

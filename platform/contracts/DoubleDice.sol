@@ -178,7 +178,14 @@ contract DoubleDice is
 
         // From the Graph's point of view...
         // First we declare the parameters bound to a particular tokenId...
-        emit UserCommitment(virtualFloorId, outcomeIndex, timeslot, amount, tokenId);
+        emit UserCommitment({
+            virtualFloorId: virtualFloorId,
+            committer: _msgSender(),
+            outcomeIndex: outcomeIndex,
+            timeslot: timeslot,
+            amount: amount,
+            tokenId: tokenId
+        });
 
         // ... and only then do we refer to it in transfers.
         _mint({

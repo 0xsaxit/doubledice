@@ -238,12 +238,18 @@
       },
       {
         "indexed": true,
+        "internalType": "address",
+        "name": "committer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
         "internalType": "uint8",
         "name": "outcomeIndex",
         "type": "uint8"
       },
       {
-        "indexed": true,
+        "indexed": false,
         "internalType": "uint256",
         "name": "timeslot",
         "type": "uint256"

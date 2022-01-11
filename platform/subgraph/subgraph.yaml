@@ -25,7 +25,7 @@ dataSources:
           handler: handlePaymentTokenWhitelistUpdate
         - event: VirtualFloorCreation(indexed uint256,indexed address,uint256,uint32,uint32,uint8,address)
           handler: handleVirtualFloorCreation
-        - event: UserCommitment(indexed uint256,indexed uint8,indexed uint256,uint256,uint256)
+        - event: UserCommitment(indexed uint256,indexed address,uint8,uint256,uint256,uint256)
           handler: handleUserCommitment
         - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleTransferSingle

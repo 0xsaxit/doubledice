@@ -20,6 +20,8 @@ uint256 constant _TOKENID_TYPE_MASK         = 0xff << 248;
 uint256 constant _TOKENID_TYPE_VIRTUALFLOOR = 0x00 << 248;
 uint256 constant _TOKENID_TYPE_COMMITMENT   = 0x01 << 248;
 
+// ToDo: Can we optimize this by using uint128 and packing both values into 1 slot,
+// or will weightedAmount then not have enough precision?
 struct AggregateCommitment {
     uint256 amount;
     uint256 weightedAmount;
@@ -29,6 +31,9 @@ enum VirtualFloorState {
     None,
 
     /// @dev Running if t < tClose else Closed
+    /// Running means that the VirtualFloor is accepting commitments
+    /// Closed means that the VirtualFloor is no longer accepting commitments,
+    /// but the associated event has not yet been resolved.
     RunningOrClosed,
 
     Completed,
@@ -160,18 +165,23 @@ contract DoubleDice is
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_NOT_FOUND");
 
-        // Quantize to 1-minute bins to make it simple to accumulate subsequent commitments into 1 token while testing
-        uint256 timeslot = block.timestamp - (block.timestamp % _TIMESLOT_DURATION);
-
-        require(timeslot < virtualFloor.tClose, "MARKET_CLOSED");
+        require(block.timestamp < virtualFloor.tClose, "MARKET_CLOSED");
         require(outcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
         require(amount > 0, "AMOUNT_ZERO");
 
         virtualFloor.paymentToken.safeTransferFrom(_msgSender(), address(this), amount);
 
-        AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
+        // Assign all commitments that happen within the same `_TIMESLOT_DURATION`, to the same "timeslot."
+        // These commitments will all be assigned the same associated beta value.
+        // If `_TIMESLOT_DURATION` is set to 1 minute, then the following line converts
+        // all 2022-01-11T15:47:XX to 2022-01-11T15:47:00,
+        // and this rounded-down timestamp is used as the "timeslot identifier".
+        uint256 timeslot = block.timestamp - (block.timestamp % _TIMESLOT_DURATION);
+
         uint256 beta = 1e18 + virtualFloor.betaGradient * (virtualFloor.tClose - timeslot);
         uint256 weightedAmount = beta * amount;
+
+        AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
         aggregateCommitments.amount += amount;
         aggregateCommitments.weightedAmount += weightedAmount;
         uint256 tokenId = _calcCommitmentERC1155TokenId(virtualFloorId, outcomeIndex, timeslot);

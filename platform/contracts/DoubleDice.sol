@@ -64,13 +64,13 @@ enum VirtualFloorState {
 /// Nevertheless nothing holds us from restoring previous behaviour whenever we like.
 struct VirtualFloor {
 
-    VirtualFloorState state;  //    1 byte
-    uint32 tClose;            // +  4 bytes 
-    uint32 tResolve;          // +  4 bytes
-    uint8 nOutcomes;          // +  1 byte
-    uint8 outcome;            // +  1 byte
-    IERC20 paymentToken;      // + 20 bytes
-                              // = 31 bytes => packed into 1 32-byte slot
+    VirtualFloorState state;   //    1 byte
+    uint32 tClose;             // +  4 bytes 
+    uint32 tResolve;           // +  4 bytes
+    uint8 nOutcomes;           // +  1 byte
+    uint8 winningOutcomeIndex; // +  1 byte
+    IERC20 paymentToken;       // + 20 bytes
+                               // = 31 bytes => packed into 1 32-byte slot
 
     uint256 betaGradient;
 
@@ -206,7 +206,7 @@ contract DoubleDice is
         });
     }
 
-    function resolve(uint256 virtualFloorId, uint8 outcomeIndex)
+    function resolve(uint256 virtualFloorId, uint8 winningOutcomeIndex)
         external
         onlyVirtualFloorOwner(virtualFloorId)
     {
@@ -214,16 +214,16 @@ contract DoubleDice is
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
 
         require(block.timestamp >= virtualFloor.tResolve, "TOO_EARLY_TO_RESOLVE");
-        require(outcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+        require(winningOutcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
-        virtualFloor.outcome = outcomeIndex;
+        virtualFloor.winningOutcomeIndex = winningOutcomeIndex;
 
         uint256 totalVirtualFloorCommittedAmount = 0;
         for (uint256 i = 0; i < virtualFloor.nOutcomes; i++) {
             totalVirtualFloorCommittedAmount += virtualFloor.aggregateCommitments[i].amount;
         }
 
-        uint256 totalWinnerCommitments = virtualFloor.aggregateCommitments[outcomeIndex].amount;
+        uint256 totalWinnerCommitments = virtualFloor.aggregateCommitments[winningOutcomeIndex].amount;
 
         VirtualFloorResolutionType resolutionType;
         uint256 feeAmount;
@@ -262,7 +262,7 @@ contract DoubleDice is
 
         emit VirtualFloorResolution({
             virtualFloorId: virtualFloorId,
-            outcomeIndex: outcomeIndex,
+            winningOutcomeIndex: winningOutcomeIndex,
             resolutionType: resolutionType,
             winnerProfits: winnerProfits,
             feeAmount: feeAmount
@@ -276,13 +276,13 @@ contract DoubleDice is
         if (virtualFloor.state == VirtualFloorState.Completed) {
 
             // ToDo: Because of this requirement, losing tokens can never be burnt... would we like to burn them? 
-            require(context.outcomeIndex == virtualFloor.outcome, "NOT_WINNING_OUTCOME");
+            require(context.outcomeIndex == virtualFloor.winningOutcomeIndex, "NOT_WINNING_OUTCOME");
 
             uint256 tokenId = _calcCommitmentERC1155TokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             uint256 beta = 1e18 + virtualFloor.betaGradient * (virtualFloor.tClose - context.timeslot);
             uint256 weightedAmount = beta * amount;
-            uint256 profit = (weightedAmount * virtualFloor.winnerProfits) / virtualFloor.aggregateCommitments[virtualFloor.outcome].weightedAmount;
+            uint256 profit = (weightedAmount * virtualFloor.winnerProfits) / virtualFloor.aggregateCommitments[virtualFloor.winningOutcomeIndex].weightedAmount;
             uint256 payout = amount + profit;
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);

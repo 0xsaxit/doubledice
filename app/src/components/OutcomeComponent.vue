@@ -144,7 +144,7 @@ export default class OutcomeComponent extends Vue {
   }
 
   get isWinningOutcome(): boolean {
-    return this.virtualFloor.state !== VirtualFloorState.RunningOrClosed && this.outcome.index === this.virtualFloor.winningOutcome
+    return this.virtualFloor.state !== VirtualFloorState.RunningOrClosed && this.outcome.index === this.virtualFloor.winningOutcome?.index
     // return false
   }
 

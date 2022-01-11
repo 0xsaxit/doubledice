@@ -342,7 +342,8 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
         break;
     }
 
-    $.winningOutcome = event.params.outcomeIndex;
+    const winningOutcomeId = `${virtualFloorId}-${event.params.winningOutcomeIndex}`;
+    $.winningOutcome = winningOutcomeId;
 
     $.save();
   }

@@ -331,7 +331,7 @@
       {
         "indexed": false,
         "internalType": "uint8",
-        "name": "outcomeIndex",
+        "name": "winningOutcomeIndex",
         "type": "uint8"
       },
       {
@@ -440,7 +440,7 @@
       },
       {
         "internalType": "uint8",
-        "name": "outcome",
+        "name": "winningOutcomeIndex",
         "type": "uint8"
       },
       {
@@ -811,7 +811,7 @@
       },
       {
         "internalType": "uint8",
-        "name": "outcomeIndex",
+        "name": "winningOutcomeIndex",
         "type": "uint8"
       }
     ],

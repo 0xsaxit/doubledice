@@ -148,7 +148,10 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
     tClose
     tResolve
     state
-    winningOutcome
+    winningOutcome {
+      id
+      index
+    }
     totalSupply
     betaGradient
     owner {

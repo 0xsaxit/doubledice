@@ -29,7 +29,7 @@ type VirtualFloor @entity {
   tClose: BigInt!
   tResolve: BigInt!
   state: VirtualFloorState!
-  winningOutcome: Int!
+  winningOutcome: Outcome
 
   # aggregates
   totalSupply: BigDecimal!

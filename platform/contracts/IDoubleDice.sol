@@ -38,7 +38,7 @@ interface IDoubleDice is
 
     event VirtualFloorResolution(
         uint256 indexed virtualFloorId,
-        uint8 outcomeIndex,
+        uint8 winningOutcomeIndex,
         VirtualFloorResolutionType resolutionType,
         uint256 winnerProfits,
         uint256 feeAmount

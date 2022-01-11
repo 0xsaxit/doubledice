@@ -57,7 +57,8 @@ import { tryCatch } from '../utils'
 @Options({
   props: {
     contract: Object as PropType<DoubleDiceContract>,
-    paymentTokens: Object as PropType<PaymentTokenEntity[]>
+    paymentTokens: Object as PropType<PaymentTokenEntity[]>,
+    nextBlockTimestamp: Number
   }
 })
 export default class NewVirtualFloor extends Vue {
@@ -65,23 +66,23 @@ export default class NewVirtualFloor extends Vue {
 
   paymentTokens!: PaymentTokenEntity[]
 
+  nextBlockTimestamp!: number
+
   // nullable because otherwise property won't be picked up during setup; ToDo: Find a better way
   selectedPaymentToken: PaymentTokenEntity | null = null
 
   betaGradient = 1
 
-  // in 1 week's time
-  tClose = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19)
+  tClose!: string
 
-  // in 2 weeks' time
-  tResolve = new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19)
+  tResolve!: string
 
   nOutcomes = 2
 
-  async beforeCreate(): Promise<void> {
-    // async beforeMount(): Promise<void> {
-    console.log(`beforeCreate: this.paymentTokens = ${this.paymentTokens}`)
+  async created(): Promise<void> {
     this.selectedPaymentToken = this.paymentTokens[0]
+    this.tClose = new Date((this.nextBlockTimestamp + 7 * 24 * 60 * 60) * 1000).toISOString().slice(0, 19) // in 1 week's time
+    this.tResolve = new Date((this.nextBlockTimestamp + 14 * 24 * 60 * 60) * 1000).toISOString().slice(0, 19) // in 2 weeks' time
   }
 
   async createVpf(): Promise<void> {

@@ -19,8 +19,11 @@
       <td>{{ accountAddress }}</td>
     </tr>
     <tr>
-      <th>Owner</th>
-      <td>{{ owner }}</td>
+      <th>
+        Does connected account
+        <br />own DD contract?
+      </th>
+      <td>{{ owner ? 'yes' : 'no' }}</td>
     </tr>
     <tr>
       <th>Fee beneficiary</th>
@@ -87,14 +90,23 @@
     />
   </table>
 
-  <!-- <pre style="text-align: left;">{{ JSON.stringify(processedVirtualFloors, null, 2) }}</pre> -->
   <hr />
 
   <NewVirtualFloor
-    v-if="contract && paymentTokens"
+    v-if="contract && paymentTokens && nextBlockTimestamp"
     :contract="contract"
     :paymentTokens="paymentTokens"
+    :nextBlockTimestamp="nextBlockTimestamp"
   />
+
+  <hr />
+
+  <div style="text-align: left">
+    <a
+      href="chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/home.html#settings/advanced"
+      target="blank"
+    >🦊🩹 Reset MetaMask account after restarting network</a>
+  </div>
 </template>
 
 <script lang="ts">

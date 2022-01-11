@@ -1,0 +1,19 @@
+{
+  "name": "doubledice-metadata-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "engines": {
+    "node": "14.16.1",
+    "npm": "6.14.12"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@netlify/functions": "^0.10.0",
+    "graphql": "^16.2.0",
+    "graphql-request": "^3.7.0"
+  }
+}

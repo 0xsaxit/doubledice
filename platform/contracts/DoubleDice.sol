@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./IDoubleDice.sol";
-import "./HasPaymentTokenWhitelist.sol";
+import "./PaymentTokenRegistry.sol";
 
 uint256 constant _TIMESLOT_DURATION = 60 seconds;
 
@@ -69,8 +69,8 @@ struct VirtualFloor {
     uint32 tResolve;           // +  4 bytes
     uint8 nOutcomes;           // +  1 byte
     uint8 winningOutcomeIndex; // +  1 byte
-    IERC20 paymentToken;       // + 20 bytes
-                               // = 31 bytes => packed into 1 32-byte slot
+    bytes10 paymentTokenId;    // + 10 bytes
+                               // = 21 bytes => packed into 1 32-byte slot
 
     uint256 betaGradient;
 
@@ -96,7 +96,7 @@ contract DoubleDice is
     IDoubleDice,
     ERC1155,
     AccessControl,
-    HasPaymentTokenWhitelist
+    PaymentTokenRegistry
 {
     using SafeERC20 for IERC20;
 
@@ -129,7 +129,7 @@ contract DoubleDice is
         require(isPaymentTokenWhitelisted(paymentToken), "Error: Payment token is not whitelisted");
 
         virtualFloor.state = VirtualFloorState.RunningOrClosed;
-        virtualFloor.paymentToken = paymentToken;
+        virtualFloor.paymentTokenId = _paymentTokenToId(paymentToken);
         virtualFloor.betaGradient = betaGradient;
         virtualFloor.tClose = tClose;
         virtualFloor.tResolve = tResolve;
@@ -169,7 +169,7 @@ contract DoubleDice is
         require(outcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
         require(amount > 0, "AMOUNT_ZERO");
 
-        virtualFloor.paymentToken.safeTransferFrom(_msgSender(), address(this), amount);
+        _idToPaymentToken(virtualFloor.paymentTokenId).safeTransferFrom(_msgSender(), address(this), amount);
 
         // Assign all commitments that happen within the same `_TIMESLOT_DURATION`, to the same "timeslot."
         // These commitments will all be assigned the same associated beta value.
@@ -257,7 +257,7 @@ contract DoubleDice is
             winnerProfits = feePlusWinnerProfits - feeAmount;
             virtualFloor.winnerProfits = winnerProfits;
 
-            virtualFloor.paymentToken.safeTransfer(feeBeneficiary, feeAmount);
+            _idToPaymentToken(virtualFloor.paymentTokenId).safeTransfer(feeBeneficiary, feeAmount);
         }
 
         emit VirtualFloorResolution({
@@ -286,13 +286,13 @@ contract DoubleDice is
             uint256 payout = amount + profit;
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            virtualFloor.paymentToken.transfer(_msgSender(), payout);
+            _idToPaymentToken(virtualFloor.paymentTokenId).transfer(_msgSender(), payout);
         } else if (virtualFloor.state == VirtualFloorState.Cancelled) {
             uint256 tokenId = _calcCommitmentERC1155TokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            virtualFloor.paymentToken.transfer(_msgSender(), amount);
+            _idToPaymentToken(virtualFloor.paymentTokenId).transfer(_msgSender(), amount);
         } else if (virtualFloor.state == VirtualFloorState.RunningOrClosed) {
             revert("MARKET_NOT_RESOLVED");
         } else if (virtualFloor.state == VirtualFloorState.None) {

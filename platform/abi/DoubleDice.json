@@ -443,6 +443,11 @@
         "type": "uint8"
       },
       {
+        "internalType": "uint8",
+        "name": "nOutcomes",
+        "type": "uint8"
+      },
+      {
         "internalType": "uint32",
         "name": "tClose",
         "type": "uint32"
@@ -451,16 +456,6 @@
         "internalType": "uint32",
         "name": "tResolve",
         "type": "uint32"
-      },
-      {
-        "internalType": "uint8",
-        "name": "nOutcomes",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint8",
-        "name": "winningOutcomeIndex",
-        "type": "uint8"
       },
       {
         "internalType": "bytes10",
@@ -473,9 +468,14 @@
         "type": "uint256"
       },
       {
-        "internalType": "uint256",
+        "internalType": "uint8",
+        "name": "winningOutcomeIndex",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint192",
         "name": "winnerProfits",
-        "type": "uint256"
+        "type": "uint192"
       }
     ],
     "stateMutability": "view",

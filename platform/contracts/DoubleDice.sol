@@ -64,21 +64,26 @@ enum VirtualFloorState {
 /// Nevertheless nothing holds us from restoring previous behaviour whenever we like.
 struct VirtualFloor {
 
-    VirtualFloorState state;   //    1 byte
-    uint32 tClose;             // +  4 bytes 
-    uint32 tResolve;           // +  4 bytes
-    uint8 nOutcomes;           // +  1 byte
-    uint8 winningOutcomeIndex; // +  1 byte
-    bytes10 paymentTokenId;    // + 10 bytes
-                               // = 21 bytes => packed into 1 32-byte slot
+    // Storage slot 0
+    VirtualFloorState state;          //    1 byte
+    uint8 nOutcomes;                  // +  1 byte
+    uint32 tClose;                    // +  4 bytes 
+    uint32 tResolve;                  // +  4 bytes
+    bytes10 paymentTokenId;           // + 10 bytes
+                                      // = 20 bytes => packed into 1 32-byte slot
 
+    // Storage slot 1
     uint256 betaGradient;
 
-    // By using a fixed-length array, we do not waste a storage slot for length
-    AggregateCommitment[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] aggregateCommitments;
+    // Storage slot 2
+    uint8 winningOutcomeIndex; // +  1 byte
+    uint192 winnerProfits;     // + 24 bytes ; fits with 18-decimal-place precision all values up to ~1.5e30 (and with less decimals, more)
+                               // = 25 bytes => packed into 1 32-byte slot
 
-    // could be recalculated every time... but we cache it
-    uint256 winnerProfits;
+    // By using a fixed-length array, we do not waste gas to write array-length,
+    // as array-length is instead stored in `nOutcomes` which is packed into 1 byte
+    // and packed efficiently in slot 0
+    AggregateCommitment[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] aggregateCommitments;
 }
 
 function _calcCommitmentERC1155TokenId(uint256 virtualFloorId, uint8 outcomeIndex, uint256 timeslot) pure returns (uint256 tokenId) {
@@ -90,6 +95,11 @@ function _calcCommitmentERC1155TokenId(uint256 virtualFloorId, uint8 outcomeInde
 
     // tokenId highest byte overwritten with 0x01 to mark it as a commitment-type ERC-1155 tokenId
     tokenId = (tokenId & ~_TOKENID_TYPE_MASK) | _TOKENID_TYPE_COMMITMENT;
+}
+
+function _toUint192(uint256 value) pure returns (uint192) {
+    require(value <= type(uint192).max, "SafeCast: value doesn't fit in 192 bits");
+    return uint192(value);
 }
 
 contract DoubleDice is
@@ -255,7 +265,7 @@ contract DoubleDice is
             feeAmount = Math.min(maxVirtualFloorFeeAmount, feePlusWinnerProfits);
 
             winnerProfits = feePlusWinnerProfits - feeAmount;
-            virtualFloor.winnerProfits = winnerProfits;
+            virtualFloor.winnerProfits = _toUint192(winnerProfits);
 
             _idToPaymentToken(virtualFloor.paymentTokenId).safeTransfer(feeBeneficiary, feeAmount);
         }

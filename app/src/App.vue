@@ -65,6 +65,7 @@
         <th>tResolve</th>
         <th>state</th>
         <th>paymentToken</th>
+        <th>owner</th>
         <th>totalSupply</th>
         <template v-for="index in maxOutcomeCount" :key="index">
           <th>Outcome № {{ index + 1 }}</th>
@@ -76,6 +77,7 @@
       :key="virtualFloor.id"
       :contract="contract"
       :virtualFloor="virtualFloor"
+      :connectedAccountAddress="accountAddress"
       :minVirtualFloorTimestamp="minVirtualFloorTimestamp"
       :maxVirtualFloorTimestamp="maxVirtualFloorTimestamp"
       :maxOutcomes="maxOutcomeCount.length"
@@ -137,6 +139,9 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
     winningOutcome
     totalSupply
     betaGradient
+    owner {
+      id
+    }
     outcomes {
       index
       totalSupply

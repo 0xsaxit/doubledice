@@ -1,7 +1,7 @@
 <template>
   <tbody class="virtual-floor">
     <tr>
-      <td :colspan="7 + maxOutcomes">
+      <td :colspan="8 + maxOutcomes">
         <Timeline
           :min="minVirtualFloorTimestamp"
           :start="Number(virtualFloor.timestamp)"
@@ -25,6 +25,7 @@
       <td>{{ formatTimestamp(tResolve) }}</td>
       <td>{{ virtualFloor.state }}</td>
       <td>{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
+      <td>{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
       <td>{{ virtualFloor.totalSupply }}</td>
       <template v-for="outcome in virtualFloor.outcomes" :key="outcome.id">
         <Outcome
@@ -52,6 +53,7 @@ import Timeline from './Timeline.vue'
   props: {
     contract: Object as PropType<DoubleDiceContract>,
     virtualFloor: Object as PropType<VirtualFloorEntity>,
+    connectedAccountAddress: String,
     minVirtualFloorTimestamp: Number,
     maxVirtualFloorTimestamp: Number,
     maxOutcomes: Number,
@@ -70,6 +72,7 @@ import Timeline from './Timeline.vue'
 export default class VirtualFloorComponent extends Vue {
   contract!: DoubleDiceContract
   virtualFloor!: VirtualFloorEntity
+  connectedAccountAddress!: string
   minVirtualFloorTimestamp!: number
   maxVirtualFloorTimestamp!: number
   maxOutcomes!: number
@@ -86,6 +89,10 @@ export default class VirtualFloorComponent extends Vue {
 
   get tResolve(): number {
     return Number(this.virtualFloor.tResolve)
+  }
+
+  get isOwnedByConnectedAccount(): boolean {
+    return this.virtualFloor.owner.id === this.connectedAccountAddress?.toLowerCase()
   }
 
   formatTimestamp(timestamp: string | number): string {

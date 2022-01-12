@@ -15,6 +15,9 @@ enum VirtualFloorState {
 type VirtualFloor @entity {
   id: ID!
 
+  # parents
+  owner: User!
+
   # children
   outcomes: [Outcome!]! @derivedFrom(field: "virtualFloor")
   virtualFloorTimeslots: [VirtualFloorTimeslot!]! @derivedFrom(field: "virtualFloor")
@@ -73,6 +76,7 @@ type User @entity {
   userOutcomes: [UserOutcome!]! @derivedFrom(field: "user")
   outcomeTimeslotTransfersTo: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "to")
   outcomeTimeslotTransfersFrom: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "from")
+  ownedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "owner")
 }
 
 type UserOutcome @entity {

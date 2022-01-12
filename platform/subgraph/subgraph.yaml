@@ -23,7 +23,7 @@ dataSources:
       eventHandlers:
         - event: PaymentTokenWhitelistUpdate(indexed address,bool)
           handler: handlePaymentTokenWhitelistUpdate
-        - event: VirtualFloorCreation(indexed uint256,uint256,uint32,uint32,uint8,address)
+        - event: VirtualFloorCreation(indexed uint256,indexed address,uint256,uint32,uint32,uint8,address)
           handler: handleVirtualFloorCreation
         - event: UserCommitment(indexed uint256,indexed uint8,indexed uint256,uint256,uint256)
           handler: handleUserCommitment

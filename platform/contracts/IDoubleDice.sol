@@ -19,6 +19,7 @@ interface IDoubleDice is
 {
     event VirtualFloorCreation(
         uint256 indexed virtualFloorId,
+        address indexed creator,
         uint256 betaGradient,
         uint32 tClose,
         uint32 tResolve,

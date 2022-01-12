@@ -4,7 +4,8 @@
 import {
   Address,
   BigDecimal,
-  BigInt
+  BigInt,
+  log
 } from '@graphprotocol/graph-ts';
 import {
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
@@ -98,6 +99,12 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   {
     const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
     $.timestamp = event.block.timestamp;
+
+    const userId = event.params.creator.toHex();
+    {
+      loadOrCreateEntity<User>(User.load, userId);
+    }
+    $.owner = userId;
 
     // Since the platform contract will reject VirtualFloors created with a PaymentToken that is not whitelisted,
     // we are sure that the PaymentToken entity referenced here will have always been created beforehand
@@ -231,6 +238,13 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
 }
 
 export function handleTransferSingle(event: TransferSingleEvent): void {
+  // Skip virtualFloor-type tokens for now
+  const tokenType = event.params.id.rightShift(248).toI32();
+  if (tokenType != 1) {
+    log.warning('Ignoring TransferSingle(id={}}) because token is of type {} != 1', [event.params.id.toHex(), tokenType.toString()]);
+    return;
+  }
+
   if (event.params.from.equals(Address.zero()) || event.params.to.equals(Address.zero())) {
     return;
   }

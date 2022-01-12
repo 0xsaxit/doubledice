@@ -95,6 +95,11 @@ contract DoubleDice is
 {
     using SafeERC20 for IERC20;
 
+    modifier onlyVirtualFloorOwner(uint256 virtualFloorId) {
+        require(balanceOf(_msgSender(), virtualFloorId) == 1, "NOT_VIRTUALFLOOR_OWNER");
+        _;
+    }
+
     address public feeBeneficiary;
 
     constructor(string memory uri_, address feeBeneficiary_)
@@ -108,12 +113,7 @@ contract DoubleDice is
 
     function createVirtualFloor(uint256 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken)
         external
-        onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        // highest byte must be 0x00, so that virtualfloorId may be used as ERC-1155 token id,
-        // and all tokens with 32-byte tokenId starting 0x00 would represent virtual-floors.
-        require(virtualFloorId & _TOKENID_TYPE_MASK == _TOKENID_TYPE_VIRTUALFLOOR, "INVALID_VIRTUAL_FLOOR_ID");
-
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
 
@@ -131,7 +131,27 @@ contract DoubleDice is
         virtualFloor.nOutcomes = nOutcomes;
 
         virtualFloor.state = VirtualFloorState.RunningOrClosed;
-        emit VirtualFloorCreation(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes, paymentToken);
+
+        emit VirtualFloorCreation({
+            virtualFloorId: virtualFloorId,
+            creator: _msgSender(),
+            betaGradient: betaGradient,
+            tClose: tClose,
+            tResolve: tResolve,
+            nOutcomes: nOutcomes,
+            paymentToken: paymentToken
+        });
+
+        // Represent this virtual-floor as an ERC-1155 *non-fungible* token.
+        // Require virtualfloor-type token ids (0x00-padded to 32 bytes) to start with 0x00,
+        // to distinguish from commitment-type token ids that start with 0x01.
+        require(virtualFloorId & _TOKENID_TYPE_MASK == _TOKENID_TYPE_VIRTUALFLOOR, "INVALID_VIRTUAL_FLOOR_ID");
+        _mint({
+            to: _msgSender(),
+            id: virtualFloorId,
+            amount: 1,
+            data: hex""
+        });
     }
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount)
@@ -171,7 +191,7 @@ contract DoubleDice is
 
     function resolve(uint256 virtualFloorId, uint8 outcomeIndex)
         external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyVirtualFloorOwner(virtualFloorId)
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");

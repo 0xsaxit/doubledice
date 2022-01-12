@@ -41,12 +41,10 @@ describe('DoubleDice', function () {
     await token.deployed();
     contract = await new DoubleDice__factory(ownerSigner).deploy(
       'http://localhost:8080/token/{id}',
-      token.address,
       feeBeneficiarySigner.address
     );
     await contract.deployed();
 
-    expect(await contract._token()).to.eq(token.address);
     expect(await contract.feeBeneficiary()).to.eq(feeBeneficiarySigner.address);
 
     const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber => BigNumber.from(1000000).mul(dollars).add(millionths);
@@ -88,7 +86,7 @@ describe('DoubleDice', function () {
       const {
         events: [virtualFloorCreatedEvent],
         blockHash
-      } = await (await contract.createVirtualFloor(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes)).wait();
+      } = await (await contract.createVirtualFloor(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes, token.address)).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
 

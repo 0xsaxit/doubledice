@@ -61,7 +61,8 @@ struct VirtualFloor {
     uint32 tResolve;          // +  4 bytes
     uint8 nOutcomes;          // +  1 byte
     uint8 outcome;            // +  1 byte
-                              // = 11 bytes => packed into 1 32-byte slot
+    IERC20 paymentToken;      // + 20 bytes
+                              // = 31 bytes => packed into 1 32-byte slot
 
     uint256 betaGradient;
 
@@ -87,20 +88,17 @@ contract DoubleDice is
 {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable _token;
-
     address public feeBeneficiary;
 
-    constructor(string memory uri_, IERC20 token_, address feeBeneficiary_)
+    constructor(string memory uri_, address feeBeneficiary_)
         ERC1155(uri_) // ToDo: Override uri() to avoid SLOADs
     {
-        _token = token_;
         feeBeneficiary = feeBeneficiary_;
     }
 
     mapping(bytes32 => VirtualFloor) public _virtualFloors;
 
-    function createVirtualFloor(bytes32 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes)
+    function createVirtualFloor(bytes32 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken)
         external onlyOwner
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
@@ -112,13 +110,14 @@ contract DoubleDice is
         require(nOutcomes >= 2, "Error: nOutcomes < 2");
 
         virtualFloor.state = VirtualFloorState.RunningOrClosed;
+        virtualFloor.paymentToken = paymentToken;
         virtualFloor.betaGradient = betaGradient;
         virtualFloor.tClose = tClose;
         virtualFloor.tResolve = tResolve;
         virtualFloor.nOutcomes = nOutcomes;
 
         virtualFloor.state = VirtualFloorState.RunningOrClosed;
-        emit VirtualFloorCreation(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes);
+        emit VirtualFloorCreation(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes, paymentToken);
     }
 
     function commitToVirtualFloor(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 amount)
@@ -134,7 +133,7 @@ contract DoubleDice is
         require(outcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
         require(amount > 0, "AMOUNT_ZERO");
 
-        _token.safeTransferFrom(_msgSender(), address(this), amount);
+        virtualFloor.paymentToken.safeTransferFrom(_msgSender(), address(this), amount);
 
         AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
         uint256 beta = 1e18 + virtualFloor.betaGradient * (virtualFloor.tClose - timeslot);
@@ -206,7 +205,7 @@ contract DoubleDice is
             winnerProfits = feePlusWinnerProfits - feeAmount;
             virtualFloor.winnerProfits = winnerProfits;
 
-            _token.safeTransfer(feeBeneficiary, feeAmount);
+            virtualFloor.paymentToken.safeTransfer(feeBeneficiary, feeAmount);
         }
 
         emit VirtualFloorResolution({
@@ -235,13 +234,13 @@ contract DoubleDice is
             uint256 payout = amount + profit;
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            _token.transfer(_msgSender(), payout);
+            virtualFloor.paymentToken.transfer(_msgSender(), payout);
         } else if (virtualFloor.state == VirtualFloorState.Cancelled) {
             uint256 tokenId = _calculateTokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            _token.transfer(_msgSender(), amount);
+            virtualFloor.paymentToken.transfer(_msgSender(), amount);
         } else if (virtualFloor.state == VirtualFloorState.RunningOrClosed) {
             revert("MARKET_NOT_RESOLVED");
         } else if (virtualFloor.state == VirtualFloorState.None) {

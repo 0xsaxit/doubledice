@@ -1,7 +1,7 @@
 <template>
   <tbody class="virtual-floor">
     <tr>
-      <td :colspan="6 + maxOutcomes">
+      <td :colspan="7 + maxOutcomes">
         <Timeline
           :min="minVirtualFloorTimestamp"
           :start="Number(virtualFloor.timestamp)"
@@ -24,6 +24,7 @@
       <td>{{ formatTimestamp(tClose) }}</td>
       <td>{{ formatTimestamp(tResolve) }}</td>
       <td>{{ virtualFloor.state }}</td>
+      <td>{{ virtualFloor.paymentToken }}</td>
       <td>{{ virtualFloor.totalSupply }}</td>
       <template v-for="outcome in virtualFloor.outcomes" :key="outcome.id">
         <Outcome

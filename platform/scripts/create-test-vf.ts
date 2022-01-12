@@ -15,8 +15,7 @@ async function main() {
 
   const platform = new DoubleDice__factory(owner).attach(PLATFORM_CONTRACT_ADDRESS);
 
-  const tokenAddress = await platform._token();
-  const token = new DummyUSDCoin__factory(owner).attach(tokenAddress);
+  const token = new DummyUSDCoin__factory(owner).attach(TOKEN_CONTRACT_ADDRESS);
 
   // const { timestamp } = await ethers.provider.getBlock('latest');
 
@@ -33,6 +32,7 @@ async function main() {
     timestamp + 100 * 60, // tClose
     timestamp + 200 * 60, // tResolve
     5, // nOutcomes
+    TOKEN_CONTRACT_ADDRESS, // paymentToken
   )).wait();
 
   const amt = 100_000000_000000_000000n;

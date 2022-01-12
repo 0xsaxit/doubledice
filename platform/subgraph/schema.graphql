@@ -21,6 +21,7 @@ type VirtualFloor @entity {
 
   # properties
   timestamp: BigInt!
+  paymentToken: String!
   betaGradient: BigDecimal!
   tClose: BigInt!
   tResolve: BigInt!

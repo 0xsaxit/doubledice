@@ -71,6 +71,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   {
     const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
     $.timestamp = event.block.timestamp;
+    $.paymentToken = event.params.paymentToken.toHex();
     $.betaGradient = toDecimal(event.params.betaGradient);
     $.tClose = event.params.tClose;
     $.tResolve = event.params.tResolve;

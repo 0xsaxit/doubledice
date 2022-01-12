@@ -21,7 +21,6 @@ async function main() {
 
   const mainContract = await new DoubleDice__factory(ownerSigner).deploy(
     'http://localhost:8080/token/{id}',
-    tokenContract.address,
     FEE_BENEFICIARY_ADDRESS,
     { nonce: 1 }
   );

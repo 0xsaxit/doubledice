@@ -7,11 +7,6 @@
         "type": "string"
       },
       {
-        "internalType": "contract IERC20",
-        "name": "token_",
-        "type": "address"
-      },
-      {
         "internalType": "address",
         "name": "feeBeneficiary_",
         "type": "address"
@@ -226,6 +221,12 @@
         "internalType": "uint8",
         "name": "nOutcomes",
         "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract IERC20",
+        "name": "paymentToken",
+        "type": "address"
       }
     ],
     "name": "VirtualFloorCreation",
@@ -295,19 +296,6 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "_token",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "bytes32",
@@ -341,6 +329,11 @@
         "internalType": "uint8",
         "name": "outcome",
         "type": "uint8"
+      },
+      {
+        "internalType": "contract IERC20",
+        "name": "paymentToken",
+        "type": "address"
       },
       {
         "internalType": "uint256",
@@ -513,6 +506,11 @@
         "internalType": "uint8",
         "name": "nOutcomes",
         "type": "uint8"
+      },
+      {
+        "internalType": "contract IERC20",
+        "name": "paymentToken",
+        "type": "address"
       }
     ],
     "name": "createVirtualFloor",

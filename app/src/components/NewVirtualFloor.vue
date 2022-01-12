@@ -71,7 +71,7 @@ export default class NewVirtualFloor extends Vue {
 
     // eslint-disable-next-line space-before-function-paren
     tryCatch(async () => {
-      const tx = await this.contract.createVirtualFloor(vpfId, EthersBigNumber.from(10).pow(18).mul(betaGradient), tClose, tResolve, nOutcomes)
+      const tx = await this.contract.createVirtualFloor(vpfId, EthersBigNumber.from(10).pow(18).mul(betaGradient), tClose, tResolve, nOutcomes, '0x5FbDB2315678afecb367f032d93F642f64180aa3')
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`
       console.log(`Sent ${txUrl}`)

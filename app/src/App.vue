@@ -66,6 +66,7 @@
         <th>tClose</th>
         <th>tResolve</th>
         <th>state</th>
+        <th>paymentToken</th>
         <th>totalSupply</th>
         <template v-for="index in maxOutcomeCount" :key="index">
           <th>Outcome № {{ index + 1 }}</th>
@@ -120,6 +121,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
   ) {
     id
     timestamp
+    paymentToken
     tClose
     tResolve
     state
@@ -304,7 +306,7 @@ export default class App extends Vue {
 
     this.feeBeneficiary = await mainContract.feeBeneficiary()
 
-    const tokenAddress = await mainContract._token()
+    const tokenAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
 
     const tokenContract = ERC20PresetMinterPauser__factory.connect(tokenAddress, signer)
 

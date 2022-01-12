@@ -19,7 +19,8 @@ interface IDoubleDice is IERC1155 {
         uint256 betaGradient,
         uint32 tClose,
         uint32 tResolve,
-        uint8 nOutcomes
+        uint8 nOutcomes,
+        IERC20 paymentToken
     );
 
     event UserCommitment(
@@ -39,7 +40,7 @@ interface IDoubleDice is IERC1155 {
     );
 
 
-    function createVirtualFloor(bytes32 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes) external;
+    function createVirtualFloor(bytes32 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken) external;
 
     function commitToVirtualFloor(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
 
@@ -57,6 +58,4 @@ interface IDoubleDice is IERC1155 {
     function FEE_RATE_E18() external view returns (uint256);
 
     function feeBeneficiary() external view returns (address);
-
-    function _token() external view returns (IERC20);
 }

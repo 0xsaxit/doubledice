@@ -8,12 +8,12 @@
       },
       {
         "internalType": "contract IERC20",
-        "name": "token",
+        "name": "token_",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "feeBeneficiary",
+        "name": "feeBeneficiary_",
         "type": "address"
       }
     ],
@@ -248,7 +248,7 @@
       },
       {
         "indexed": false,
-        "internalType": "enum DoubleDice.VirtualFloorResolutionType",
+        "internalType": "enum VirtualFloorResolutionType",
         "name": "resolutionType",
         "type": "uint8"
       },
@@ -278,7 +278,7 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -291,20 +291,7 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "_feeBeneficiary",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
+    "stateMutability": "pure",
     "type": "function"
   },
   {
@@ -331,7 +318,7 @@
     "name": "_virtualFloors",
     "outputs": [
       {
-        "internalType": "enum DoubleDice.VirtualFloorState",
+        "internalType": "enum VirtualFloorState",
         "name": "state",
         "type": "uint8"
       },
@@ -534,6 +521,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "feeBeneficiary",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "bytes32",
@@ -561,7 +561,7 @@
             "type": "uint256"
           }
         ],
-        "internalType": "struct DoubleDice.AggregateCommitment",
+        "internalType": "struct AggregateCommitment",
         "name": "",
         "type": "tuple"
       }

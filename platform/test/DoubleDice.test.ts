@@ -47,7 +47,7 @@ describe('DoubleDice', function () {
     await contract.deployed();
 
     expect(await contract._token()).to.eq(token.address);
-    expect(await contract._feeBeneficiary()).to.eq(feeBeneficiarySigner.address);
+    expect(await contract.feeBeneficiary()).to.eq(feeBeneficiarySigner.address);
 
     const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber => BigNumber.from(1000000).mul(dollars).add(millionths);
 

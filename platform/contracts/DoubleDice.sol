@@ -4,15 +4,72 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "./IDoubleDice.sol";
 
-struct VirtualFloorOutcomeTimeslot {
-    bytes32 virtualFloorId;
-    uint8 outcomeIndex;
-    uint256 timeslot;
+
+uint256 constant _TIMESLOT_DURATION = 60 seconds;
+
+uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 256;
+
+uint256 constant _FEE_RATE_E18 = 0.01e18;
+
+
+struct AggregateCommitment {
+    uint256 amount;
+    uint256 weightedAmount;
+}
+
+enum VirtualFloorState {
+    None,
+
+    /// @dev Running if t < tClose else Closed
+    RunningOrClosed,
+
+    Completed,
+
+    Cancelled
+}
+
+/// @dev Suppose that you plotted `(x = t_open, y = beta_max)` and `(x = t_close, y = 1)`
+/// 
+/// and joined the two points with a line that shows how beta decreases with time
+/// 
+/// the gradient is `(1 - beta_max) ÷ (t_close - t_open)`, or `-(beta_max - 1)/(t_close - t_open)`
+/// 
+/// Let’s call that `-betaGradient`
+/// 
+/// So `betaGradient = (beta_max - 1)/(t_close - t_open)`
+/// 
+/// And `beta(t) = 1 + betaGradient * (t_close - t)`
+/// 
+/// Like this, we just store `betaGradient` and don't need to worry about opening time. The virtualFloor “starts” whenever it is created on chain
+/// and `beta` decreases linearly at the specified rate until it reaches `beta = 1` at exactly `t = t_close`.
+/// 
+/// The net result is that the linearly decreasing beta is still there, and concept of predicting earlier yielding higher returns is intact,
+/// but there is one complexity less, i.e. the current concept of an “opening time” and the `beta` standing constant at `beta_max`
+/// until that opening time arrives, disappears, and with it disappears the complexity of virtualFloor-creation failing because the
+/// creation-transaction fails because it is mined later than the opening-time.
+/// 
+/// Nevertheless nothing holds us from restoring previous behaviour whenever we like.
+struct VirtualFloor {
+
+    VirtualFloorState state;  //    1 byte
+    uint32 tClose;            // +  4 bytes 
+    uint32 tResolve;          // +  4 bytes
+    uint8 nOutcomes;          // +  1 byte
+    uint8 outcome;            // +  1 byte
+                              // = 11 bytes => packed into 1 32-byte slot
+
+    uint256 betaGradient;
+
+    // By using a fixed-length array, we do not waste a storage slot for length
+    AggregateCommitment[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] aggregateCommitments;
+
+    // could be recalculated every time... but we cache it
+    uint256 winnerProfits;
 }
 
 function _calculateTokenId(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 timeslot) pure returns (uint256 tokenId) {
@@ -24,6 +81,7 @@ function _calculateTokenId(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 t
 }
 
 contract DoubleDice is
+    IDoubleDice,
     ERC1155,
     Ownable
 {
@@ -31,91 +89,20 @@ contract DoubleDice is
 
     IERC20 public immutable _token;
 
-    address public _feeBeneficiary;
+    address public feeBeneficiary;
 
-    uint256 public constant TIMESLOT_DURATION = 60 seconds;
-
-    constructor(string memory uri_, IERC20 token, address feeBeneficiary)
+    constructor(string memory uri_, IERC20 token_, address feeBeneficiary_)
         ERC1155(uri_) // ToDo: Override uri() to avoid SLOADs
     {
-        _token = token;
-        _feeBeneficiary = feeBeneficiary;
-    }
-
-    /// @dev Temporary convenience function, handy for testing.
-    /// Eventually uri would be fixed in constructor,
-    /// and even better would be passed as "" to super constructor,
-    /// and uri() overridden to avoid SLOADs
-    function setURI(string calldata newuri) external onlyOwner {
-        _setURI(newuri);        
-    }
-
-    struct AggregateCommitment {
-        uint256 amount;
-        uint256 weightedAmount;
-    }
-
-    uint256 private constant MAX_OUTCOMES = 256;
-    
-    enum VirtualFloorState {
-        None,
-
-        /// @dev Running if t < tClose else Closed
-        RunningOrClosed,
-
-        Completed,
-
-        Cancelled
-    }
-
-    /// @dev Suppose that you plotted `(x = t_open, y = beta_max)` and `(x = t_close, y = 1)`
-    /// 
-    /// and joined the two points with a line that shows how beta decreases with time
-    /// 
-    /// the gradient is `(1 - beta_max) ÷ (t_close - t_open)`, or `-(beta_max - 1)/(t_close - t_open)`
-    /// 
-    /// Let’s call that `-betaGradient`
-    /// 
-    /// So `betaGradient = (beta_max - 1)/(t_close - t_open)`
-    /// 
-    /// And `beta(t) = 1 + betaGradient * (t_close - t)`
-    /// 
-    /// Like this, we just store `betaGradient` and don't need to worry about opening time. The virtualFloor “starts” whenever it is created on chain
-    /// and `beta` decreases linearly at the specified rate until it reaches `beta = 1` at exactly `t = t_close`.
-    /// 
-    /// The net result is that the linearly decreasing beta is still there, and concept of predicting earlier yielding higher returns is intact,
-    /// but there is one complexity less, i.e. the current concept of an “opening time” and the `beta` standing constant at `beta_max`
-    /// until that opening time arrives, disappears, and with it disappears the complexity of virtualFloor-creation failing because the
-    /// creation-transaction fails because it is mined later than the opening-time.
-    /// 
-    /// Nevertheless nothing holds us from restoring previous behaviour whenever we like.
-    struct VirtualFloor {
-
-        VirtualFloorState state;  //    1 byte
-        uint32 tClose;            // +  4 bytes 
-        uint32 tResolve;          // +  4 bytes
-        uint8 nOutcomes;          // +  1 byte
-        uint8 outcome;            // +  1 byte
-                                  // = 11 bytes => packed into 1 32-byte slot
-
-        uint256 betaGradient;
-
-        // By using a fixed-length array, we do not waste a storage slot for length
-        AggregateCommitment[MAX_OUTCOMES] aggregateCommitments;
-
-        // could be recalculated every time... but we cache it
-        uint256 winnerProfits;
-    }
-
-    function getVirtualFloorAggregateCommitments(bytes32 virtualFloorId, uint8 outcomeIndex) external view returns (AggregateCommitment memory) {
-        return _virtualFloors[virtualFloorId].aggregateCommitments[outcomeIndex];
+        _token = token_;
+        feeBeneficiary = feeBeneficiary_;
     }
 
     mapping(bytes32 => VirtualFloor) public _virtualFloors;
 
-    event VirtualFloorCreation(bytes32 indexed virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes);
-
-    function createVirtualFloor(bytes32 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes) external onlyOwner {
+    function createVirtualFloor(bytes32 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes)
+        external onlyOwner
+    {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
 
@@ -134,21 +121,14 @@ contract DoubleDice is
         emit VirtualFloorCreation(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes);
     }
 
-    // ToDo: Keep this event with the minimum information necessary to claim?
-    event UserCommitment(
-        bytes32 indexed virtualFloorId,
-        uint8 indexed outcomeIndex,
-        uint256 indexed timeslot,
-        uint256 amount,
-        uint256 tokenId
-    );
-
-    function commitToVirtualFloor(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 amount) external {
+    function commitToVirtualFloor(bytes32 virtualFloorId, uint8 outcomeIndex, uint256 amount)
+        external
+    {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_NOT_FOUND");
 
         // Quantize to 1-minute bins to make it simple to accumulate subsequent commitments into 1 token while testing
-        uint256 timeslot = block.timestamp - (block.timestamp % TIMESLOT_DURATION);
+        uint256 timeslot = block.timestamp - (block.timestamp % _TIMESLOT_DURATION);
 
         require(timeslot < virtualFloor.tClose, "MARKET_CLOSED");
         require(outcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
@@ -176,20 +156,9 @@ contract DoubleDice is
         });
     }
 
-    enum VirtualFloorResolutionType { NoWinners, SomeWinners, AllWinners }
-
-
-    event VirtualFloorResolution(
-        bytes32 indexed virtualFloorId,
-        uint8 outcomeIndex,
-        VirtualFloorResolutionType resolutionType,
-        uint256 winnerProfits,
-        uint256 feeAmount    
-    );
-
-    uint256 public constant FEE_RATE_E18 = 0.01e18;
-
-    function resolve(bytes32 virtualFloorId, uint8 outcomeIndex) external onlyOwner {
+    function resolve(bytes32 virtualFloorId, uint8 outcomeIndex)
+        external onlyOwner
+    {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
 
@@ -226,7 +195,7 @@ contract DoubleDice is
             resolutionType = VirtualFloorResolutionType.SomeWinners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
-            uint256 maxVirtualFloorFeeAmount = (FEE_RATE_E18 * totalVirtualFloorCommittedAmount) / 1e18;
+            uint256 maxVirtualFloorFeeAmount = (_FEE_RATE_E18 * totalVirtualFloorCommittedAmount) / 1e18;
 
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
             uint256 feePlusWinnerProfits = totalVirtualFloorCommittedAmount - totalWinnerCommitments;
@@ -237,7 +206,7 @@ contract DoubleDice is
             winnerProfits = feePlusWinnerProfits - feeAmount;
             virtualFloor.winnerProfits = winnerProfits;
 
-            _token.safeTransfer(_feeBeneficiary, feeAmount);
+            _token.safeTransfer(feeBeneficiary, feeAmount);
         }
 
         emit VirtualFloorResolution({
@@ -249,7 +218,9 @@ contract DoubleDice is
         });
     }
 
-    function claim(VirtualFloorOutcomeTimeslot calldata context) external {
+    function claim(VirtualFloorOutcomeTimeslot calldata context)
+        external
+    {
         VirtualFloor storage virtualFloor = _virtualFloors[context.virtualFloorId];
         if (virtualFloor.state == VirtualFloorState.Completed) {
 
@@ -278,11 +249,38 @@ contract DoubleDice is
         }
     }
 
-    function claimBatch(VirtualFloorOutcomeTimeslot[] calldata commitments) external {
+    function claimBatch(VirtualFloorOutcomeTimeslot[] calldata commitments)
+        external
+    {
         // batch all ERC1155 burns into a single TransferBatch event
         // batch all ERC20 transfers into a single Transfer event,
         // or maybe do not batch across different VirtualFloors, to make it easier
         // to track VirtualFloor in/out-flows
     }
 
+    // ***** INFORMATIONAL *****
+
+    function getVirtualFloorAggregateCommitments(bytes32 virtualFloorId, uint8 outcomeIndex)
+        external view returns (AggregateCommitment memory)
+    {
+        return _virtualFloors[virtualFloorId].aggregateCommitments[outcomeIndex];
+    }
+
+    function TIMESLOT_DURATION() external pure returns (uint256) {
+        return _TIMESLOT_DURATION;
+    }
+
+    function FEE_RATE_E18() external pure returns (uint256) {
+        return _FEE_RATE_E18;
+    }
+
+    // ***** TEMPORARY *****
+
+    /// @dev Temporary convenience function, handy for testing.
+    /// Eventually uri would be fixed in constructor,
+    /// and even better would be passed as "" to super constructor,
+    /// and uri() overridden to avoid SLOADs
+    function setURI(string calldata newuri) external onlyOwner {
+        _setURI(newuri);        
+    }
 }

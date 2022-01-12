@@ -1,13 +1,12 @@
 {
-  "name": "doubledice-platform",
+  "name": "@doubledice/contracts",
   "scripts": {
     "clean": "rimraf abi artifacts build cache generated typechain-types",
-    "test": "hardhat test",
+    "test": "hardhat typechain && hardhat test",
     "start": "docker-compose up",
     "stop": "docker-compose down",
     "contracts:deploy:local": "  hardhat run ./scripts/deploy.ts --network localhost",
     "contracts:deploy:rinkeby": "hardhat run ./scripts/deploy.ts --network rinkeby",
-    "build:sol-interface-for-remix": "cat ./abi/DoubleDice.json | abi-to-sol --solidity-version=0.8.11 IDoubleDice > ./abi/IDoubleDice.sol",
     "graph:codegen": "graph codegen ./subgraph/subgraph.yaml",
     "graph:build": "graph build ./subgraph/subgraph.yaml",
     "graph:create:local": "graph create doubledice-com/doubledice-platform --node http://127.0.0.1:8020",

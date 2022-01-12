@@ -302,7 +302,7 @@ export default class App extends Vue {
 
     this.owner = await mainContract.owner()
 
-    this.feeBeneficiary = await mainContract._feeBeneficiary()
+    this.feeBeneficiary = await mainContract.feeBeneficiary()
 
     const tokenAddress = await mainContract._token()
 

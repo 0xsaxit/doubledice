@@ -58,7 +58,19 @@
 
   <hr />
 
-  <table id="virtual-floors">
+  <div style="text-align: left">
+    <label>Expand</label>
+    <input type="checkbox" v-model="expanded" />
+  </div>
+
+  <table id="virtual-floors" :class="{ expanded }">
+    <colgroup>
+      <col />
+      <col class="collapsible-column" />
+      <col class="collapsible-column" />
+      <col class="collapsible-column" />
+      <col class="collapsible-column" />
+    </colgroup>
     <thead>
       <tr>
         <!-- <th>json</th> -->
@@ -262,6 +274,8 @@ export default class App extends Vue {
 
   timeAdjustment = 0
 
+  expanded = false
+
   async fastforward(): Promise<void> {
     if (this.isFastforwarding) {
       return
@@ -424,5 +438,9 @@ table#virtual-floors {
 
 .admin {
   background-color: red !important;
+}
+
+#virtual-floors:not(.expanded) .collapsible-column {
+  visibility: collapse;
 }
 </style>

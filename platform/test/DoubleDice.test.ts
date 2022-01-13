@@ -83,7 +83,8 @@ describe('DoubleDice', function () {
     await (await token.connect(user3Signer).approve(contract.address, $(100))).wait();
 
     const virtualFloorId = 12345;
-    const betaGradient = BigNumber.from(10).pow(18).div(3600); // 1 unit per hour
+    const betaOpen = BigNumber.from(10).pow(18).mul(13); // 1 unit per hour
+    const tOpen = toTimestamp('2032-01-01T00:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
     const nOutcomes = 3;
@@ -109,7 +110,7 @@ describe('DoubleDice', function () {
       const {
         events: [virtualFloorCreatedEvent],
         blockHash
-      } = await (await contract.createVirtualFloor(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes, token.address)).wait();
+      } = await (await contract.createVirtualFloor(virtualFloorId, betaOpen, tOpen, tClose, tResolve, nOutcomes, token.address)).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
 
@@ -193,7 +194,7 @@ describe('DoubleDice', function () {
 
     interface AggregateCommitment {
       amount: BigNumber;
-      weightedAmount: BigNumber;
+      amountTimesBeta_e18: BigNumber;
     }
 
     const aggregateCommitments: AggregateCommitment[] = await Promise.all([
@@ -202,12 +203,19 @@ describe('DoubleDice', function () {
       contract.getVirtualFloorAggregateCommitments(virtualFloorId, 2),
     ]);
 
-    const betaAt = (datetime: string) => tClose.sub(toTimestamp(datetime)).mul(betaGradient).add(BigNumber.from(10).pow(18));
+    const betaAt = (datetime: string) => {
+      const betaClose = BigNumber.from(10).pow(18);
+      const dB = betaOpen.sub(betaClose);
+      const dT = tClose.sub(tOpen);
+      const dt = tClose.sub(toTimestamp(datetime));
+      const db = dB.mul(dt).div(dT);
+      return betaClose.add(db);
+    };
 
     expect(aggregateCommitments[0].amount).to.eq(sumOf(
       $(10)
     ));
-    expect(aggregateCommitments[0].weightedAmount).to.eq(sumOf(
+    expect(aggregateCommitments[0].amountTimesBeta_e18).to.eq(sumOf(
       $(10).mul(betaAt('2032-01-01T01:00:00'))
     ));
 
@@ -216,7 +224,7 @@ describe('DoubleDice', function () {
       $(10),
       $(10),
     ));
-    expect(aggregateCommitments[1].weightedAmount).to.eq(sumOf(
+    expect(aggregateCommitments[1].amountTimesBeta_e18).to.eq(sumOf(
       $(10).mul(betaAt('2032-01-01T02:00:00')),
       $(10).mul(betaAt('2032-01-01T02:00:00')),
       $(10).mul(betaAt('2032-01-01T06:00:00')),
@@ -226,7 +234,7 @@ describe('DoubleDice', function () {
       $(10),
       $(10),
     ));
-    expect(aggregateCommitments[2].weightedAmount).to.eq(sumOf(
+    expect(aggregateCommitments[2].amountTimesBeta_e18).to.eq(sumOf(
       $(10).mul(betaAt('2032-01-01T06:00:00')),
       $(10).mul(betaAt('2032-01-01T10:00:00')),
     ));

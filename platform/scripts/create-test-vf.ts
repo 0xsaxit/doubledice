@@ -19,20 +19,22 @@ async function main() {
 
   // const { timestamp } = await ethers.provider.getBlock('latest');
 
-  const timestamp = Math.floor(Date.now() / 1000);
+  const unroundedTimestamp = Math.floor(Date.now() / 1000);
+  const timestamp = unroundedTimestamp - unroundedTimestamp % 60;
 
   console.log(`timestamp = ${timestamp}`);
 
-  const vfId = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+  const vfId = ethers.utils.hexlify(ethers.utils.randomBytes(8));
   console.log(`vfId = ${vfId}`);
 
   await (await platform.createVirtualFloor(
-    vfId, // virtualFloorId
-    1_000000_000000_000000n, // betaGradient
-    timestamp + 100 * 60, // tClose
-    timestamp + 200 * 60, // tResolve
-    5, // nOutcomes
-    TOKEN_CONTRACT_ADDRESS, // paymentToken
+    vfId,                      // virtualFloorId
+    100_000000_000000_000000n, // betaOpen
+    timestamp + 0 * 86400,     // tClose
+    timestamp + 1 * 86400,   // tClose
+    timestamp + 2 * 86400,   // tResolve
+    5,                         // nOutcomes
+    TOKEN_CONTRACT_ADDRESS,    // paymentToken
   )).wait();
 
   const amt = 100_000000_000000_000000n;

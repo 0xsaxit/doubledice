@@ -20,7 +20,8 @@ interface IDoubleDice is
     event VirtualFloorCreation(
         uint256 indexed virtualFloorId,
         address indexed creator,
-        uint256 betaGradient,
+        uint256 betaOpen_e18,
+        uint32 tOpen,
         uint32 tClose,
         uint32 tResolve,
         uint8 nOutcomes,
@@ -33,6 +34,7 @@ interface IDoubleDice is
         uint8 outcomeIndex,
         uint256 timeslot,
         uint256 amount,
+        uint256 beta_e18,
         uint256 tokenId
     );
 
@@ -51,7 +53,7 @@ interface IDoubleDice is
     /// will result in cheaper calls overall.
     /// Using a uint32 for this id will satisfy (1), and will also lower the cost of each call
     /// by (32 bytes - 8 bytes) * (16 gas/nonzerobyte - 4 gas/zerobtye) = 288 gas/call
-    function createVirtualFloor(uint256 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken) external;
+    function createVirtualFloor(uint256 virtualFloorId, uint256 betaOpen_e18, uint32 tOpen, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken) external;
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
 

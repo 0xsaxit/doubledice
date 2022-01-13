@@ -91,14 +91,11 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
   }
 }
 
-const calcBeta = (virtualFloor: VirtualFloor, timestamp: BigInt): BigDecimal => virtualFloor.betaGradient * (virtualFloor.tClose - timestamp).toBigDecimal();
-
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
 
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
     const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
-    $.timestamp = event.block.timestamp;
 
     const userId = event.params.creator.toHex();
     {
@@ -111,7 +108,10 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     // when the token was originally whitelisted.
     $.paymentToken = event.params.paymentToken.toHex();
 
-    $.betaGradient = toDecimal(event.params.betaGradient);
+    $.betaOpen = toDecimal(event.params.betaOpen_e18);
+
+    $.tCreated = event.block.timestamp;
+    $.tOpen = event.params.tOpen;
     $.tClose = event.params.tClose;
     $.tResolve = event.params.tResolve;
     $.state = 'RUNNING_OR_CLOSED';
@@ -134,8 +134,6 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
   let amount: BigDecimal;
   const timeslotMinTimestamp = event.params.timeslot;
 
-  let beta: BigDecimal;
-
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
@@ -144,9 +142,9 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
 
     $.totalSupply += amount;
     $.save();
-
-    beta = calcBeta($, timeslotMinTimestamp);
   }
+
+  const beta = toDecimal(event.params.beta_e18);
 
   const outcomeId = `${virtualFloorId}-${event.params.outcomeIndex}`;
   {
@@ -182,6 +180,7 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
     /* if (isNew) */ {
       $.outcome = outcomeId;
       $.timeslot = timeslotId;
+      $.beta = beta;
     }
     $.totalSupply += amount;
     $.save();
@@ -261,11 +260,10 @@ export function handleTransferSingle(event: TransferSingleEvent): void {
     const outcomeTimeslot = loadExistentEntity<OutcomeTimeslot>(OutcomeTimeslot.load, outcomeTimeslotId);
     outcomeId = outcomeTimeslot.outcome;
     const outcome = loadExistentEntity<Outcome>(Outcome.load, outcomeId);
-    const timeslot = loadExistentEntity<Timeslot>(Timeslot.load, outcomeTimeslot.timeslot);
     const virtualFloor = loadExistentEntity<VirtualFloor>(VirtualFloor.load, outcome.virtualFloor);
     const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, virtualFloor.paymentToken);
     amount = paymentTokenAmountToBigDecimal(event.params.value, paymentToken.decimals);
-    beta = calcBeta(virtualFloor, timeslot.minTimestamp);
+    beta = outcomeTimeslot.beta;
   }
 
   const fromUserId = event.params.from.toHex();

@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./IDoubleDice.sol";
 import "./PaymentTokenRegistry.sol";
@@ -14,6 +15,8 @@ uint256 constant _TIMESLOT_DURATION = 60 seconds;
 
 uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 256;
 
+uint256 constant _BETA_CLOSE_E18 = 1e18;
+
 uint256 constant _FEE_RATE_E18 = 0.01e18;
 
 uint256 constant _TOKENID_TYPE_MASK         = 0xff << 248;
@@ -21,10 +24,10 @@ uint256 constant _TOKENID_TYPE_VIRTUALFLOOR = 0x00 << 248;
 uint256 constant _TOKENID_TYPE_COMMITMENT   = 0x01 << 248;
 
 // ToDo: Can we optimize this by using uint128 and packing both values into 1 slot,
-// or will weightedAmount then not have enough precision?
+// or will amountTimesBeta_e18 then not have enough precision?
 struct AggregateCommitment {
     uint256 amount;
-    uint256 weightedAmount;
+    uint256 amountTimesBeta_e18;
 }
 
 enum VirtualFloorState {
@@ -41,41 +44,19 @@ enum VirtualFloorState {
     Cancelled
 }
 
-/// @dev Suppose that you plotted `(x = t_open, y = beta_max)` and `(x = t_close, y = 1)`
-/// 
-/// and joined the two points with a line that shows how beta decreases with time
-/// 
-/// the gradient is `(1 - beta_max) ÷ (t_close - t_open)`, or `-(beta_max - 1)/(t_close - t_open)`
-/// 
-/// Let’s call that `-betaGradient`
-/// 
-/// So `betaGradient = (beta_max - 1)/(t_close - t_open)`
-/// 
-/// And `beta(t) = 1 + betaGradient * (t_close - t)`
-/// 
-/// Like this, we just store `betaGradient` and don't need to worry about opening time. The virtualFloor “starts” whenever it is created on chain
-/// and `beta` decreases linearly at the specified rate until it reaches `beta = 1` at exactly `t = t_close`.
-/// 
-/// The net result is that the linearly decreasing beta is still there, and concept of predicting earlier yielding higher returns is intact,
-/// but there is one complexity less, i.e. the current concept of an “opening time” and the `beta` standing constant at `beta_max`
-/// until that opening time arrives, disappears, and with it disappears the complexity of virtualFloor-creation failing because the
-/// creation-transaction fails because it is mined later than the opening-time.
-/// 
-/// Nevertheless nothing holds us from restoring previous behaviour whenever we like.
 struct VirtualFloor {
 
-    // Storage slot 0
+    // Storage slot 0: Slot written to during createVirtualFloor
     VirtualFloorState state;          //    1 byte
     uint8 nOutcomes;                  // +  1 byte
+    uint32 tOpen;                     // +  4 bytes
     uint32 tClose;                    // +  4 bytes 
     uint32 tResolve;                  // +  4 bytes
+    uint32 betaOpenMinusBetaClose_e6; // +  8 bytes ; fits with 6-decimal-place precision all values up to ~4000
     bytes10 paymentTokenId;           // + 10 bytes
-                                      // = 20 bytes => packed into 1 32-byte slot
+                                      // = 32 bytes => packed into 1 32-byte slot
 
-    // Storage slot 1
-    uint256 betaGradient;
-
-    // Storage slot 2
+    // Storage slot 1: Slot written to during resolve
     uint8 winningOutcomeIndex; // +  1 byte
     uint192 winnerProfits;     // + 24 bytes ; fits with 18-decimal-place precision all values up to ~1.5e30 (and with less decimals, more)
                                // = 25 bytes => packed into 1 32-byte slot
@@ -97,6 +78,16 @@ function _calcCommitmentERC1155TokenId(uint256 virtualFloorId, uint8 outcomeInde
     tokenId = (tokenId & ~_TOKENID_TYPE_MASK) | _TOKENID_TYPE_COMMITMENT;
 }
 
+/// @dev Compare:
+/// 1. (((tClose - t) * (betaOpen - 1)) / (tClose - tOpen)) * amount
+/// 2. (((tClose - t) * (betaOpen - 1) * amount) / (tClose - tOpen))
+/// (2) has less rounding error than (1), but then the *precise* effective beta used in the computation might not
+/// have a uint256 representation.
+/// Therefore we sacrifice some (miniscule) rounding error to gain computation reproducibility.
+function _calcBeta(VirtualFloor storage vf, uint256 t) view returns (uint256 beta_e18) {
+    beta_e18 = _BETA_CLOSE_E18 + ((vf.tClose - t) * vf.betaOpenMinusBetaClose_e6 * 1e12) / (uint256(vf.tClose) - uint256(vf.tOpen));
+}
+
 function _toUint192(uint256 value) pure returns (uint192) {
     require(value <= type(uint192).max, "SafeCast: value doesn't fit in 192 bits");
     return uint192(value);
@@ -109,6 +100,7 @@ contract DoubleDice is
     PaymentTokenRegistry
 {
     using SafeERC20 for IERC20;
+    using SafeCast for uint256;
 
     modifier onlyVirtualFloorOwner(uint256 virtualFloorId) {
         require(balanceOf(_msgSender(), virtualFloorId) == 1, "NOT_VIRTUALFLOOR_OWNER");
@@ -126,21 +118,35 @@ contract DoubleDice is
 
     mapping(uint256 => VirtualFloor) public _virtualFloors;
 
-    function createVirtualFloor(uint256 virtualFloorId, uint256 betaGradient, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken)
+    function createVirtualFloor(uint256 virtualFloorId, uint256 betaOpen_e18, uint32 tOpen, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken)
         external
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
 
-        // Note: No constraints on betaGradient
-        require(block.timestamp < tClose, "Error: tClose <= t");
-        require(tClose < tResolve, "Error: tResolve <= tClose");
+        require(betaOpen_e18 >= _BETA_CLOSE_E18, "Error: betaOpen < 1e18");
+        _storeBetaOpenEfficiently(virtualFloor, betaOpen_e18);
+
+        // Require all timestamps to be exact multiples of the timeslot-duration.
+        // This makes everything simpler to reason about.
+        require(tOpen % _TIMESLOT_DURATION == 0, "Error: tOpen % _TIMESLOT_DURATION != 0");
+        require(tClose % _TIMESLOT_DURATION == 0, "Error: tClose % _TIMESLOT_DURATION != 0");
+        require(tResolve % _TIMESLOT_DURATION == 0, "Error: tResolve % _TIMESLOT_DURATION != 0");
+
+        // Allow creation to happen up to 10% into the Open period,
+        // to be a bit tolerant to mining delays.
+        require(block.timestamp < tOpen + (tClose - tOpen) / 10, "Error: t >= 10% into open period");
+
+        require(tOpen < tClose, "Error: tOpen >= tClose");
+        require(tClose <= tResolve, "Error: tClose > tResolve");
+
         require(nOutcomes >= 2, "Error: nOutcomes < 2");
+
         require(isPaymentTokenWhitelisted(paymentToken), "Error: Payment token is not whitelisted");
 
         virtualFloor.state = VirtualFloorState.RunningOrClosed;
         virtualFloor.paymentTokenId = _paymentTokenToId(paymentToken);
-        virtualFloor.betaGradient = betaGradient;
+        virtualFloor.tOpen = tOpen;
         virtualFloor.tClose = tClose;
         virtualFloor.tResolve = tResolve;
         virtualFloor.nOutcomes = nOutcomes;
@@ -150,7 +156,8 @@ contract DoubleDice is
         emit VirtualFloorCreation({
             virtualFloorId: virtualFloorId,
             creator: _msgSender(),
-            betaGradient: betaGradient,
+            betaOpen_e18: betaOpen_e18,
+            tOpen: tOpen,
             tClose: tClose,
             tResolve: tResolve,
             nOutcomes: nOutcomes,
@@ -167,6 +174,16 @@ contract DoubleDice is
             amount: 1,
             data: hex""
         });
+    }
+
+    function _storeBetaOpenEfficiently(VirtualFloor storage virtualFloor, uint256 betaOpen_e18) internal {
+        // Externally we pass betaOpen_e18, and we also emit this value on the VirtualFloorCreated event.
+        // Internally we reduce this to 6 decimal places to achieve an gas-efficient on-chain storage layout.
+        virtualFloor.betaOpenMinusBetaClose_e6 = ((betaOpen_e18 - _BETA_CLOSE_E18) / 1e12).toUint32();
+
+        // Ensure that we are able to recover the original betaOpen_e18 from betaOpen_e6,
+        // i.e. the original `betaOpen_e18` must be of the form #.######_000000_000000
+        require(_BETA_CLOSE_E18 + (uint256(virtualFloor.betaOpenMinusBetaClose_e6) * 1e12) == betaOpen_e18, "!");
     }
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount)
@@ -188,12 +205,15 @@ contract DoubleDice is
         // and this rounded-down timestamp is used as the "timeslot identifier".
         uint256 timeslot = block.timestamp - (block.timestamp % _TIMESLOT_DURATION);
 
-        uint256 beta = 1e18 + virtualFloor.betaGradient * (virtualFloor.tClose - timeslot);
-        uint256 weightedAmount = beta * amount;
+        // Commitments made at t < tOpen will all be treated as if they were made at t == tOpen
+        // They will be assigned the same beta, and all ERC-1155 balances minted at t <= tOpen
+        // will be fungible between themselves.
+        timeslot = Math.max(virtualFloor.tOpen, timeslot);
 
+        uint256 beta_e18 = _calcBeta(virtualFloor, timeslot);
         AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
         aggregateCommitments.amount += amount;
-        aggregateCommitments.weightedAmount += weightedAmount;
+        aggregateCommitments.amountTimesBeta_e18 += amount * beta_e18;
         uint256 tokenId = _calcCommitmentERC1155TokenId(virtualFloorId, outcomeIndex, timeslot);
 
         // From the Graph's point of view...
@@ -204,6 +224,7 @@ contract DoubleDice is
             outcomeIndex: outcomeIndex,
             timeslot: timeslot,
             amount: amount,
+            beta_e18: beta_e18,
             tokenId: tokenId
         });
 
@@ -290,9 +311,9 @@ contract DoubleDice is
 
             uint256 tokenId = _calcCommitmentERC1155TokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
-            uint256 beta = 1e18 + virtualFloor.betaGradient * (virtualFloor.tClose - context.timeslot);
-            uint256 weightedAmount = beta * amount;
-            uint256 profit = (weightedAmount * virtualFloor.winnerProfits) / virtualFloor.aggregateCommitments[virtualFloor.winningOutcomeIndex].weightedAmount;
+            uint256 beta_e18 = _calcBeta(virtualFloor, context.timeslot);
+            uint256 amountTimesBeta_e18 = amount * beta_e18;
+            uint256 profit = (amountTimesBeta_e18 * virtualFloor.winnerProfits) / virtualFloor.aggregateCommitments[virtualFloor.winningOutcomeIndex].amountTimesBeta_e18;
             uint256 payout = amount + profit;
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);

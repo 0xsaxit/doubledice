@@ -15,19 +15,25 @@
         </td>
       </tr>
       <tr>
-        <th>betaGradient</th>
+        <th>betaOpen</th>
         <td>
-          <input v-model.number="betaGradient" type="number" />
+          <input v-model.number="betaOpen" type="number" />
         </td>
       </tr>
       <tr>
-        <th>Closure</th>
+        <th>tOpen</th>
+        <td>
+          <input v-model="tOpen" type="datetime-local" />
+        </td>
+      </tr>
+      <tr>
+        <th>tClose</th>
         <td>
           <input v-model="tClose" type="datetime-local" />
         </td>
       </tr>
       <tr>
-        <th>Resolution</th>
+        <th>tResolve</th>
         <td>
           <input v-model="tResolve" type="datetime-local" />
         </td>
@@ -71,7 +77,9 @@ export default class NewVirtualFloor extends Vue {
   // nullable because otherwise property won't be picked up during setup; ToDo: Find a better way
   selectedPaymentToken: PaymentTokenEntity | null = null
 
-  betaGradient = 1
+  betaOpen = 10
+
+  tOpen!: string
 
   tClose!: string
 
@@ -80,9 +88,11 @@ export default class NewVirtualFloor extends Vue {
   nOutcomes = 2
 
   async created(): Promise<void> {
+    const tOpen = this.nextBlockTimestamp - (this.nextBlockTimestamp % 60)
     this.selectedPaymentToken = this.paymentTokens[0]
-    this.tClose = new Date((this.nextBlockTimestamp + 7 * 24 * 60 * 60) * 1000).toISOString().slice(0, 19) // in 1 week's time
-    this.tResolve = new Date((this.nextBlockTimestamp + 14 * 24 * 60 * 60) * 1000).toISOString().slice(0, 19) // in 2 weeks' time
+    this.tOpen = new Date((tOpen + 0 * 24 * 60 * 60) * 1000).toISOString().slice(0, 19) // in 0 week's time
+    this.tClose = new Date((tOpen + 7 * 24 * 60 * 60) * 1000).toISOString().slice(0, 19) // in 1 week's time
+    this.tResolve = new Date((tOpen + 14 * 24 * 60 * 60) * 1000).toISOString().slice(0, 19) // in 2 weeks' time
   }
 
   async createVpf(): Promise<void> {
@@ -92,15 +102,19 @@ export default class NewVirtualFloor extends Vue {
     // - Lower 8 bytes are actually used for virtualFloorId
     const virtualFloorId = ethers.utils.randomBytes(8)
 
-    const betaGradient = EthersBigNumber.from(10).pow(18).mul(this.betaGradient)
-    const tClose = new Date(this.tClose).getTime() / 1000
-    const tResolve = new Date(this.tResolve).getTime() / 1000
+    const betaOpen = EthersBigNumber.from(10).pow(12).mul(this.betaOpen * 1_000000)
+    let tOpen = new Date(this.tOpen).getTime() / 1000
+    let tClose = new Date(this.tClose).getTime() / 1000
+    let tResolve = new Date(this.tResolve).getTime() / 1000
+    tOpen = tOpen - (tOpen % 60)
+    tClose = tClose - (tClose % 60)
+    tResolve = tResolve - (tResolve % 60)
     const nOutcomes = this.nOutcomes
     const { address: paymentToken } = this.selectedPaymentToken as PaymentTokenEntity
 
     // eslint-disable-next-line space-before-function-paren
     tryCatch(async () => {
-      const tx = await this.contract.createVirtualFloor(virtualFloorId, betaGradient, tClose, tResolve, nOutcomes, paymentToken)
+      const tx = await this.contract.createVirtualFloor(virtualFloorId, betaOpen, tOpen, tClose, tResolve, nOutcomes, paymentToken)
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`
       console.log(`Sent ${txUrl}`)

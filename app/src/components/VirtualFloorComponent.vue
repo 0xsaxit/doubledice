@@ -1,10 +1,11 @@
 <template>
   <tbody class="virtual-floor">
     <tr>
-      <td :colspan="8 + maxOutcomes">
+      <td :colspan="7 + maxOutcomes">
         <Timeline
           :min="minVirtualFloorTimestamp"
-          :start="Number(virtualFloor.timestamp)"
+          :start="Number(virtualFloor.tCreated)"
+          :open="Number(virtualFloor.tOpen)"
           :close="Number(virtualFloor.tClose)"
           :resolve="Number((virtualFloor.tResolve))"
           :max="maxVirtualFloorTimestamp"
@@ -20,12 +21,30 @@
         </td>
       -->
       <td>{{ virtualFloor.id.slice(0, 10) }}</td>
-      <td>{{ formatTimestamp(timestamp) }}</td>
-      <td>{{ formatTimestamp(tClose) }}</td>
-      <td>{{ formatTimestamp(tResolve) }}</td>
+      <td>
+        <table>
+          <tr :title="`tCreated = ${virtualFloor.tCreated}`">
+            <th>tCreated</th>
+            <td>{{ formatTimestamp(tCreated) }}</td>
+          </tr>
+          <tr :title="`tOpen = ${virtualFloor.tOpen}`">
+            <th>tOpen</th>
+            <td>{{ formatTimestamp(tOpen) }}</td>
+          </tr>
+          <tr :title="`tClose = ${virtualFloor.tClose}`">
+            <th>tClose</th>
+            <td>{{ formatTimestamp(tClose) }}</td>
+          </tr>
+          <tr :title="`tResolve = ${virtualFloor.tResolve}`">
+            <th>tResolve</th>
+            <td>{{ formatTimestamp(tResolve) }}</td>
+          </tr>
+        </table>
+      </td>
       <td>{{ virtualFloor.state }}</td>
       <td>{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
       <td>{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
+      <td>{{ beta.toFixed(6) }}</td>
       <td>{{ virtualFloor.totalSupply }}</td>
       <template v-for="outcome in virtualFloor.outcomes" :key="outcome.id">
         <Outcome
@@ -79,8 +98,12 @@ export default class VirtualFloorComponent extends Vue {
   fastforwarding!: boolean
   nextBlockTimestamp!: number
 
-  get timestamp(): number {
-    return Number(this.virtualFloor.timestamp)
+  get tCreated(): number {
+    return Number(this.virtualFloor.tCreated)
+  }
+
+  get tOpen(): number {
+    return Number(this.virtualFloor.tOpen)
   }
 
   get tClose(): number {
@@ -93,6 +116,11 @@ export default class VirtualFloorComponent extends Vue {
 
   get isOwnedByConnectedAccount(): boolean {
     return this.virtualFloor.owner.id === this.connectedAccountAddress?.toLowerCase()
+  }
+
+  get beta(): number {
+    const t = Math.max(this.tOpen, Math.min(this.nextBlockTimestamp, this.tClose))
+    return 1 + ((this.tClose - t) * (Number(this.virtualFloor.betaOpen) - 1)) / (this.tClose - this.tOpen)
   }
 
   formatTimestamp(timestamp: string | number): string {

@@ -63,12 +63,11 @@
       <tr>
         <!-- <th>json</th> -->
         <th>id</th>
-        <th>timestamp</th>
-        <th>tClose</th>
-        <th>tResolve</th>
+        <th>timeline</th>
         <th>state</th>
         <th>paymentToken</th>
         <th>owner</th>
+        <th>beta</th>
         <th>totalSupply</th>
         <template v-for="index in maxOutcomeCount" :key="index">
           <th>Outcome № {{ index + 1 }}</th>
@@ -132,7 +131,7 @@ const MAIN_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
 
 const VIRTUAL_FLOORS_QUERY = gql`query {
   virtualFloors(
-    orderBy: timestamp,
+    orderBy: tCreated,
     orderDirection: desc
 #    where: {
 #      # timestamp_gte: 1638396709
@@ -140,11 +139,12 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
 #    }
   ) {
     id
-    timestamp
     paymentToken {
       symbol
       decimals
     }
+    tCreated
+    tOpen
     tClose
     tResolve
     state
@@ -153,7 +153,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
       index
     }
     totalSupply
-    betaGradient
+    betaOpen
     owner {
       id
     }
@@ -292,7 +292,13 @@ export default class App extends Vue {
   }
 
   get minVirtualFloorTimestamp(): number {
-    return this.isMounted ? Math.min(this.latestBlockTimestamp, ...this.virtualFloors.map(({ timestamp }) => Number(new BigDecimal(timestamp)))) - 86400 : -Infinity
+    return this.isMounted
+      ? Math.min(
+        this.latestBlockTimestamp,
+        ...this.virtualFloors.map(({ tCreated }) => Number(new BigDecimal(tCreated))),
+        ...this.virtualFloors.map(({ tOpen }) => Number(new BigDecimal(tOpen)))
+      ) - 86400
+      : -Infinity
   }
 
   get maxVirtualFloorTimestamp(): number {

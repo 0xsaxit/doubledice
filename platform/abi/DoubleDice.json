@@ -263,6 +263,12 @@
       {
         "indexed": false,
         "internalType": "uint256",
+        "name": "beta_e18",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
         "name": "tokenId",
         "type": "uint256"
       }
@@ -288,8 +294,14 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "betaGradient",
+        "name": "betaOpen_e18",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "tOpen",
+        "type": "uint32"
       },
       {
         "indexed": false,
@@ -449,6 +461,11 @@
       },
       {
         "internalType": "uint32",
+        "name": "tOpen",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
         "name": "tClose",
         "type": "uint32"
       },
@@ -458,14 +475,14 @@
         "type": "uint32"
       },
       {
+        "internalType": "uint32",
+        "name": "betaOpenMinusBetaClose_e6",
+        "type": "uint32"
+      },
+      {
         "internalType": "bytes10",
         "name": "paymentTokenId",
         "type": "bytes10"
-      },
-      {
-        "internalType": "uint256",
-        "name": "betaGradient",
-        "type": "uint256"
       },
       {
         "internalType": "uint8",
@@ -621,8 +638,13 @@
       },
       {
         "internalType": "uint256",
-        "name": "betaGradient",
+        "name": "betaOpen_e18",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint32",
+        "name": "tOpen",
+        "type": "uint32"
       },
       {
         "internalType": "uint32",
@@ -706,7 +728,7 @@
           },
           {
             "internalType": "uint256",
-            "name": "weightedAmount",
+            "name": "amountTimesBeta_e18",
             "type": "uint256"
           }
         ],

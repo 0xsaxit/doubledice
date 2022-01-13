@@ -18,6 +18,7 @@ import { Options, Vue } from 'vue-class-component'
   props: {
     min: Number,
     start: Number,
+    open: Number,
     close: Number,
     resolve: Number,
     max: Number,
@@ -28,6 +29,7 @@ import { Options, Vue } from 'vue-class-component'
 export default class Timeline extends Vue {
   min!: number
   start!: number
+  open!: number
   close!: number
   resolve!: number
   max!: number
@@ -35,7 +37,7 @@ export default class Timeline extends Vue {
   locked = false
 
   get startPercent(): string {
-    return `${(((this.start - this.min) * 100) / (this.max - this.min)).toFixed(4)}%`
+    return `${(((this.open - this.min) * 100) / (this.max - this.min)).toFixed(4)}%`
   }
 
   get closePercent(): string {

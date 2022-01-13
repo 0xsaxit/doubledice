@@ -5,13 +5,13 @@
         <th>total</th>
         <td>{{ outcomeTotalSupply }} {{ virtualFloor.paymentToken.symbol }}</td>
         <td>×</td>
-        <td>{{ outcomeAverageBeta }}</td>
+        <td>{{ outcomeAverageBeta.toFixed(2) }}</td>
       </tr>
       <tr>
         <th>user</th>
         <td>{{ userTotalBalance }} {{ virtualFloor.paymentToken.symbol }}</td>
         <td>×</td>
-        <td>{{ userAverageBeta }}</td>
+        <td>{{ userAverageBeta.toFixed(2) }}</td>
       </tr>
       <tr>
         <td colspan="4">

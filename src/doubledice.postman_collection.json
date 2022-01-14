@@ -1,0 +1,84 @@
+{
+	"info": {
+		"_postman_id": "24d05829-aa9d-4455-8596-f04c3aebffef",
+		"name": "doubledice",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "room-event-info",
+			"item": [
+				{
+					"name": "Validate a valid event",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"category\": \"sports\",\n    \"subcategory\": \"football\",\n    \"title\": \"Finland vs. Argentina\",\n    \"description\": \"Describe in detail the essence of the event.\",\n    \"visibility\": \"unlisted\",\n    \"opponents\": [\n        {\n            \"title\": \"Finland\",\n            \"image\": \"https://api.doubledice.com/images/logo-finland.jpg\"\n        },\n        {\n            \"title\": \"Argentina\",\n            \"image\": \"https://api.doubledice.com/images/logo-argentina.jpg\"\n        }\n    ],\n    \"outcomes\": [\n        {\n            \"index\": 1,\n            \"title\": \"Finland win\"\n        },\n        {\n            \"index\": 2,\n            \"title\": \"Argentina win\"\n        },\n        {\n            \"index\": 3,\n            \"title\": \"Tie\"\n        }\n    ],\n    \"resultSources\": [\n        {\n            \"title\": \"Official FIFA result page\",\n            \"url\": \"http://fifa.com/argentina-vs-finland\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8888/api/room-event-info?action=validate",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8888",
+							"path": [
+								"api",
+								"room-event-info"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "validate"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate an invalid event",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"category\": \"sports\",\n    \"subcategory\": \"football\",\n    \"title\": \"Finland vs. Argentina\",\n    \"description\": \"Describe in detail the essence of the event.\",\n    \"visibility\": \"unlisted\",\n    \"opponents\": [\n        {\n            \"title\": \"Finland\",\n            \"image\": \"https://api.doubledice.com/images/logo-finland.jpg\"\n        },\n        {\n            \"title\": \"Argentina\",\n            \"image\": \"https://api.doubledice.com/images/logo-argentina.jpg\"\n        }\n    ],\n    \"outcomes\": [\n        {\n            \"index\": 1,\n            \"title\": \"Finland win\"\n        }\n    ],\n    \"resultSources\": [\n        {\n            \"title\": \"Official FIFA result page\",\n            \"url\": \"http://fifa.com/argentina-vs-finland\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8888/api/room-event-info?action=validate",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8888",
+							"path": [
+								"api",
+								"room-event-info"
+							],
+							"query": [
+								{
+									"key": "action",
+									"value": "validate"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

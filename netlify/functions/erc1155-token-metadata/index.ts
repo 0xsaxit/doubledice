@@ -6,7 +6,7 @@ const handler: Handler = async (event, context) => {
   // Ex. If the URl is http://localhost:8888/api/metadata/000000000000000000000000000000000000000000000000000000000004cce0.json
   // The [event.path] is api/metadata/000000000000000000000000000000000000000000000000000000000004cce0.json
   // The hexString is 000000000000000000000000000000000000000000000000000000000004cce0
- 
+
   const splitPath = event.path.split('/');
   const hexString = splitPath[splitPath.length - 1].split('.')[0];
 
@@ -18,10 +18,13 @@ const handler: Handler = async (event, context) => {
   if (!queryResult.data.virtualFloorOutcomeTimeslot) {
     return { statusCode: 404 };
   }
- 
+
   const result = queryResult.data.virtualFloorOutcomeTimeslot;
   return {
     statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({
       name: `${result.outcome.virtualFloor.id}#${result.outcome.index}/${result.timeslot.minTimestamp}`,
       description: `Description for VirtualFloor id ${result.outcome.virtualFloor.id}; Outcome #${result.outcome.index}; Timeslot ${result.timeslot.minTimestamp}`,

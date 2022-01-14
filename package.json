@@ -7,12 +7,13 @@
     "dev": "netlify dev"
   },
   "engines": {
-    "node": "14.16.1",
-    "npm": "6.14.12"
+    "node": "v14.18.3",
+    "npm": "8.3.1"
   },
   "license": "ISC",
   "dependencies": {
     "@netlify/functions": "0.10.0",
+    "@types/node": "14.18.3",
     "graphql": "16.2.0",
     "graphql-request": "3.7.0"
   }

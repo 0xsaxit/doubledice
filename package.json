@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "lint:fix": "eslint --fix .",
     "dev": "netlify dev"
   },
   "engines": {

@@ -3,20 +3,26 @@
 ```sh
 sudo service postgresql stop # just in case
 nvm use # see https://github.com/nvm-sh/nvm
-
 cd platform
 npm install
 cp .env.local .env
-npm start
-npm test
-npm run contracts:deploy:local
-npm run graph:all:local
 ```
+
+To run tests:
+```
+npm test
+```
+
+Run `npm start` to:
+1. Start local ganache-cli
+2. Start local IPFS node
+3. Start local Graph node
+4. Deploy contracts
+5. Deploy the subgraph
 
 After this it will be possible to:
 1. Create a test-VirtualFloor programmatically by running `npm run test:local:create-vf`
 2. [Query the graph using GraphQL](http://127.0.0.1:8000/subgraphs/name/doubledice-com/doubledice-platform/graphql)
-3. `npm run build:sol-interface-for-remix` to generate `IDoubleDice` interface which can be loaded into Remix IDE to interact directly with contract deployed on running Ganache container
 
 Then to run the app:
 
@@ -27,7 +33,7 @@ npm run generate
 npm run serve
 ```
 
-To shut down Docker properly, `docker-compose down`
+To stop all services run `npm stop` and wait for all containers to be halted.
 
 ## MetaMask setup
 

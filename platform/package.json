@@ -3,7 +3,7 @@
   "scripts": {
     "clean": "rimraf abi artifacts build cache generated typechain-types",
     "test": "hardhat typechain && hardhat test",
-    "start": "docker-compose up",
+    "start": "./scripts/start.sh",
     "stop": "docker-compose down",
     "contracts:deploy:local": "  hardhat run ./scripts/deploy.ts --network localhost",
     "contracts:deploy:rinkeby": "hardhat run ./scripts/deploy.ts --network rinkeby",

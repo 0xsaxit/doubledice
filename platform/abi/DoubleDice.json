@@ -632,39 +632,46 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "virtualFloorId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "betaOpen_e18",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint32",
-        "name": "tOpen",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "tClose",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "tResolve",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint8",
-        "name": "nOutcomes",
-        "type": "uint8"
-      },
-      {
-        "internalType": "contract IERC20",
-        "name": "paymentToken",
-        "type": "address"
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "virtualFloorId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "betaOpen_e18",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tOpen",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tClose",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tResolve",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint8",
+            "name": "nOutcomes",
+            "type": "uint8"
+          },
+          {
+            "internalType": "contract IERC20",
+            "name": "paymentToken",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct IDoubleDice.VirtualFloorCreationParams",
+        "name": "params",
+        "type": "tuple"
       }
     ],
     "name": "createVirtualFloor",

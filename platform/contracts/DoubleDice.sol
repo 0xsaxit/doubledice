@@ -118,9 +118,19 @@ contract DoubleDice is
 
     mapping(uint256 => VirtualFloor) public _virtualFloors;
 
-    function createVirtualFloor(uint256 virtualFloorId, uint256 betaOpen_e18, uint32 tOpen, uint32 tClose, uint32 tResolve, uint8 nOutcomes, IERC20 paymentToken)
-        external
-    {
+    function createVirtualFloor(VirtualFloorCreationParams calldata params) external {
+
+        // ~3000 gas cheaper than using qualified fields param.* throughout.
+        // Also slightly cheaper than a multiple field assignment
+        // (virtualFloorId, ...) = (params.virtualFloorId, ...)
+        uint256 virtualFloorId = params.virtualFloorId;
+        uint256 betaOpen_e18 = params.betaOpen_e18;
+        uint32 tOpen = params.tOpen;
+        uint32 tClose = params.tClose;
+        uint32 tResolve = params.tResolve;
+        uint8 nOutcomes = params.nOutcomes;
+        IERC20 paymentToken = params.paymentToken;
+
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
 

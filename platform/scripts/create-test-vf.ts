@@ -27,15 +27,15 @@ async function main() {
   const vfId = ethers.utils.hexlify(ethers.utils.randomBytes(8));
   console.log(`vfId = ${vfId}`);
 
-  await (await platform.createVirtualFloor(
-    vfId,                      // virtualFloorId
-    100_000000_000000_000000n, // betaOpen
-    timestamp + 0 * 86400,     // tClose
-    timestamp + 1 * 86400,   // tClose
-    timestamp + 2 * 86400,   // tResolve
-    5,                         // nOutcomes
-    TOKEN_CONTRACT_ADDRESS,    // paymentToken
-  )).wait();
+  await (await platform.createVirtualFloor({
+    virtualFloorId: vfId,
+    betaOpen_e18: 100_000000_000000_000000n,
+    tOpen: timestamp + 0 * 86400,
+    tClose: timestamp + 1 * 86400,
+    tResolve: timestamp + 2 * 86400,
+    nOutcomes: 5,
+    paymentToken: TOKEN_CONTRACT_ADDRESS,
+  })).wait();
 
   const amt = 100_000000_000000_000000n;
   await (await token.mint(user1.address, amt)).wait();

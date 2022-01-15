@@ -110,7 +110,15 @@ describe('DoubleDice', function () {
       const {
         events: [virtualFloorCreatedEvent],
         blockHash
-      } = await (await contract.createVirtualFloor(virtualFloorId, betaOpen, tOpen, tClose, tResolve, nOutcomes, token.address)).wait();
+      } = await (await contract.createVirtualFloor({
+        virtualFloorId,
+        betaOpen_e18: betaOpen,
+        tOpen,
+        tClose,
+        tResolve,
+        nOutcomes,
+        paymentToken: token.address
+      })).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
 

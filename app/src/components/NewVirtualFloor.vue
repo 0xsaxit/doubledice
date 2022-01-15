@@ -102,7 +102,8 @@ export default class NewVirtualFloor extends Vue {
     // - Lower 8 bytes are actually used for virtualFloorId
     const virtualFloorId = ethers.utils.randomBytes(8)
 
-    const betaOpen = EthersBigNumber.from(10).pow(12).mul(this.betaOpen * 1_000000)
+    // eslint-disable-next-line camelcase
+    const betaOpen_e18 = EthersBigNumber.from(10).pow(12).mul(this.betaOpen * 1_000000)
     let tOpen = new Date(this.tOpen).getTime() / 1000
     let tClose = new Date(this.tClose).getTime() / 1000
     let tResolve = new Date(this.tResolve).getTime() / 1000
@@ -114,7 +115,15 @@ export default class NewVirtualFloor extends Vue {
 
     // eslint-disable-next-line space-before-function-paren
     tryCatch(async () => {
-      const tx = await this.contract.createVirtualFloor(virtualFloorId, betaOpen, tOpen, tClose, tResolve, nOutcomes, paymentToken)
+      const tx = await this.contract.createVirtualFloor({
+        virtualFloorId,
+        betaOpen_e18,
+        tOpen,
+        tClose,
+        tResolve,
+        nOutcomes,
+        paymentToken
+      })
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`
       console.log(`Sent ${txUrl}`)

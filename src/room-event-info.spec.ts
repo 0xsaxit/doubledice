@@ -8,7 +8,7 @@ const valid: Readonly<EventInfo> = {
   subcategory: 'football',
   title: 'Finland vs. Argentina',
   description: 'Finland vs. Argentina FIFA 2022 world cup final',
-  visibility: 'unlisted',
+  isListed: true,
   opponents: [
     {
       title: 'Finland',
@@ -44,10 +44,11 @@ describe('validateEventInfo', () => {
       expect(validateEventInfo(data)).to.be.false;
     });
 
-    it('wrong visibility', () => {
-      expect(validateEventInfo({ ...valid, visibility: 'public' })).to.be.true;
-      expect(validateEventInfo({ ...valid, visibility: 'unlisted' })).to.be.true;
-      expect(validateEventInfo({ ...valid, visibility: 'private' })).to.be.false;
+    it('missing isListed', () => {
+      const data: Partial<EventInfo> = { ...valid };
+      expect(validateEventInfo(data)).to.be.true;
+      delete data.isListed;
+      expect(validateEventInfo(data)).to.be.false;
     });
 
     it('empty title', () => {

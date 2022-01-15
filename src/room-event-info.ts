@@ -9,7 +9,7 @@ export interface EventInfo {
   subcategory: string;
   title: string;
   description: string;
-  visibility: 'public' | 'unlisted';
+  isListed: boolean;
   opponents: { title: string; image: string }[];
   outcomes: { index: number; title: string }[];
   resultSources: { title: string; url: string }[];
@@ -22,7 +22,7 @@ const schema: JSONSchemaType<EventInfo> = {
     'subcategory',
     'title',
     'description',
-    'visibility',
+    'isListed',
     'opponents',
     'outcomes',
     'resultSources',
@@ -32,7 +32,7 @@ const schema: JSONSchemaType<EventInfo> = {
     subcategory: { type: 'string', minLength: 1 },
     title: { type: 'string', minLength: 1 },
     description: { type: 'string', minLength: 1 },
-    visibility: { type: 'string', enum: ['public', 'unlisted'] },
+    isListed: { type: 'boolean' },
     opponents: {
       type: 'array',
       items: {

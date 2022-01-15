@@ -20,9 +20,9 @@ const valid: Readonly<EventInfo> = {
     },
   ],
   outcomes: [
-    { index: 1, title: 'Finland win' },
-    { index: 2, title: 'Argentina win' },
-    { index: 3, title: 'Tie' },
+    { index: 0, title: 'Finland win' },
+    { index: 1, title: 'Argentina win' },
+    { index: 2, title: 'Tie' },
   ],
   resultSources: [
     { title: 'Official FIFA result page', url: 'https://www.youtube.com/watch?v=BEt3DcEQUbs' },

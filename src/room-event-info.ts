@@ -53,13 +53,13 @@ const schema: JSONSchemaType<EventInfo> = {
         type: 'object',
         required: ['index', 'title'],
         properties: {
-          index: { type: 'integer', minimum: 1, maximum: 255 },
+          index: { type: 'integer', minimum: 0, maximum: 255 },
           title: { type: 'string', minLength: 1 },
         },
         additionalProperties: false,
       },
       minItems: 2,
-      maxItems: 255,
+      maxItems: 256,
       uniqueItems: true,
     },
     resultSources: {
@@ -80,4 +80,7 @@ const schema: JSONSchemaType<EventInfo> = {
   additionalProperties: false,
 };
 
+// ToDo: Extend validateEventInfo function so that in addition to JSON validation,
+// it also checks that outcome index values are correct and in order,
+// category and subcategory match constraints, etc.
 export const validateEventInfo = ajv.compile(schema);

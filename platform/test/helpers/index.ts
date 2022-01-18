@@ -1,5 +1,11 @@
 import assert from 'assert';
 import { BigNumber, BigNumberish, ContractReceipt } from 'ethers';
+import { ethers } from 'hardhat';
+
+export type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+
+export const sleep = t => new Promise(s => setTimeout(s, t));
+
 
 export const toFp18 = (value: number): BigNumber => {
   const sign = Math.sign(value);
@@ -36,14 +42,58 @@ export const findContractEventArgs = <T = any>(events: ContractReceipt['events']
 
 export interface UserCommitment {
   virtualFloorId: BigNumber;
-  outcomeIndex: number;
+  committer: string;
+  outcomeIndex: BigNumber;
   timeslot: BigNumber;
   amount: BigNumber;
+  beta_e18: BigNumber;
   tokenId: BigNumber;
+}
+
+enum VirtualFloorResolutionType {
+  'NoWinners',
+  'AllWinners',
+  'SomeWinners'
+}
+
+export interface VirtualFloorResolution {
+  virtualFloorId: BigNumber;
+  winningOutcomeIndex: BigNumber;
+  resolutionType: VirtualFloorResolutionType;
+  winnerProfits: BigNumber;
+  feeAmount: BigNumber;
 }
 
 export const findUserCommitmentEventArgs = (events: ContractReceipt['events']): UserCommitment => {
   return findContractEventArgs(events, 'UserCommitment');
 };
 
+export const findVFResolutionEventArgs = (events: ContractReceipt['events']): VirtualFloorResolution => {
+  return findContractEventArgs(events, 'VirtualFloorResolution');
+};
+
 export const DUMMY_METADATA_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+export class EvmCheckpoint {
+  private snapshot: string;
+
+  private constructor(initSnapshot: string) {
+    this.snapshot = initSnapshot;
+  }
+
+  static async create(log = false): Promise<EvmCheckpoint> {
+    const snapshot = await ethers.provider.send('evm_snapshot', []);
+    if (log) console.log(`Captured EVM snapshot ${snapshot}`);
+    return new EvmCheckpoint(snapshot);
+  }
+
+  async revertTo(log = false) {
+    const ok = await ethers.provider.send('evm_revert', [this.snapshot]);
+    if (!ok) {
+      throw new Error(`Error reverting to EVM snapshot ${this.snapshot}`);
+    }
+    if (log) console.log(`Reverted to EVM snapshot ${this.snapshot}`);
+    this.snapshot = await ethers.provider.send('evm_snapshot', []);
+    if (log) console.log(`Captured EVM snapshot ${this.snapshot}`);
+  }
+}

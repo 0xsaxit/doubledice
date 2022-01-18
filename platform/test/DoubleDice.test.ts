@@ -14,6 +14,7 @@ import {
 } from '../lib/contracts';
 import {
   DUMMY_METADATA_HASH,
+  EvmCheckpoint,
   findContractEventArgs,
   findUserCommitmentEventArgs,
   formatUsdc,
@@ -46,6 +47,12 @@ describe('DoubleDice', function () {
   let user4Signer: SignerWithAddress;
   let contract: DoubleDice;
   let token: DummyERC20;
+
+  let checkpoint;
+
+  before(async () => {
+    checkpoint = await EvmCheckpoint.create();
+  });
 
   it('should go through the entire VPF cycle successfully', async function () {
     [
@@ -318,4 +325,9 @@ describe('DoubleDice', function () {
     }
 
   });
+
+  after(async () => {
+    await checkpoint.revertTo();
+  })
+
 });

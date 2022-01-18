@@ -1,10 +1,7 @@
 import Ajv, { JSONSchemaType } from 'ajv';
 import addFormats from 'ajv-formats';
 
-const ajv = new Ajv();
-addFormats(ajv);
-
-export interface EventInfo {
+export interface RoomEventInfo {
   category: string;
   subcategory: string;
   title: string;
@@ -15,7 +12,11 @@ export interface EventInfo {
   resultSources: { title: string; url: string }[];
 }
 
-const schema: JSONSchemaType<EventInfo> = {
+
+const ajv = new Ajv();
+addFormats(ajv);
+
+const schema: JSONSchemaType<RoomEventInfo> = {
   type: 'object',
   required: [
     'category',
@@ -80,7 +81,7 @@ const schema: JSONSchemaType<EventInfo> = {
   additionalProperties: false,
 };
 
-// ToDo: Extend validateEventInfo function so that in addition to JSON validation,
+// ToDo: Extend function so that in addition to JSON validation,
 // it also checks that outcome index values are correct and in order,
 // category and subcategory match constraints, etc.
-export const validateEventInfo = ajv.compile(schema);
+export const validateRoomEventInfo = ajv.compile(schema);

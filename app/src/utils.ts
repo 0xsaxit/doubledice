@@ -1,6 +1,5 @@
 import { BigNumber as BigDecimal } from 'bignumber.js'
-import { ethers } from 'ethers'
-import * as ipfs from 'ipfs-http-client'
+import { RoomEventInfo } from '../../platform/room-event-info/client'
 
 export const flatten = <T>(arrays: T[][]): T[] => Array.prototype.concat(...arrays)
 
@@ -26,8 +25,8 @@ export const sum = (values: BigDecimal[]): BigDecimal => {
 
 export const getSystemTimestamp = (): number => Math.floor(Date.now() / 1000)
 
-export const createRoomEventInfo = async (): Promise<any> => {
-  const roomEventInfo = {
+export const createRoomEventInfo = async (): Promise<RoomEventInfo> => {
+  const roomEventInfo: RoomEventInfo = {
     category: 'sports',
     subcategory: 'football',
     title: 'Finland vs. Argentina',
@@ -47,19 +46,4 @@ export const createRoomEventInfo = async (): Promise<any> => {
     ]
   }
   return roomEventInfo
-}
-
-export const submitRoomEventInfo = async (roomEventInfo: any): Promise<string> => {
-  const ipfsClient = ipfs.create({
-    host: 'localhost',
-    port: 5001
-  })
-  const content = JSON.stringify(roomEventInfo, null, 2)
-  // Will fail with "ReferenceError: AbortController is not defined" if you aren't using NodeJS v16
-  const { cid } = await ipfsClient.add(content, {
-    rawLeaves: true // otherwise multihash will not be exact sha256 of content
-  })
-  const metadataHash = ethers.utils.hexlify(cid.multihash.digest)
-  console.log(`room-event-info added to ipfs with hash ${metadataHash}`)
-  return metadataHash
 }

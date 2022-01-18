@@ -1,8 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import assert from 'assert';
-import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import * as ipfs from 'ipfs-http-client';
+import { RoomEventInfo, RoomEventInfoClient } from '../room-event-info/client';
 import { DoubleDice__factory, DummyUSDCoin__factory } from '../typechain-types';
 
 const TOKEN_CONTRACT_ADDRESS = '0x5fbdb2315678afecb367f032d93f642f64180aa3';
@@ -10,7 +9,7 @@ const PLATFORM_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 
 async function main() {
 
-  const roomEventInfo = {
+  const roomEventInfo: RoomEventInfo = {
     category: 'sports',
     subcategory: 'football',
     title: 'Finland vs. Argentina',
@@ -30,13 +29,8 @@ async function main() {
     ]
   };
 
-  const content = JSON.stringify(roomEventInfo, null, 2);
+  const metadataHash = await new RoomEventInfoClient().submitRoomEventInfo(roomEventInfo);
 
-  // Will fail with "ReferenceError: AbortController is not defined" if you aren't using NodeJS v16
-  const { cid } = await ipfs.create().add(content, { rawLeaves: true });
-  const metadataHash = ethers.utils.hexlify(cid.multihash.digest);
-
-  expect(metadataHash).to.eq(ethers.utils.sha256(ethers.utils.toUtf8Bytes(content)));
   console.log(`metadataHash = ${metadataHash}`);
 
   const [owner, user1, user2] = await ethers.getSigners();
@@ -83,10 +77,10 @@ async function main() {
   const { events: events3 } = await (await platform.connect(user2).commitToVirtualFloor(vfId, 1, 300000_000000_000000n)).wait();
   const { events: events4 } = await (await platform.connect(user2).commitToVirtualFloor(vfId, 2, 400000_000000_000000n)).wait();
 
-  const { args: { id: id1 } } = events1.find(({ event }) => event === 'TransferSingle');
-  const { args: { id: id2 } } = events2.find(({ event }) => event === 'TransferSingle');
-  const { args: { id: id3 } } = events3.find(({ event }) => event === 'TransferSingle');
-  const { args: { id: id4 } } = events4.find(({ event }) => event === 'TransferSingle');
+  const { args: { id: id1 } } = events1!.find(({ event }) => event === 'TransferSingle') as any;
+  const { args: { id: id2 } } = events2!.find(({ event }) => event === 'TransferSingle') as any;
+  const { args: { id: id3 } } = events3!.find(({ event }) => event === 'TransferSingle') as any;
+  const { args: { id: id4 } } = events4!.find(({ event }) => event === 'TransferSingle') as any;
 
   assert(BigNumber.isBigNumber(id1));
   assert(BigNumber.isBigNumber(id2));

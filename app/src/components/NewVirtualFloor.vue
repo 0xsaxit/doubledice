@@ -55,10 +55,10 @@
 import { BigNumber as EthersBigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
-// eslint-disable-next-line camelcase
+import { RoomEventInfoClient } from '../../../platform/room-event-info/client'
 import { DoubleDice as DoubleDiceContract } from '../../../platform/typechain-types'
 import { PaymentToken as PaymentTokenEntity } from '../generated/graphql'
-import { createRoomEventInfo, submitRoomEventInfo, tryCatch } from '../utils'
+import { createRoomEventInfo, tryCatch } from '../utils'
 
 @Options({
   props: {
@@ -97,7 +97,7 @@ export default class NewVirtualFloor extends Vue {
 
   async createVpf(): Promise<void> {
     const roomEventInfo = await createRoomEventInfo()
-    const metadataHash = await submitRoomEventInfo(roomEventInfo)
+    const metadataHash = await new RoomEventInfoClient().submitRoomEventInfo(roomEventInfo)
 
     // Generate a virtualFloorId in the hex form 00_0000000000000000000000000000000000000000000000_XXXXXXXXXXXXXXXX
     // - First byte = 0x00, meaning "virtualfloor token type"

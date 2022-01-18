@@ -11,3 +11,8 @@
     from = "/api/*"
     to = "/.netlify/functions/:splat"
     status = 200
+
+# To avoid 'error: Could not resolve "electron"' from electron-fetch imported by ipfs-utils
+# See [Advanced configuration](https://www.netlify.com/blog/2021/04/02/modern-faster-netlify-functions/)
+[functions]
+    external_node_modules = ["electron"]

@@ -19,7 +19,8 @@
     "ajv": "8.8.2",
     "ajv-formats": "2.1.1",
     "graphql": "16.2.0",
-    "graphql-request": "3.7.0"
+    "graphql-request": "3.7.0",
+    "ipfs-http-client": "55.0.0"
   },
   "devDependencies": {
     "@types/chai": "4.3.0",

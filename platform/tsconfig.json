@@ -10,7 +10,9 @@
         "./scripts",
         "./test",
         "./helpers",
-        "/src"
+        "./src",
+        "./room-event-info",
+        "./lib",
     ],
     "files": [
         "./hardhat.config.ts"

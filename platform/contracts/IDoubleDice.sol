@@ -25,7 +25,8 @@ interface IDoubleDice is
         uint32 tClose,
         uint32 tResolve,
         uint8 nOutcomes,
-        IERC20 paymentToken
+        IERC20 paymentToken,
+        bytes32 metadataHash
     );
 
     event UserCommitment(
@@ -54,6 +55,7 @@ interface IDoubleDice is
         uint32 tResolve;
         uint8 nOutcomes;
         IERC20 paymentToken;
+        bytes32 metadataHash;
     }
 
     /// @notice Create a new virtual-floor.

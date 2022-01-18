@@ -12,6 +12,16 @@
           :locked="fastforwarding"
           :now="nextBlockTimestamp"
         />
+        <div>
+          <h2>
+            {{ virtualFloor.title }}
+            <span style="float: right">
+              <span class="label">{{ virtualFloor.category }}</span>
+              <span class="label">{{ virtualFloor.subcategory }}</span>
+            </span>
+          </h2>
+          <p>{{ virtualFloor.description }}</p>
+        </div>
       </td>
     </tr>
     <tr>
@@ -132,5 +142,12 @@ export default class VirtualFloorComponent extends Vue {
 <style scoped>
 tbody.virtual-floor {
   outline: 1px dashed black;
+}
+
+.label {
+  background: lightsteelblue;
+  padding: 4px;
+  margin: 4px;
+  border-radius: 10px;
 }
 </style>

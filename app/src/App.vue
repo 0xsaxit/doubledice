@@ -151,6 +151,11 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
 #    }
   ) {
     id
+    category
+    subcategory
+    title
+    description
+    isListed
     paymentToken {
       symbol
       decimals

@@ -1,10 +1,19 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import chai, { expect } from 'chai';
 import chaiSubset from 'chai-subset';
-import { BigNumber, BigNumberish, Event as ContractEvent } from 'ethers';
+import {
+  BigNumber,
+  BigNumberish,
+  Event as ContractEvent
+} from 'ethers';
 import { ethers } from 'hardhat';
 import { formatUsdc, sumOf } from '../lib';
-import { DoubleDice, DoubleDice__factory, DummyERC20, DummyUSDCoin__factory } from '../typechain-types';
+import {
+  DoubleDice,
+  DoubleDice__factory,
+  DummyERC20,
+  DummyUSDCoin__factory
+} from '../typechain-types';
 
 chai.use(chaiSubset);
 
@@ -117,7 +126,8 @@ describe('DoubleDice', function () {
         tClose,
         tResolve,
         nOutcomes,
-        paymentToken: token.address
+        paymentToken: token.address,
+        metadataHash: '0x0000000000000000000000000000000000000000000000000000000000000000' // dummy
       })).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));

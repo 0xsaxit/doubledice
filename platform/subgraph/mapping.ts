@@ -5,8 +5,15 @@ import {
   Address,
   BigDecimal,
   BigInt,
-  log
+  ByteArray,
+  Bytes,
+  ipfs,
+  json,
+  JSONValue,
+  log,
+  TypedMap
 } from '@graphprotocol/graph-ts';
+import { concat } from '@graphprotocol/graph-ts/helper-functions';
 import {
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
   TransferSingle as TransferSingleEvent,
@@ -72,6 +79,20 @@ function loadOrCreateEntity<T extends Entity>(load: LoadEntity<T>, id: string): 
   return entity;
 }
 
+function getNonNullProperty(map: TypedMap<string, JSONValue>, key: string): JSONValue {
+  return changetype<JSONValue>(assert(map.get(key), key + ' is null'));
+}
+
+function getBase16CidV1Hash(sha256Hash: Bytes): string {
+  //             "e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864"
+  // => "f01551220e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864"
+  // Final .slice(3) removes "0x0"
+  // and leaves "f01551220e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864"
+  // See https://cid.ipfs.io/#f01551220e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864
+  return concat(ByteArray.fromHexString('0x0f01551220'), sha256Hash).toHex().slice(3);
+}
+
+
 /**
  * It doesn't matter whether this token is being enabled or disabled, we are only using it to discover
  * new ERC-20 payment tokens that might later be used in virtual-floors.
@@ -92,10 +113,24 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
 }
 
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
+  let outcomeValues: JSONValue[];
+  let roomEventInfoMap: TypedMap<string, JSONValue>;
+  {
+    const cid = getBase16CidV1Hash(event.params.metadataHash);
+    const dataBytes = changetype<Bytes>(assert(ipfs.cat(cid), 'dataBytes == null'));
+    const roomEventInfoValue = json.fromBytes(dataBytes);
+    roomEventInfoMap = roomEventInfoValue.toObject();
+  }
 
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
     const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
+
+    $.category = getNonNullProperty(roomEventInfoMap, 'category').toString();
+    $.subcategory = getNonNullProperty(roomEventInfoMap, 'subcategory').toString();
+    $.title = getNonNullProperty(roomEventInfoMap, 'title').toString();
+    $.description = getNonNullProperty(roomEventInfoMap, 'description').toString();
+    $.isListed = getNonNullProperty(roomEventInfoMap, 'isListed').toBool();
 
     const userId = event.params.creator.toHex();
     {
@@ -109,23 +144,36 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.paymentToken = event.params.paymentToken.toHex();
 
     $.betaOpen = toDecimal(event.params.betaOpen_e18);
-
     $.tCreated = event.block.timestamp;
     $.tOpen = event.params.tOpen;
     $.tClose = event.params.tClose;
     $.tResolve = event.params.tResolve;
     $.state = 'RUNNING_OR_CLOSED';
+
     $.save();
   }
 
-  for (let outcomeIndex = 0; outcomeIndex < event.params.nOutcomes; outcomeIndex++) {
-    const outcomeId = `${virtualFloorId}-${outcomeIndex}`;
-    {
-      const $ = createNewEntity<Outcome>(Outcome.load, outcomeId);
-      $.virtualFloor = virtualFloorId;
-      $.title = `Outcome № ${outcomeIndex}`;
-      $.index = outcomeIndex;
-      $.save();
+  {
+    outcomeValues = getNonNullProperty(roomEventInfoMap, 'outcomes').toArray();
+    assert(
+      outcomeValues.length == event.params.nOutcomes,
+      'outcomeValues.length = ' + outcomeValues.length.toString()
+      + ' != event.params.nOutcomes = ' + event.params.nOutcomes.toString());
+
+    for (let outcomeIndex = 0; outcomeIndex < event.params.nOutcomes; outcomeIndex++) {
+      const outcomeMap = outcomeValues[outcomeIndex].toObject();
+      const jsonIndex = getNonNullProperty(outcomeMap, 'index').toU64();
+      assert(jsonIndex == outcomeIndex, 'jsonIndex == ' + jsonIndex.toString() + ' != outcomeIndex == ' + outcomeIndex.toString());
+      const title = getNonNullProperty(outcomeMap, 'title').toString();
+
+      const outcomeId = `${virtualFloorId}-${outcomeIndex}`;
+      {
+        const $ = createNewEntity<Outcome>(Outcome.load, outcomeId);
+        $.virtualFloor = virtualFloorId;
+        $.title = title;
+        $.index = outcomeIndex;
+        $.save();
+      }
     }
   }
 }

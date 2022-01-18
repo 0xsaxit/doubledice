@@ -58,7 +58,7 @@ import { Options, Vue } from 'vue-class-component'
 // eslint-disable-next-line camelcase
 import { DoubleDice as DoubleDiceContract } from '../../../platform/typechain-types'
 import { PaymentToken as PaymentTokenEntity } from '../generated/graphql'
-import { tryCatch } from '../utils'
+import { createRoomEventInfo, submitRoomEventInfo, tryCatch } from '../utils'
 
 @Options({
   props: {
@@ -85,7 +85,7 @@ export default class NewVirtualFloor extends Vue {
 
   tResolve!: string
 
-  nOutcomes = 2
+  nOutcomes = 3
 
   async created(): Promise<void> {
     const tOpen = this.nextBlockTimestamp - (this.nextBlockTimestamp % 60)
@@ -96,6 +96,9 @@ export default class NewVirtualFloor extends Vue {
   }
 
   async createVpf(): Promise<void> {
+    const roomEventInfo = await createRoomEventInfo()
+    const metadataHash = await submitRoomEventInfo(roomEventInfo)
+
     // Generate a virtualFloorId in the hex form 00_0000000000000000000000000000000000000000000000_XXXXXXXXXXXXXXXX
     // - First byte = 0x00, meaning "virtualfloor token type"
     // - Next 23 bytes are all 0x00 to save intrinsic-gas on all future calls that will reference this virtualfloor-id
@@ -122,7 +125,8 @@ export default class NewVirtualFloor extends Vue {
         tClose,
         tResolve,
         nOutcomes,
-        paymentToken
+        paymentToken,
+        metadataHash
       })
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`

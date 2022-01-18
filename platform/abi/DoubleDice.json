@@ -326,6 +326,12 @@
         "internalType": "contract IERC20",
         "name": "paymentToken",
         "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "metadataHash",
+        "type": "bytes32"
       }
     ],
     "name": "VirtualFloorCreation",
@@ -667,6 +673,11 @@
             "internalType": "contract IERC20",
             "name": "paymentToken",
             "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "metadataHash",
+            "type": "bytes32"
           }
         ],
         "internalType": "struct IDoubleDice.VirtualFloorCreationParams",

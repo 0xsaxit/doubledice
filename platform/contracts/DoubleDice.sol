@@ -130,6 +130,7 @@ contract DoubleDice is
         uint32 tResolve = params.tResolve;
         uint8 nOutcomes = params.nOutcomes;
         IERC20 paymentToken = params.paymentToken;
+        bytes32 metadataHash = params.metadataHash;
 
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
@@ -171,7 +172,8 @@ contract DoubleDice is
             tClose: tClose,
             tResolve: tResolve,
             nOutcomes: nOutcomes,
-            paymentToken: paymentToken
+            paymentToken: paymentToken,
+            metadataHash: metadataHash
         });
 
         // Represent this virtual-floor as an ERC-1155 *non-fungible* token.

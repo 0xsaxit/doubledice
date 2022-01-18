@@ -21,6 +21,7 @@
     "core-js": "^3.6.5",
     "ethers": "^5.5.1",
     "graphql-tag": "^2.12.6",
+    "ipfs-http-client": "55.0.0",
     "vue": "^3.0.0",
     "vue-class-component": "^8.0.0-0"
   },

@@ -13,6 +13,7 @@ module.exports = {
     semi: ['error', 'always'],
     'no-multiple-empty-lines': 'error',
     indent: ['error', 2],
+    'quote-props': ['error', 'as-needed'],
   },
   env: {
     node: true

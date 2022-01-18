@@ -2,6 +2,9 @@
   <td class="outcome">
     <table style="width: 100%">
       <tr>
+        <th colspan="4">{{ outcome.title }}</th>
+      </tr>
+      <tr>
         <th>total</th>
         <td>{{ outcomeTotalSupply }} {{ virtualFloor.paymentToken.symbol }}</td>
         <td>×</td>

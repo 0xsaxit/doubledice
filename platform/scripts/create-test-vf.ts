@@ -1,13 +1,43 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import assert from 'assert';
+import { expect } from 'chai';
 import { ethers } from 'hardhat';
+import * as ipfs from 'ipfs-http-client';
 import { DoubleDice__factory, DummyUSDCoin__factory } from '../typechain-types';
-
 
 const TOKEN_CONTRACT_ADDRESS = '0x5fbdb2315678afecb367f032d93f642f64180aa3';
 const PLATFORM_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 
 async function main() {
+
+  const roomEventInfo = {
+    category: 'sports',
+    subcategory: 'football',
+    title: 'Finland vs. Argentina',
+    description: 'Finland vs. Argentina FIFA 2022 world cup final',
+    isListed: false,
+    opponents: [
+      { title: 'Finland', image: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Huuhkajat_logo.svg' },
+      { title: 'Argentina', image: 'https://upload.wikimedia.org/wikipedia/en/c/c1/Argentina_national_football_team_logo.svg' }
+    ],
+    outcomes: [
+      { index: 0, title: 'Finland win' },
+      { index: 1, title: 'Argentina win' },
+      { index: 2, title: 'Tie' }
+    ],
+    resultSources: [
+      { title: 'Official FIFA result page', url: 'http://fifa.com/argentina-vs-finland' }
+    ]
+  };
+
+  const content = JSON.stringify(roomEventInfo, null, 2);
+
+  // Will fail with "ReferenceError: AbortController is not defined" if you aren't using NodeJS v16
+  const { cid } = await ipfs.create().add(content, { rawLeaves: true });
+  const metadataHash = ethers.utils.hexlify(cid.multihash.digest);
+
+  expect(metadataHash).to.eq(ethers.utils.sha256(ethers.utils.toUtf8Bytes(content)));
+  console.log(`metadataHash = ${metadataHash}`);
 
   const [owner, user1, user2] = await ethers.getSigners();
 
@@ -33,8 +63,9 @@ async function main() {
     tOpen: timestamp + 0 * 86400,
     tClose: timestamp + 1 * 86400,
     tResolve: timestamp + 2 * 86400,
-    nOutcomes: 5,
+    nOutcomes: roomEventInfo.outcomes.length,
     paymentToken: TOKEN_CONTRACT_ADDRESS,
+    metadataHash
   })).wait();
 
   const amt = 100_000000_000000_000000n;

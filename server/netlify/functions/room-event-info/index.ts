@@ -12,46 +12,59 @@ const jsonResponse = (statusCode: HandlerResponse['statusCode'], data: Record<st
 };
 
 export const handler: Handler = async (event, context) => {
+  const {
+    queryStringParameters,
+    httpMethod,
+    body,
+    headers,
+  } = event;
+
+  if (httpMethod !== 'POST') {
+    return jsonResponse(405, { error: `HTTP method ${httpMethod} != POST` });
+  }
+
+  if (queryStringParameters === null) {
+    return jsonResponse(400, { error: 'Query params cannot be null' });
+  }
+
+  const contentType = headers['content-type'];
+  if (contentType !== 'application/json') {
+    return jsonResponse(400, { error: 'Request `Content-Type` header must specify `application/json`' });
+  }
+
+  if (body === null) {
+    return jsonResponse(400, { error: 'Request body cannot be null' });
+  }
+
+  const { action } = queryStringParameters as { action?: string };
+
+  if (!(action === 'validate' || action === 'submit')) {
+    return jsonResponse(400, { error: 'Query param `action` must be `validate` or `submit`' });
+  }
+
+  let parsed;
   try {
-    const {
-      queryStringParameters,
-      httpMethod,
-      body,
-    } = event;
+    parsed = JSON.parse(body);
+  } catch (e) {
+    return jsonResponse(400, { error: 'Error trying to parse body as JSON' });
+  }
 
-    if (queryStringParameters === null) {
-      throw new Error('!');
-    }
+  const isValid = validateEventInfo(parsed);
 
-    const { action } = queryStringParameters as { action?: 'validate' };
+  if (!isValid) {
+    return jsonResponse(400, {
+      valid: false,
+      errors: validateEventInfo.errors,
+    });
+  }
 
-    if (httpMethod === 'POST' && action === 'validate') {
-
-      if (typeof body !== 'string') {
-        throw new Error('!');
-      }
-
-      const isValid = validateEventInfo(JSON.parse(body));
-
-      if (isValid) {
-        return jsonResponse(200, {
-          valid: true,
-        });
-      } else {
-        return jsonResponse(400, {
-          valid: false,
-          errors: validateEventInfo.errors,
-        });
-      }
-    } else {
-      return jsonResponse(500, {
-        error: 'Error',
-      });
-    }
-
-  } catch (e: any) {
-    return jsonResponse(500, {
-      error: e.stack.split('\n'),
+  if (action === 'validate') {
+    return jsonResponse(200, {
+      valid: true,
+    });
+  } else {
+    return jsonResponse(200, {
+      valid: true,
     });
   }
 };

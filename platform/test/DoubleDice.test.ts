@@ -7,7 +7,7 @@ import {
   Event as ContractEvent
 } from 'ethers';
 import { ethers } from 'hardhat';
-import { formatUsdc, sumOf } from '../lib';
+import { findContractEvent, formatUsdc, sumOf } from '../lib';
 import {
   DoubleDice,
   DoubleDice__factory,
@@ -70,12 +70,9 @@ describe('DoubleDice', function () {
       expect(await contract.isPaymentTokenWhitelisted(token.address)).to.be.false;
       const { events } = await (await contract.connect(paymentTokenWhitelister).updatePaymentTokenWhitelist(token.address, true)).wait();
       expect(events).to.have.lengthOf(1);
-      expect(events[0]).to.containSubset({
-        event: 'PaymentTokenWhitelistUpdate',
-        args: {
-          token: token.address,
-          enabled: true
-        },
+      expect(findContractEvent(events, 'PaymentTokenWhitelistUpdate')).to.containSubset({
+        token: token.address,
+        enabled: true
       });
     }
 
@@ -107,17 +104,15 @@ describe('DoubleDice', function () {
     }
     const allUserCommitments: UserCommitment[] = [];
 
-    const findUserCommitmentEvent = (events: ContractEvent[]): UserCommitment => {
-      const event = events.find(({ event }) => event === 'UserCommitment');
-      return event.args as unknown as UserCommitment;
+    const findUserCommitmentEvent = (events: ContractEvent[] | undefined): UserCommitment => {
+      return findContractEvent(events, 'UserCommitment');
     };
-
 
     {
       await setNextBlockTimestamp('2032-01-01T00:00:00');
 
       const {
-        events: [virtualFloorCreatedEvent],
+        events,
         blockHash
       } = await (await contract.createVirtualFloor({
         virtualFloorId,
@@ -132,14 +127,13 @@ describe('DoubleDice', function () {
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
 
-      expect(virtualFloorCreatedEvent.event).to.eq('VirtualFloorCreation');
-      expect(virtualFloorCreatedEvent.args.virtualFloorId).to.eq(virtualFloorId);
+      const virtualFloorCreatedEventArgs = findContractEvent(events, 'VirtualFloorCreation');
+      expect(virtualFloorCreatedEventArgs.virtualFloorId).to.eq(virtualFloorId);
     }
 
     {
       const outcomeIndex = 0;
       const amount = $(10);
-
 
       await setNextBlockTimestamp('2032-01-01T01:00:00');
 
@@ -148,13 +142,13 @@ describe('DoubleDice', function () {
       const virtualFloorCommitmentArgs = findUserCommitmentEvent(events);
       allUserCommitments.push(virtualFloorCommitmentArgs);
 
-      const token1155Transfer = events.find(({ event }) => event === 'TransferSingle');
+      const token1155TransferArgs = findContractEvent(events, 'TransferSingle');
 
-      expect(token1155Transfer.args.from).to.eq('0x0000000000000000000000000000000000000000');
-      expect(token1155Transfer.args.to).to.eq(user1Signer.address);
-      expect(token1155Transfer.args.value).to.eq(amount);
+      expect(token1155TransferArgs.from).to.eq('0x0000000000000000000000000000000000000000');
+      expect(token1155TransferArgs.to).to.eq(user1Signer.address);
+      expect(token1155TransferArgs.value).to.eq(amount);
 
-      const nftId = token1155Transfer.args.id;
+      const nftId = token1155TransferArgs.id;
       // console.log(`nftId = ${nftId}`)
 
       expect(virtualFloorCommitmentArgs.virtualFloorId).to.eq(virtualFloorId);
@@ -263,13 +257,7 @@ describe('DoubleDice', function () {
     await setNextBlockTimestamp('2032-01-02T00:00:00');
     {
       const { events } = await (await contract.resolve(virtualFloorId, 1)).wait();
-      const {
-        args: {
-          winnerProfits,
-          feeAmount
-        }
-      } = events.find(({ event }) => event === 'VirtualFloorResolution');
-
+      const { winnerProfits, feeAmount } = findContractEvent(events, 'VirtualFloorResolution');
 
       const tcf = sumOf(...aggregateCommitments.map(({ amount }) => amount));
 

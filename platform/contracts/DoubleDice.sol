@@ -215,9 +215,13 @@ contract DoubleDice is
         // and this rounded-down timestamp is used as the "timeslot identifier".
         uint256 timeslot = block.timestamp - (block.timestamp % _TIMESLOT_DURATION);
 
-        // Commitments made at t < tOpen will all be treated as if they were made at t == tOpen
-        // They will be assigned the same beta, and all ERC-1155 balances minted at t <= tOpen
-        // will be fungible between themselves.
+        // Commitments made at t < tOpen will all be accumulated into the same timeslot == tOpen,
+        // and will therefore be assigned the same beta == betaOpen.
+        // This means that all commitments to a specific outcome that happen at t <= tOpen
+        // (actually up to t < tOpen + _TIMESLOT_DURATION)
+        // will be minted as balances on the the same ERC-1155 tokenId, which means that
+        // these balances will be exchangeable/tradeable/fungible between themselves,
+        // but they will not be fungible with commitments to the same outcome that arrive later.
         timeslot = Math.max(virtualFloor.tOpen, timeslot);
 
         uint256 beta_e18 = _calcBeta(virtualFloor, timeslot);

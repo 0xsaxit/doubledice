@@ -21,6 +21,22 @@
             </span>
           </h2>
           <p>{{ virtualFloor.description }}</p>
+          <div>
+            <template v-for="(opponent, index) in virtualFloor.opponents" :key="opponent.id">
+              <div
+                style="display: inline-block; font-size: xx-large; font-style: italic; padding: 30px"
+                v-if="index > 0"
+              >
+                <span>VS</span>
+              </div>
+              <div style="display: inline-block">
+                <div>
+                  <img style="height: 64px" :src="opponent.image" :title="opponent.title" />
+                </div>
+                <div>{{ opponent.title }}</div>
+              </div>
+            </template>
+          </div>
         </div>
       </td>
     </tr>

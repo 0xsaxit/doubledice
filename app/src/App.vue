@@ -174,6 +174,11 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
     owner {
       id
     }
+    opponents {
+      id
+      title
+      image
+    }
     outcomes {
       index
       totalSupply

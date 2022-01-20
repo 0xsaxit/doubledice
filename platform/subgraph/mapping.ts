@@ -25,6 +25,7 @@ import {
   IERC20Metadata
 } from '../generated/DoubleDice/IERC20Metadata';
 import {
+  Opponent,
   Outcome,
   OutcomeTimeslot,
   OutcomeTimeslotTransfer,
@@ -113,7 +114,6 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
 }
 
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
-  let outcomeValues: JSONValue[];
   let roomEventInfoMap: TypedMap<string, JSONValue>;
   {
     const cid = getBase16CidV1Hash(event.params.metadataHash);
@@ -154,7 +154,24 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   }
 
   {
-    outcomeValues = getNonNullProperty(roomEventInfoMap, 'outcomes').toArray();
+    const opponentValues = getNonNullProperty(roomEventInfoMap, 'opponents').toArray();
+    for (let opponentIndex = 0; opponentIndex < opponentValues.length; opponentIndex++) {
+      const opponentMap = opponentValues[opponentIndex].toObject();
+      const title = getNonNullProperty(opponentMap, 'title').toString();
+      const image = getNonNullProperty(opponentMap, 'image').toString();
+      const opponentId = `${virtualFloorId}-${opponentIndex}`;
+      {
+        const $ = createNewEntity<Opponent>(Opponent.load, opponentId);
+        $.virtualFloor = virtualFloorId;
+        $.title = title;
+        $.image = image;
+        $.save();
+      }
+    }
+  }
+
+  {
+    const outcomeValues = getNonNullProperty(roomEventInfoMap, 'outcomes').toArray();
     assert(
       outcomeValues.length == event.params.nOutcomes,
       'outcomeValues.length = ' + outcomeValues.length.toString()

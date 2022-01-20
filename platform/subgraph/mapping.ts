@@ -25,11 +25,13 @@ import {
   IERC20Metadata
 } from '../generated/DoubleDice/IERC20Metadata';
 import {
+  Category,
   Opponent,
   Outcome,
   OutcomeTimeslot,
   OutcomeTimeslotTransfer,
   PaymentToken,
+  Subcategory,
   Timeslot,
   User,
   UserOutcome,
@@ -124,10 +126,31 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
+    const category = getNonNullProperty(roomEventInfoMap, 'category').toString();
+    const subcategory = getNonNullProperty(roomEventInfoMap, 'subcategory').toString();
+
+    const categoryId = category;
+    {
+      const categoryEntity = loadOrCreateEntity<Category>(Category.load, categoryId);
+      /* if (isNew) */ {
+        categoryEntity.slug = category;
+        categoryEntity.save();
+      }
+    }
+
+    const subcategoryId = `${category}-${subcategory}`;
+    {
+      const subcategoryEntity = loadOrCreateEntity<Subcategory>(Subcategory.load, subcategoryId);
+      /* if (isNew) */ {
+        subcategoryEntity.category = categoryId;
+        subcategoryEntity.slug = subcategory;
+        subcategoryEntity.save();
+      }
+    }
+
     const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
 
-    $.category = getNonNullProperty(roomEventInfoMap, 'category').toString();
-    $.subcategory = getNonNullProperty(roomEventInfoMap, 'subcategory').toString();
+    $.subcategory = subcategoryId;
     $.title = getNonNullProperty(roomEventInfoMap, 'title').toString();
     $.description = getNonNullProperty(roomEventInfoMap, 'description').toString();
     $.isListed = getNonNullProperty(roomEventInfoMap, 'isListed').toBool();

@@ -1,6 +1,6 @@
 <template>
   <tbody class="virtual-floor">
-    <tr>
+    <tr :id="`virtual-floor-${virtualFloor.id}`">
       <td :colspan="7 + maxOutcomes">
         <Timeline
           :min="minVirtualFloorTimestamp"
@@ -16,8 +16,8 @@
           <h2>
             {{ virtualFloor.title }}
             <span style="float: right">
-              <span class="label">{{ virtualFloor.category }}</span>
-              <span class="label">{{ virtualFloor.subcategory }}</span>
+              <span class="label">{{ virtualFloor.subcategory.category.slug }}</span>
+              <span class="label">{{ virtualFloor.subcategory.slug }}</span>
             </span>
           </h2>
           <p>{{ virtualFloor.description }}</p>

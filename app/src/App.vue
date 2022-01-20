@@ -118,24 +118,30 @@
       target="blank"
     >🦊🩹 Reset MetaMask account after restarting network</a>
   </div>
+
+  <hr />
+
+  <CategoriesComponent />
 </template>
 
 <script lang="ts">
 import { EthereumProvider, EthereumProviderHelper } from '@/mm'
 import { formatTimestamp, getSystemTimestamp } from '@/utils'
+// eslint-disable-next-line camelcase
+import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser, ERC20PresetMinterPauser__factory } from '@doubledice/platform/lib/contracts'
+import {
+  Category as CategoryEntity,
+  PaymentToken as PaymentTokenEntity,
+  VirtualFloor as VirtualFloorEntity
+} from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
 import { ethers, providers } from 'ethers'
 import gql from 'graphql-tag'
 import { Options, Vue } from 'vue-class-component'
-// eslint-disable-next-line camelcase
-import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser, ERC20PresetMinterPauser__factory } from '@doubledice/platform/lib/contracts'
+import CategoriesComponent from './components/CategoriesComponent.vue'
 import NewVirtualFloor from './components/NewVirtualFloor.vue'
 import PaymentTokenComponent from './components/PaymentTokenComponent.vue'
 import VirtualFloorComponent from './components/VirtualFloorComponent.vue'
-import {
-  PaymentToken as PaymentTokenEntity,
-  VirtualFloor as VirtualFloorEntity
-} from '@doubledice/platform/lib/graph'
 
 BigDecimal.config({ DECIMAL_PLACES: 18 })
 
@@ -151,8 +157,12 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
 #    }
   ) {
     id
-    category
-    subcategory
+    subcategory {
+      slug
+      category {
+        slug
+      }
+    }
     title
     description
     isListed
@@ -214,7 +224,8 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
   components: {
     VirtualFloorComponent,
     NewVirtualFloor,
-    PaymentTokenComponent
+    PaymentTokenComponent,
+    CategoriesComponent
   },
   // watch: {
   //   async latestBlockTimestamp(value: number) {
@@ -397,7 +408,6 @@ export default class App extends Vue {
 }
 </script>
 
-<!-- <style scoped> -->
 <style>
 h3 {
   margin: 40px 0 0;

@@ -5,6 +5,29 @@
 # - https://github.com/ensdomains/ens-subgraph
 # - https://github.com/graphprotocol/dharma-subgraph
 
+type Category @entity {
+  id: ID!
+
+  # children
+  subcategories: [Subcategory!]! @derivedFrom(field: "category")
+
+  # properties
+  slug: String!
+}
+
+type Subcategory @entity {
+  id: ID!
+
+  # parents
+  category: Category!
+
+  # children
+  virtualFloors: [VirtualFloor!]! @derivedFrom(field: "subcategory")
+
+  # properties
+  slug: String!
+}
+
 enum VirtualFloorState {
   RUNNING_OR_CLOSED,
   COMPLETED,
@@ -17,6 +40,7 @@ type VirtualFloor @entity {
 
   # parents
   owner: User!
+  subcategory: Subcategory!
 
   # children
   outcomes: [Outcome!]! @derivedFrom(field: "virtualFloor")
@@ -34,8 +58,6 @@ type VirtualFloor @entity {
   winningOutcome: Outcome
 
   # properties (ipfs)
-  category: String!
-  subcategory: String!
   title: String!
   description: String!
   isListed: Boolean!

@@ -31,6 +31,7 @@ import {
   OutcomeTimeslot,
   OutcomeTimeslotTransfer,
   PaymentToken,
+  ResultSource,
   Subcategory,
   Timeslot,
   User,
@@ -188,6 +189,23 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
         $.virtualFloor = virtualFloorId;
         $.title = title;
         $.image = image;
+        $.save();
+      }
+    }
+  }
+
+  {
+    const resultSourceValues = getNonNullProperty(roomEventInfoMap, 'resultSources').toArray();
+    for (let resultSourceIndex = 0; resultSourceIndex < resultSourceValues.length; resultSourceIndex++) {
+      const resultSourceMap = resultSourceValues[resultSourceIndex].toObject();
+      const title = getNonNullProperty(resultSourceMap, 'title').toString();
+      const url = getNonNullProperty(resultSourceMap, 'url').toString();
+      const resultSourceId = `${virtualFloorId}-${resultSourceIndex}`;
+      {
+        const $ = createNewEntity<ResultSource>(ResultSource.load, resultSourceId);
+        $.virtualFloor = virtualFloorId;
+        $.title = title;
+        $.url = url;
         $.save();
       }
     }

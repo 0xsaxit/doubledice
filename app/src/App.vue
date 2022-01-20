@@ -210,6 +210,11 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
         }
       }
     }
+    resultSources {
+      id
+      title
+      url
+    }
   }
 }`
 

@@ -21,6 +21,17 @@
             </span>
           </h2>
           <p>{{ virtualFloor.description }}</p>
+          <p>
+            <span>Result sources:&nbsp;</span>
+            <span
+              v-for="(resultSource, index) in virtualFloor.resultSources"
+              :key="resultSource.id"
+            >
+              <span v-if="index > 0">,&nbsp;</span>
+              <a :href="resultSource.url">{{ resultSource.title }}</a>
+            </span>
+            <span>.</span>
+          </p>
           <div>
             <template v-for="(opponent, index) in virtualFloor.opponents" :key="opponent.id">
               <div

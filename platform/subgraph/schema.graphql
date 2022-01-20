@@ -45,6 +45,7 @@ type VirtualFloor @entity {
   # children
   outcomes: [Outcome!]! @derivedFrom(field: "virtualFloor")
   opponents: [Opponent!]! @derivedFrom(field: "virtualFloor")
+  resultSources: [ResultSource!]! @derivedFrom(field: "virtualFloor")
   virtualFloorTimeslots: [VirtualFloorTimeslot!]! @derivedFrom(field: "virtualFloor")
 
   # properties (event)
@@ -75,6 +76,17 @@ type Opponent @entity {
   # properties
   title: String!
   image: String!
+}
+
+type ResultSource @entity {
+  id: ID!
+
+  # parents
+  virtualFloor: VirtualFloor!
+
+  # properties
+  title: String!
+  url: String!
 }
 
 type Outcome @entity {

@@ -1,8 +1,8 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import assert from 'assert';
 import { ethers } from 'hardhat';
-import { RoomEventInfo, RoomEventInfoClient } from '../room-event-info/client';
-import { DoubleDice__factory, DummyUSDCoin__factory } from '../typechain-types';
+import { DoubleDice__factory, DummyUSDCoin__factory } from '../lib/contracts';
+import { RoomEventInfo, RoomEventInfoClient } from '../lib/metadata';
 
 const TOKEN_CONTRACT_ADDRESS = '0x5fbdb2315678afecb367f032d93f642f64180aa3';
 const PLATFORM_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';

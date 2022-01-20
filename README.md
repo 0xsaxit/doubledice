@@ -3,37 +3,61 @@
 ```sh
 sudo service postgresql stop # just in case
 nvm use # see https://github.com/nvm-sh/nvm
-cd platform
 npm install
+npx lerna bootstrap
+```
+
+Then:
+
+```
+cd platform
 cp .env.local .env
-```
-
-To run tests:
-```
 npm test
+npm start
 ```
 
-Run `npm start` to:
+Running `npm start` will:
 1. Start local ganache-cli
 2. Start local IPFS node
 3. Start local Graph node
 4. Deploy contracts
 5. Deploy the subgraph
 
+Then run the metadata server:
+
+```
+cd ../server
+npm run dev
+```
+
 After this it will be possible to:
 1. Create a test-VirtualFloor programmatically by running `npm run test:local:create-vf`
 2. [Query the graph using GraphQL](http://127.0.0.1:8000/subgraphs/name/doubledice-com/doubledice-platform/graphql)
 
-Then to run the app:
+
+Finally run the reference-app:
 
 ```sh
 cd ../app
-npm install
-npm run generate
 npm run serve
 ```
 
-To stop all services run `npm stop` and wait for all containers to be halted.
+To stop all services run `npm stop` from within `./platform` and wait for all containers to be halted.
+
+# Installing @doubledice/platform as a library
+
+Always import from:
+- `@doubledice/platform/lib/contracts`: TypeScript bindings for the contracts
+- `@doubledice/platform/lib/graph`: TypeScript bindings for the Graph entities
+- `@doubledice/platform/lib/metadata`: TypeScript bindings for the metadata library and server
+
+# 🚫 `npm install`
+
+To add a package, do not `npm install` it into the subproject-specific directory. Instead, to install e.g. `rimraf` into `platform` subproject, from the top-level:
+
+```sh
+npx lerna add rimraf platform
+```
 
 ## MetaMask setup
 

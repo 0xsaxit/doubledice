@@ -6,15 +6,14 @@
         "strictNullChecks": true
     },
     "include": [
-        "./typechain-types",
+        "./lib",
         "./scripts",
         "./test",
         "./helpers",
         "./src",
-        "./room-event-info",
-        "./lib",
+        "./test-helpers",
     ],
     "files": [
         "./hardhat.config.ts"
-    ]
+    ],
 }

@@ -1,6 +1,6 @@
+import { validateRoomEventInfo } from '@doubledice/platform/lib/metadata';
 import { Handler, HandlerResponse } from '@netlify/functions';
 import * as ipfs from 'ipfs-http-client';
-import { validateRoomEventInfo } from '../../../../platform/room-event-info/common';
 
 const IPFS_HOST = 'localhost';
 const IPFS_PORT = 5001;

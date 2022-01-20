@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { ethers } from 'hardhat';
-import { DoubleDice__factory, DummyUSDCoin__factory, DummyWrappedBTC__factory } from '../typechain-types';
+import { DoubleDice__factory, DummyUSDCoin__factory, DummyWrappedBTC__factory } from '../lib/contracts';
 
 const {
   OWNER_ADDRESS,
@@ -9,6 +9,10 @@ const {
 } = process.env;
 
 async function main() {
+
+  assert(CHAIN_ID);
+  assert(OWNER_ADDRESS);
+  assert(FEE_BENEFICIARY_ADDRESS);
 
   const { chainId } = await ethers.provider.getNetwork();
   assert(parseInt(CHAIN_ID) === chainId, `${CHAIN_ID} !== ${chainId}; wrong .env config?`);

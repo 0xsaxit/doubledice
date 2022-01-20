@@ -44,12 +44,12 @@
 </template>
 
 <script lang="ts">
+import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
+import { Outcome as OutcomeEntity, VirtualFloor as VirtualFloorEntity, VirtualFloorState } from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
 import { BigNumber } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
-import { DoubleDice as DoubleDiceContract } from '../../../platform/typechain-types'
-import { Outcome as OutcomeEntity, VirtualFloor as VirtualFloorEntity, VirtualFloorState } from '../generated/graphql'
 
 @Options({
   props: {

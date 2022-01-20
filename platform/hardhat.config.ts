@@ -1,6 +1,7 @@
 import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 import '@typechain/hardhat';
+import assert from 'assert';
 import dotenv from 'dotenv';
 import 'hardhat-abi-exporter';
 import 'hardhat-gas-reporter';
@@ -16,7 +17,9 @@ const {
   OWNER_PRIVATE_KEY,
 } = process.env;
 
-export default <HardhatUserConfig>{
+assert(OWNER_PRIVATE_KEY);
+
+const config: HardhatUserConfig = {
   abiExporter: {
     clear: true,
     flat: true,
@@ -50,4 +53,9 @@ export default <HardhatUserConfig>{
       },
     },
   },
+  typechain: {
+    outDir: 'lib/generated/typechain-types'
+  }
 };
+
+export default config;

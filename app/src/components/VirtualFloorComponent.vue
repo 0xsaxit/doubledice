@@ -70,11 +70,11 @@
 </template>
 
 <script lang="ts">
-import { formatTimestamp } from '@/utils'
+import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
+import { VirtualFloor as VirtualFloorEntity } from '@doubledice/platform/lib/graph'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
-import { DoubleDice as DoubleDiceContract } from '../../../platform/typechain-types'
-import { VirtualFloor as VirtualFloorEntity } from '../generated/graphql'
+import { formatTimestamp } from '../utils'
 import Outcome from './OutcomeComponent.vue'
 import Timeline from './Timeline.vue'
 

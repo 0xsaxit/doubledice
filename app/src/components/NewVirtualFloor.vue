@@ -52,12 +52,12 @@
 </template>
 
 <script lang="ts">
+import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
+import { PaymentToken as PaymentTokenEntity } from '@doubledice/platform/lib/graph'
+import { RoomEventInfoClient } from '@doubledice/platform/lib/metadata'
 import { BigNumber as EthersBigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
-import { RoomEventInfoClient } from '../../../platform/room-event-info/client'
-import { DoubleDice as DoubleDiceContract } from '../../../platform/typechain-types'
-import { PaymentToken as PaymentTokenEntity } from '../generated/graphql'
 import { createRoomEventInfo, tryCatch } from '../utils'
 
 @Options({

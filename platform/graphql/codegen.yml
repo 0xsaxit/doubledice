@@ -1,7 +1,7 @@
 overwrite: true
-schema: "./src/generated/schema.graphql"
+schema: "./graphql/generated/schema.graphql"
 generates:
-  src/generated/graphql.ts:
+  ./lib/generated/graphql.ts:
     plugins:
       - typescript
     config:

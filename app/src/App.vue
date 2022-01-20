@@ -128,14 +128,14 @@ import { ethers, providers } from 'ethers'
 import gql from 'graphql-tag'
 import { Options, Vue } from 'vue-class-component'
 // eslint-disable-next-line camelcase
-import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser, ERC20PresetMinterPauser__factory } from '../../platform/typechain-types'
+import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser, ERC20PresetMinterPauser__factory } from '@doubledice/platform/lib/contracts'
 import NewVirtualFloor from './components/NewVirtualFloor.vue'
 import PaymentTokenComponent from './components/PaymentTokenComponent.vue'
 import VirtualFloorComponent from './components/VirtualFloorComponent.vue'
 import {
   PaymentToken as PaymentTokenEntity,
   VirtualFloor as VirtualFloorEntity
-} from './generated/graphql'
+} from '@doubledice/platform/lib/graph'
 
 BigDecimal.config({ DECIMAL_PLACES: 18 })
 

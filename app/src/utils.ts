@@ -1,5 +1,5 @@
+import { RoomEventInfo } from '@doubledice/platform/lib/metadata'
 import { BigNumber as BigDecimal } from 'bignumber.js'
-import { RoomEventInfo } from '../../platform/room-event-info/client'
 
 export const flatten = <T>(arrays: T[][]): T[] => Array.prototype.concat(...arrays)
 

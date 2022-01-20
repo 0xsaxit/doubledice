@@ -15,15 +15,13 @@
 </template>
 
 <script lang="ts">
+// eslint-disable-next-line camelcase
+import { DummyERC20, DummyERC20__factory } from '@doubledice/platform/lib/contracts'
+import { PaymentToken as PaymentTokenEntity } from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
 import { BigNumber as BigInteger, BigNumberish, providers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
-// eslint-disable-next-line camelcase
-import { DummyERC20, DummyERC20__factory } from '../../../platform/typechain-types'
-import {
-  PaymentToken as PaymentTokenEntity
-} from '../generated/graphql'
 
 @Options({
   props: {

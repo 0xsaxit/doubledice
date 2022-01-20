@@ -7,13 +7,13 @@ import {
   Event as ContractEvent
 } from 'ethers';
 import { ethers } from 'hardhat';
-import { findContractEvent, formatUsdc, sumOf } from '../lib';
 import {
   DoubleDice,
   DoubleDice__factory,
   DummyERC20,
   DummyUSDCoin__factory
-} from '../typechain-types';
+} from '../lib/contracts';
+import { findContractEvent, formatUsdc, sumOf } from '../test-helpers';
 
 chai.use(chaiSubset);
 

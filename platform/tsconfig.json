@@ -11,7 +11,6 @@
         "./test",
         "./helpers",
         "./src",
-        "./test-helpers",
     ],
     "files": [
         "./hardhat.config.ts"

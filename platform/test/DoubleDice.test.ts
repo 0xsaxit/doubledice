@@ -3,8 +3,7 @@ import chai, { expect } from 'chai';
 import chaiSubset from 'chai-subset';
 import {
   BigNumber,
-  BigNumberish,
-  Event as ContractEvent
+  BigNumberish
 } from 'ethers';
 import { ethers } from 'hardhat';
 import {
@@ -13,7 +12,14 @@ import {
   DummyERC20,
   DummyUSDCoin__factory
 } from '../lib/contracts';
-import { findContractEvent, formatUsdc, sumOf } from '../test-helpers';
+import {
+  DUMMY_METADATA_HASH,
+  findContractEventArgs,
+  findUserCommitmentEventArgs,
+  formatUsdc,
+  sumOf,
+  UserCommitment
+} from './helpers';
 
 chai.use(chaiSubset);
 
@@ -70,7 +76,7 @@ describe('DoubleDice', function () {
       expect(await contract.isPaymentTokenWhitelisted(token.address)).to.be.false;
       const { events } = await (await contract.connect(paymentTokenWhitelister).updatePaymentTokenWhitelist(token.address, true)).wait();
       expect(events).to.have.lengthOf(1);
-      expect(findContractEvent(events, 'PaymentTokenWhitelistUpdate')).to.containSubset({
+      expect(findContractEventArgs(events, 'PaymentTokenWhitelistUpdate')).to.containSubset({
         token: token.address,
         enabled: true
       });
@@ -95,18 +101,7 @@ describe('DoubleDice', function () {
     const tResolve = toTimestamp('2032-01-02T00:00:00');
     const nOutcomes = 3;
 
-    interface UserCommitment {
-      virtualFloorId: BigNumber;
-      outcomeIndex: number;
-      timeslot: BigNumber;
-      amount: BigNumber;
-      tokenId: BigNumber;
-    }
     const allUserCommitments: UserCommitment[] = [];
-
-    const findUserCommitmentEvent = (events: ContractEvent[] | undefined): UserCommitment => {
-      return findContractEvent(events, 'UserCommitment');
-    };
 
     {
       await setNextBlockTimestamp('2032-01-01T00:00:00');
@@ -122,12 +117,12 @@ describe('DoubleDice', function () {
         tResolve,
         nOutcomes,
         paymentToken: token.address,
-        metadataHash: '0x0000000000000000000000000000000000000000000000000000000000000000' // dummy
+        metadataHash: DUMMY_METADATA_HASH
       })).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
 
-      const virtualFloorCreatedEventArgs = findContractEvent(events, 'VirtualFloorCreation');
+      const virtualFloorCreatedEventArgs = findContractEventArgs(events, 'VirtualFloorCreation');
       expect(virtualFloorCreatedEventArgs.virtualFloorId).to.eq(virtualFloorId);
     }
 
@@ -139,10 +134,10 @@ describe('DoubleDice', function () {
 
       const { events, blockHash } = await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)).wait();
 
-      const virtualFloorCommitmentArgs = findUserCommitmentEvent(events);
+      const virtualFloorCommitmentArgs = findUserCommitmentEventArgs(events);
       allUserCommitments.push(virtualFloorCommitmentArgs);
 
-      const token1155TransferArgs = findContractEvent(events, 'TransferSingle');
+      const token1155TransferArgs = findContractEventArgs(events, 'TransferSingle');
 
       expect(token1155TransferArgs.from).to.eq('0x0000000000000000000000000000000000000000');
       expect(token1155TransferArgs.to).to.eq(user1Signer.address);
@@ -165,13 +160,13 @@ describe('DoubleDice', function () {
     await setNextBlockTimestamp('2032-01-01T02:00:00');
     {
       const { events } = await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId, 1, $(10))).wait();
-      const userCommitmentArgs = findUserCommitmentEvent(events);
+      const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T02:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 1, $(10))).wait();
-      const userCommitmentArgs = findUserCommitmentEvent(events);
+      const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T02:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
@@ -179,13 +174,13 @@ describe('DoubleDice', function () {
     await setNextBlockTimestamp('2032-01-01T06:00:00');
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 1, $(10))).wait();
-      const userCommitmentArgs = findUserCommitmentEvent(events);
+      const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T06:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10))).wait();
-      const userCommitmentArgs = findUserCommitmentEvent(events);
+      const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T06:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
@@ -193,7 +188,7 @@ describe('DoubleDice', function () {
     await setNextBlockTimestamp('2032-01-01T10:00:00');
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10))).wait();
-      const userCommitmentArgs = findUserCommitmentEvent(events);
+      const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T10:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
@@ -257,7 +252,7 @@ describe('DoubleDice', function () {
     await setNextBlockTimestamp('2032-01-02T00:00:00');
     {
       const { events } = await (await contract.resolve(virtualFloorId, 1)).wait();
-      const { winnerProfits, feeAmount } = findContractEvent(events, 'VirtualFloorResolution');
+      const { winnerProfits, feeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
 
       const tcf = sumOf(...aggregateCommitments.map(({ amount }) => amount));
 

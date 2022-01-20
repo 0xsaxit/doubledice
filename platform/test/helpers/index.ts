@@ -26,10 +26,24 @@ export const formatUsdc = (wei: BigNumberish): string =>
   `${(BigNumber.from(wei).toNumber() / 1e6).toFixed(6).replace(/\.(\d{2})(\d{4})/, '.$1,$2')} USDC`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const findContractEvent = <T = any>(events: ContractReceipt['events'], name: string): T => {
+export const findContractEventArgs = <T = any>(events: ContractReceipt['events'], name: string): T => {
   assert(events !== undefined);
   const event = events.find(({ event }) => event === name);
   assert(event);
   assert(event.args);
   return event.args as unknown as T;
 };
+
+export interface UserCommitment {
+  virtualFloorId: BigNumber;
+  outcomeIndex: number;
+  timeslot: BigNumber;
+  amount: BigNumber;
+  tokenId: BigNumber;
+}
+
+export const findUserCommitmentEventArgs = (events: ContractReceipt['events']): UserCommitment => {
+  return findContractEventArgs(events, 'UserCommitment');
+};
+
+export const DUMMY_METADATA_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';

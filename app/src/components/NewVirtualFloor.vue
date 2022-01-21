@@ -44,6 +44,12 @@
           <input v-model.number="nOutcomes" type="number" />
         </td>
       </tr>
+      <tr>
+        <th>Result sources</th>
+        <td>
+          <NewResultSourcesComponent v-model="resultSources" />
+        </td>
+      </tr>
     </table>
     <div>
       <button @click="createVpf">Create VPF</button>
@@ -54,17 +60,21 @@
 <script lang="ts">
 import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
 import { PaymentToken as PaymentTokenEntity } from '@doubledice/platform/lib/graph'
-import { RoomEventInfoClient } from '@doubledice/platform/lib/metadata'
+import { RoomEventInfo, RoomEventInfoClient } from '@doubledice/platform/lib/metadata'
 import { BigNumber as EthersBigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 import { createRoomEventInfo, tryCatch } from '../utils'
+import NewResultSourcesComponent from './NewResultSourcesComponent.vue'
 
 @Options({
   props: {
     contract: Object as PropType<DoubleDiceContract>,
     paymentTokens: Object as PropType<PaymentTokenEntity[]>,
     nextBlockTimestamp: Number
+  },
+  components: {
+    NewResultSourcesComponent
   }
 })
 export default class NewVirtualFloor extends Vue {
@@ -87,6 +97,8 @@ export default class NewVirtualFloor extends Vue {
 
   nOutcomes = 3
 
+  resultSources: RoomEventInfo['resultSources'] = []
+
   async created(): Promise<void> {
     const tOpen = this.nextBlockTimestamp - (this.nextBlockTimestamp % 60)
     this.selectedPaymentToken = this.paymentTokens[0]
@@ -96,7 +108,8 @@ export default class NewVirtualFloor extends Vue {
   }
 
   async createVpf(): Promise<void> {
-    const roomEventInfo = await createRoomEventInfo()
+    let roomEventInfo = await createRoomEventInfo()
+    roomEventInfo = { ...roomEventInfo, resultSources: this.resultSources }
     const metadataHash = await new RoomEventInfoClient().submitRoomEventInfo(roomEventInfo)
 
     // Generate a virtualFloorId in the hex form 00_0000000000000000000000000000000000000000000000_XXXXXXXXXXXXXXXX

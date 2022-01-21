@@ -9,7 +9,9 @@ export class RoomEventInfoClient {
 
   async submitRoomEventInfo(roomEventInfo: RoomEventInfo): Promise<string> {
 
-    assert(validateRoomEventInfo(roomEventInfo));
+    if (!validateRoomEventInfo(roomEventInfo)) {
+      throw new Error(JSON.stringify(validateRoomEventInfo.errors));
+    }
 
     const rsp = await axios.post(`${this.origin}/api/room-event-info?action=submit`, roomEventInfo);
 

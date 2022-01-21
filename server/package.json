@@ -16,6 +16,6 @@
     "ipfs-http-client": "55.0.0"
   },
   "devDependencies": {
-    "netlify-cli": "8.8.2"
+    "netlify-cli": "8.11.0"
   }
 }

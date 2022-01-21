@@ -86,3 +86,40 @@ Currently the way in which non-essential data is piped to the Graph is that when
 
 An alternative implementation, which might raise gas-costs slightly, but which would eliminate the IPFS step  (which might cause some headaches in the future), could be to pass the non-essential data in either (a) a Solidity struct, possibly abi-encoded, or (b) as a blob of JSON data, or (c) as a blob of minified JSON data, or (d) possibly using a binary format such as protobufs, maybe there is a tool to convert between JSON-schema and protobuf schema. To save some gas, instead of emitting this on an event, this data could be processed directly via a [CallHandler](https://thegraph.com/docs/en/developer/create-subgraph-hosted/#defining-a-call-handler). But this is an implementation detail — at the higher level, the rest of the system would remain the same.
 
+# Upgrading dependencies
+
+Always exercise caution when upgrading dependencies, especially with packages like `@openzeppelin/contracts` which have a direct impact on the code itself. But for the bulk-upgrade of dev-tools, you may choose to apply the methodology below.
+
+First of all, ensure you are using the correct node version:
+
+```sh
+nvm use
+```
+
+Starting from the top-level package, in each package, first run:
+
+```sh
+npm-check-updates
+```
+
+to check which packages will upgrade to which version. If this tool is missing, first `npm install --global npm-check-updates`.
+
+If you are pleased with the majority of suggested upgrades, then `npm check-updates --upgrade`. This will upgrade the versions in `package.json`, but will not yet install the upgraded packages.
+
+`npm-check-updates` will always suggest the latest release, so if there are any packages that you specifically want to _not_ upgrade, for several possible reasons:
+- it suggests to upgrade `@openzeppelin/contracts` but you do not want to make this upgrade as yet as you have audited the contracts with a specific package version,
+- or upgrading a particular package introduces a bug, so you want to postpone the upgrade until a fix is released
+then revert the corresponding individual `package.json` changes. If any upgrade is ommitted on purpose, try and make this decision clear in a comment and/or the log-commit,
+- or it suggests to upgrade `@types/node` from `16` to `17`, but you want to keep it at `16` to match the installed NodeJS version.
+
+At this point you would normally `npm install` to perform the upgrade, but since we are using `lerna`, instead in in the top-level project run:
+
+```sh
+npx lerna boostrap
+```
+
+This should install the new packages, and update the corresponding `package-lock.json`.
+
+Repeat for all projects, testing after each step.
+
+You can choose commit all changes either in one big step, or on a project-by-project basis, or sometimes even on a package-by-package basis, depending on how likely it is that you will need to revert the upgrade.

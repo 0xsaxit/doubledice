@@ -102,9 +102,8 @@ contract DoubleDice is
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
-    modifier onlyVirtualFloorOwner(uint256 virtualFloorId) {
-        require(balanceOf(_msgSender(), virtualFloorId) == 1, "NOT_VIRTUALFLOOR_OWNER");
-        _;
+    function _isMsgSenderVirtualFloorOwner(uint256 virtualFloorId) private view returns (bool) {
+        return balanceOf(_msgSender(), virtualFloorId) == 1;
     }
 
     address public feeBeneficiary;
@@ -255,10 +254,14 @@ contract DoubleDice is
 
     function resolve(uint256 virtualFloorId, uint8 winningOutcomeIndex)
         external
-        onlyVirtualFloorOwner(virtualFloorId)
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+
+        // We do this check inline instead of using a special `onlyVirtualFloorOwner` modifier, so that
+        // (1) we do not break the pattern by which we always check state first
+        // (2) we avoid "hiding away" code in modifiers
+        require(_isMsgSenderVirtualFloorOwner(virtualFloorId), "NOT_VIRTUALFLOOR_OWNER");
 
         require(block.timestamp >= virtualFloor.tResolve, "TOO_EARLY_TO_RESOLVE");
         require(winningOutcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");

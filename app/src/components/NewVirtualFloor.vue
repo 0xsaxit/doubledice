@@ -39,6 +39,12 @@
         </td>
       </tr>
       <tr>
+        <th>Opponents</th>
+        <td>
+          <NewOpponentsComponent v-model="opponents" />
+        </td>
+      </tr>
+      <tr>
         <th>nOutcomes</th>
         <td>
           <input v-model.number="nOutcomes" type="number" readonly disabled />
@@ -71,6 +77,7 @@ import { BigNumber as EthersBigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 import { createRoomEventInfo, tryCatch } from '../utils'
+import NewOpponentsComponent from './NewOpponentsComponent.vue'
 import NewOutcomesComponent from './NewOutcomesComponent.vue'
 import NewResultSourcesComponent from './NewResultSourcesComponent.vue'
 
@@ -81,6 +88,7 @@ import NewResultSourcesComponent from './NewResultSourcesComponent.vue'
     nextBlockTimestamp: Number
   },
   components: {
+    NewOpponentsComponent,
     NewOutcomesComponent,
     NewResultSourcesComponent
   }
@@ -107,6 +115,8 @@ export default class NewVirtualFloor extends Vue {
     return this.outcomes.length
   }
 
+  opponents: RoomEventInfo['opponents'] = []
+
   outcomes: RoomEventInfo['outcomes'] = []
 
   resultSources: RoomEventInfo['resultSources'] = []
@@ -123,6 +133,7 @@ export default class NewVirtualFloor extends Vue {
     let roomEventInfo = await createRoomEventInfo()
     roomEventInfo = {
       ...roomEventInfo,
+      opponents: this.opponents,
       outcomes: this.outcomes,
       resultSources: this.resultSources
     }

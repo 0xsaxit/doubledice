@@ -39,9 +39,15 @@
         </td>
       </tr>
       <tr>
+        <th>nOutcomes</th>
+        <td>
+          <input v-model.number="nOutcomes" type="number" readonly disabled />
+        </td>
+      </tr>
+      <tr>
         <th>Outcomes</th>
         <td>
-          <input v-model.number="nOutcomes" type="number" />
+          <NewOutcomesComponent v-model="outcomes" />
         </td>
       </tr>
       <tr>
@@ -65,6 +71,7 @@ import { BigNumber as EthersBigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 import { createRoomEventInfo, tryCatch } from '../utils'
+import NewOutcomesComponent from './NewOutcomesComponent.vue'
 import NewResultSourcesComponent from './NewResultSourcesComponent.vue'
 
 @Options({
@@ -74,6 +81,7 @@ import NewResultSourcesComponent from './NewResultSourcesComponent.vue'
     nextBlockTimestamp: Number
   },
   components: {
+    NewOutcomesComponent,
     NewResultSourcesComponent
   }
 })
@@ -95,7 +103,11 @@ export default class NewVirtualFloor extends Vue {
 
   tResolve!: string
 
-  nOutcomes = 3
+  get nOutcomes(): number {
+    return this.outcomes.length
+  }
+
+  outcomes: RoomEventInfo['outcomes'] = []
 
   resultSources: RoomEventInfo['resultSources'] = []
 
@@ -109,7 +121,11 @@ export default class NewVirtualFloor extends Vue {
 
   async createVpf(): Promise<void> {
     let roomEventInfo = await createRoomEventInfo()
-    roomEventInfo = { ...roomEventInfo, resultSources: this.resultSources }
+    roomEventInfo = {
+      ...roomEventInfo,
+      outcomes: this.outcomes,
+      resultSources: this.resultSources
+    }
     const metadataHash = await new RoomEventInfoClient().submitRoomEventInfo(roomEventInfo)
 
     // Generate a virtualFloorId in the hex form 00_0000000000000000000000000000000000000000000000_XXXXXXXXXXXXXXXX

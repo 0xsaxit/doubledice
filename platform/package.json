@@ -44,7 +44,6 @@
     "hardhat-abi-exporter": "2.6.1",
     "hardhat-gas-reporter": "1.0.6",
     "hardhat": "2.8.0",
-    "ipfs-http-client": "55.0.0",
     "typechain": "6.1.0"
   },
   "dependencies": {

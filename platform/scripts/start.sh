@@ -2,6 +2,12 @@
 
 set -e
 
+if nc -z localhost 5432; then
+  echo 'Cannot start if there is a service running on port 5432'
+  echo 'Maybe run: "sudo service postgresql stop" or "npm stop"'
+  exit 1
+fi
+
 docker-compose up &
 
 while ! nc -z localhost 8545; do   

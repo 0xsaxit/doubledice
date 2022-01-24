@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { BigNumber, BigNumberish, ContractReceipt } from 'ethers';
+import { RoomEventInfo } from '../../lib/contracts';
 
 export const toFp18 = (value: number): BigNumber => {
   const sign = Math.sign(value);
@@ -46,4 +47,22 @@ export const findUserCommitmentEventArgs = (events: ContractReceipt['events']): 
   return findContractEventArgs(events, 'UserCommitment');
 };
 
-export const DUMMY_METADATA_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
+export const DUMMY_METADATA: RoomEventInfo = {
+  category: 'sports',
+  subcategory: 'football',
+  title: 'Finland vs. Argentina',
+  description: 'Finland vs. Argentina FIFA 2022 world cup final',
+  isListed: false,
+  opponents: [
+    { title: 'Finland', image: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Huuhkajat_logo.svg' },
+    { title: 'Argentina', image: 'https://upload.wikimedia.org/wikipedia/en/c/c1/Argentina_national_football_team_logo.svg' }
+  ],
+  outcomes: [
+    { title: 'Finland win' },
+    { title: 'Argentina win' },
+    { title: 'Tie' }
+  ],
+  resultSources: [
+    { title: 'Official FIFA result page', url: 'http://fifa.com/argentina-vs-finland' }
+  ]
+};

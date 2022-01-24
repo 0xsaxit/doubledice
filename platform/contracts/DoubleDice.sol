@@ -129,7 +129,7 @@ contract DoubleDice is
         uint32 tResolve = params.tResolve;
         uint8 nOutcomes = params.nOutcomes;
         IERC20 paymentToken = params.paymentToken;
-        bytes32 metadataHash = params.metadataHash;
+        VirtualFloorMetadata calldata metadata = params.metadata;
 
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
@@ -152,6 +152,8 @@ contract DoubleDice is
 
         require(nOutcomes >= 2, "Error: nOutcomes < 2");
 
+        _requireValidMetadata(nOutcomes, metadata);
+
         require(isPaymentTokenWhitelisted(paymentToken), "Error: Payment token is not whitelisted");
 
         virtualFloor.state = VirtualFloorState.RunningOrClosed;
@@ -172,7 +174,7 @@ contract DoubleDice is
             tResolve: tResolve,
             nOutcomes: nOutcomes,
             paymentToken: paymentToken,
-            metadataHash: metadataHash
+            metadata: metadata
         });
 
         // Represent this virtual-floor as an ERC-1155 *non-fungible* token.

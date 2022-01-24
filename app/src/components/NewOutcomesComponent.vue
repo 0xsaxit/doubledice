@@ -18,7 +18,7 @@
 </template>
 
 <script lang="ts">
-import { RoomEventInfo } from '@doubledice/platform/lib/metadata'
+import { RoomEventInfo } from '@doubledice/platform/lib/contracts'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 
@@ -42,7 +42,7 @@ export default class NewOutcomesComponent extends Vue {
   }
 
   add(): boolean {
-    const updated: RoomEventInfo['outcomes'] = [...this.modelValue, { title: this.newTitle, index: this.modelValue.length }]
+    const updated: RoomEventInfo['outcomes'] = [...this.modelValue, { title: this.newTitle }]
     this.$emit('update:modelValue', updated);
     [this.newTitle] = genDummyEntry(updated.length)
     return false

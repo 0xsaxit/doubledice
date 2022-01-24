@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/access/IAccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "./VirtualFloorMetadata.sol";
+
 struct VirtualFloorOutcomeTimeslot {
     uint256 virtualFloorId;
     uint8 outcomeIndex;
@@ -26,7 +28,7 @@ interface IDoubleDice is
         uint32 tResolve,
         uint8 nOutcomes,
         IERC20 paymentToken,
-        bytes32 metadataHash
+        VirtualFloorMetadata metadata
     );
 
     event UserCommitment(
@@ -55,7 +57,7 @@ interface IDoubleDice is
         uint32 tResolve;
         uint8 nOutcomes;
         IERC20 paymentToken;
-        bytes32 metadataHash;
+        VirtualFloorMetadata metadata;
     }
 
     /// @notice Create a new virtual-floor.

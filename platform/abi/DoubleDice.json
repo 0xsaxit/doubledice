@@ -328,10 +328,83 @@
         "type": "address"
       },
       {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "subcategory",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "isListed",
+            "type": "bool"
+          },
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "image",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct VirtualFloorMetadataOpponent[]",
+            "name": "opponents",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct VirtualFloorMetadataOutcome[]",
+            "name": "outcomes",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "url",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct VirtualFloorMetadataResultSource[]",
+            "name": "resultSources",
+            "type": "tuple[]"
+          }
+        ],
         "indexed": false,
-        "internalType": "bytes32",
-        "name": "metadataHash",
-        "type": "bytes32"
+        "internalType": "struct VirtualFloorMetadata",
+        "name": "metadata",
+        "type": "tuple"
       }
     ],
     "name": "VirtualFloorCreation",
@@ -675,9 +748,82 @@
             "type": "address"
           },
           {
-            "internalType": "bytes32",
-            "name": "metadataHash",
-            "type": "bytes32"
+            "components": [
+              {
+                "internalType": "string",
+                "name": "category",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "subcategory",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "description",
+                "type": "string"
+              },
+              {
+                "internalType": "bool",
+                "name": "isListed",
+                "type": "bool"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "string",
+                    "name": "title",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "image",
+                    "type": "string"
+                  }
+                ],
+                "internalType": "struct VirtualFloorMetadataOpponent[]",
+                "name": "opponents",
+                "type": "tuple[]"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "string",
+                    "name": "title",
+                    "type": "string"
+                  }
+                ],
+                "internalType": "struct VirtualFloorMetadataOutcome[]",
+                "name": "outcomes",
+                "type": "tuple[]"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "string",
+                    "name": "title",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "url",
+                    "type": "string"
+                  }
+                ],
+                "internalType": "struct VirtualFloorMetadataResultSource[]",
+                "name": "resultSources",
+                "type": "tuple[]"
+              }
+            ],
+            "internalType": "struct VirtualFloorMetadata",
+            "name": "metadata",
+            "type": "tuple"
           }
         ],
         "internalType": "struct IDoubleDice.VirtualFloorCreationParams",

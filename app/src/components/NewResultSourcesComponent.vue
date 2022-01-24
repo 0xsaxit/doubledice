@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts">
-import { RoomEventInfo } from '@doubledice/platform/lib/metadata'
+import { RoomEventInfo } from '@doubledice/platform/lib/contracts'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 

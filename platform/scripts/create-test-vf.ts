@@ -2,36 +2,17 @@ import { BigNumber } from '@ethersproject/bignumber';
 import assert from 'assert';
 import { ethers } from 'hardhat';
 import { DoubleDice__factory, DummyUSDCoin__factory } from '../lib/contracts';
-import { RoomEventInfo, RoomEventInfoClient } from '../lib/metadata';
+import { validateRoomEventInfo } from '../lib/metadata';
+import { DUMMY_METADATA } from '../test/helpers';
 
 const TOKEN_CONTRACT_ADDRESS = '0x5fbdb2315678afecb367f032d93f642f64180aa3';
 const PLATFORM_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
 
 async function main() {
 
-  const roomEventInfo: RoomEventInfo = {
-    category: 'sports',
-    subcategory: 'football',
-    title: 'Finland vs. Argentina',
-    description: 'Finland vs. Argentina FIFA 2022 world cup final',
-    isListed: false,
-    opponents: [
-      { title: 'Finland', image: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Huuhkajat_logo.svg' },
-      { title: 'Argentina', image: 'https://upload.wikimedia.org/wikipedia/en/c/c1/Argentina_national_football_team_logo.svg' }
-    ],
-    outcomes: [
-      { index: 0, title: 'Finland win' },
-      { index: 1, title: 'Argentina win' },
-      { index: 2, title: 'Tie' }
-    ],
-    resultSources: [
-      { title: 'Official FIFA result page', url: 'http://fifa.com/argentina-vs-finland' }
-    ]
-  };
+  const roomEventInfo = DUMMY_METADATA;
 
-  const metadataHash = await new RoomEventInfoClient().submitRoomEventInfo(roomEventInfo);
-
-  console.log(`metadataHash = ${metadataHash}`);
+  assert(validateRoomEventInfo(roomEventInfo));
 
   const [owner, user1, user2] = await ethers.getSigners();
 
@@ -59,7 +40,7 @@ async function main() {
     tResolve: timestamp + 2 * 86400,
     nOutcomes: roomEventInfo.outcomes.length,
     paymentToken: TOKEN_CONTRACT_ADDRESS,
-    metadataHash
+    metadata: roomEventInfo,
   })).wait();
 
   const amt = 100_000000_000000_000000n;

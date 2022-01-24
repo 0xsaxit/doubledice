@@ -23,13 +23,6 @@ Running `npm start` will:
 4. Deploy contracts
 5. Deploy the subgraph
 
-Then run the metadata server:
-
-```
-cd ../server
-npm run dev
-```
-
 After this it will be possible to:
 1. Create a test-VirtualFloor programmatically by running `npm run test:local:create-vf`
 2. [Query the graph using GraphQL](http://127.0.0.1:8000/subgraphs/name/doubledice-com/doubledice-platform/graphql)
@@ -49,7 +42,6 @@ To stop all services run `npm stop` from within `./platform` and wait for all co
 Always import from:
 - `@doubledice/platform/lib/contracts`: TypeScript bindings for the contracts
 - `@doubledice/platform/lib/graph`: TypeScript bindings for the Graph entities
-- `@doubledice/platform/lib/metadata`: TypeScript bindings for the metadata library and server
 
 # 🚫 `npm install`
 
@@ -82,9 +74,17 @@ The data inputted by the user in the front-end (FE) is classified into _essentia
   1. We want to maintain the Graph as the single source of truth about our system. Since the Graph takes its input from EVM events emitted by the DD contract, we can expose the non-essential data to the Graph indexer by emitting it on the `VirtualFloorCreation` event along with the essential data. _How_ this is achieved is explained further on.
   2. The `createVirtualFloor` contract is final. The essential data is validated by the smart-contract, but we need the non-essential data to be validated as well. We do not want to be managing the validation of non-essential data on-chain, as this will be dynamic (e.g. the list of categories and subcategories). Therefore the DD validator validates the data off-chain and stamps it with a signature, and the contract simply verifies that signature.
 
-Currently the way in which non-essential data is piped to the Graph is that when the user enters the data, once the data is validated it is uploaded to IPFS, and what is sent to `createVirtualFloor` is the IPFS content hash `metadataHash`. That hash is then emitted on the `VirtualFloorCreation` event and picked up by the Graph indexer, which then retrieves the (valid) data from IPFS and inserts it into the index along with the rest of the essential data. Once the data has been indexed, it is available for the FE to query.
+Initially, the way in which non-essential data was being piped to the Graph was that when the user enters the data, the data was validated via a call to the validation-server, which then also uploaded to IPFS, and what was sent to `createVirtualFloor` was the IPFS content hash `metadataHash`. That hash was then emitted on the `VirtualFloorCreation` event and picked up by the Graph indexer, which then retrieved the (valid) data from IPFS and inserted it into the index along with the rest of the essential data. Once the data has been indexed, it was then possible to query it from the frontend.
 
-An alternative implementation, which might raise gas-costs slightly, but which would eliminate the IPFS step  (which might cause some headaches in the future), could be to pass the non-essential data in either (a) a Solidity struct, possibly abi-encoded, or (b) as a blob of JSON data, or (c) as a blob of minified JSON data, or (d) possibly using a binary format such as protobufs, maybe there is a tool to convert between JSON-schema and protobuf schema. To save some gas, instead of emitting this on an event, this data could be processed directly via a [CallHandler](https://thegraph.com/docs/en/developer/create-subgraph-hosted/#defining-a-call-handler). But this is an implementation detail — at the higher level, the rest of the system would remain the same.
+However this implementation has been replaced with a more straightforward implementation by which the metadata is passed directly to the `createVirtualFloor` function directly through the `metadata` struct parameter. The `createVirtualFloor` function does not save that metadata on chain, but simply emits the entire structure untouched on the `VirtualFloorCreation` event, which is then picked up by the Graph indexer and handled as described above. The reasons for abandoning the previous implementation are:
+1. Primarily, to avoid needing to have a centralized server and having to manage operational private keys, HSM, etc.
+2. Avoiding the IPFS step results in a system with less moving parts and that is less likely to break.
+3. The room-creation process becomes simpler because the frontend need only make a single `createVirtualFloor` call to the contract, which either succeeds or fails.
+
+Prior to this architectural change, `createVirtualFloor` consumed ~80000 gas. After this change, it consumes ~115000. A 35000 gas increase isn’t too bad, when one considers the benefits. (However, the on-chain validation is not 100% complete. See note in [_requireValidMetadata](./platform/contracts/VirtualFloorMetadata.sol)) The extra gas is probably being wasted:
+1. as extra intrinsic gas to pay for the extra bytes being passed to the function
+2. as extra gas to emit the data on the `VirtualFloorCreation` event. The second gas-usage could potentially be eliminated by exploiting the fact that the metadata is already available as an argument to the `createVirtualFloor` function, and refactoring the `handleVirtualFloorCeation` handler to be a [CallHandler](https://thegraph.com/docs/en/developer/create-subgraph-hosted/#defining-a-call-handler) instead of an EventHandler. By doing this, it would be no longer necessary to re-emit the data on the event. But right now (Docker image `trufflesuite/ganache-cli:v6.12.2`) this cannot be implemented the underlying Ganache blockchain throws error `Method trace_filter not supported.`.
+3. to validate the metadata in [_requireValidMetadata](./platform/contracts/VirtualFloorMetadata.sol). This could potentially be omitted, as explained in the comment in the function.
 
 # Upgrading dependencies
 

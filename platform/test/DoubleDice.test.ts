@@ -15,7 +15,7 @@ import {
   DummyWrappedBTC
 } from '../lib/contracts';
 import {
-  DUMMY_METADATA_HASH,
+  DUMMY_METADATA,
   findContractEventArgs,
   findUserCommitmentEventArgs,
   formatUsdc,
@@ -119,7 +119,7 @@ describe('DoubleDice', function () {
         tResolve,
         nOutcomes,
         paymentToken: token.address,
-        metadataHash: DUMMY_METADATA_HASH
+        metadata: DUMMY_METADATA
       })).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));

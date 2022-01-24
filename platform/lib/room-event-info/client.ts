@@ -1,6 +1,6 @@
-import assert from 'assert';
 import axios from 'axios';
-import { RoomEventInfo, validateRoomEventInfo } from './common';
+import { RoomEventInfo } from '../contracts';
+import { validateRoomEventInfo } from './common';
 
 export class RoomEventInfoClient {
 
@@ -27,8 +27,4 @@ export class RoomEventInfoClient {
 
 }
 
-
 export { validateRoomEventInfo };
-export type { RoomEventInfo };
-
-

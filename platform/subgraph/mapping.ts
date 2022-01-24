@@ -5,15 +5,8 @@ import {
   Address,
   BigDecimal,
   BigInt,
-  ByteArray,
-  Bytes,
-  ipfs,
-  json,
-  JSONValue,
-  log,
-  TypedMap
+  log
 } from '@graphprotocol/graph-ts';
-import { concat } from '@graphprotocol/graph-ts/helper-functions';
 import {
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
   TransferSingle as TransferSingleEvent,
@@ -83,20 +76,6 @@ function loadOrCreateEntity<T extends Entity>(load: LoadEntity<T>, id: string): 
   return entity;
 }
 
-function getNonNullProperty(map: TypedMap<string, JSONValue>, key: string): JSONValue {
-  return changetype<JSONValue>(assert(map.get(key), key + ' is null'));
-}
-
-function getBase16CidV1Hash(sha256Hash: Bytes): string {
-  //             "e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864"
-  // => "f01551220e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864"
-  // Final .slice(3) removes "0x0"
-  // and leaves "f01551220e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864"
-  // See https://cid.ipfs.io/#f01551220e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864
-  return concat(ByteArray.fromHexString('0x0f01551220'), sha256Hash).toHex().slice(3);
-}
-
-
 /**
  * It doesn't matter whether this token is being enabled or disabled, we are only using it to discover
  * new ERC-20 payment tokens that might later be used in virtual-floors.
@@ -117,18 +96,12 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
 }
 
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
-  let roomEventInfoMap: TypedMap<string, JSONValue>;
-  {
-    const cid = getBase16CidV1Hash(event.params.metadataHash);
-    const dataBytes = changetype<Bytes>(assert(ipfs.cat(cid), 'dataBytes == null'));
-    const roomEventInfoValue = json.fromBytes(dataBytes);
-    roomEventInfoMap = roomEventInfoValue.toObject();
-  }
+  const metadata = event.params.metadata;
 
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
-    const category = getNonNullProperty(roomEventInfoMap, 'category').toString();
-    const subcategory = getNonNullProperty(roomEventInfoMap, 'subcategory').toString();
+    const category = metadata.category;
+    const subcategory = metadata.subcategory;
 
     const categoryId = category;
     {
@@ -152,9 +125,9 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
 
     $.subcategory = subcategoryId;
-    $.title = getNonNullProperty(roomEventInfoMap, 'title').toString();
-    $.description = getNonNullProperty(roomEventInfoMap, 'description').toString();
-    $.isListed = getNonNullProperty(roomEventInfoMap, 'isListed').toBool();
+    $.title = metadata.title;
+    $.description = metadata.description;
+    $.isListed = metadata.isListed;
 
     const userId = event.params.creator.toHex();
     {
@@ -179,11 +152,11 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   }
 
   {
-    const opponentValues = getNonNullProperty(roomEventInfoMap, 'opponents').toArray();
-    for (let opponentIndex = 0; opponentIndex < opponentValues.length; opponentIndex++) {
-      const opponentMap = opponentValues[opponentIndex].toObject();
-      const title = getNonNullProperty(opponentMap, 'title').toString();
-      const image = getNonNullProperty(opponentMap, 'image').toString();
+    const opponents = metadata.opponents;
+    for (let opponentIndex = 0; opponentIndex < opponents.length; opponentIndex++) {
+      const opponent = opponents[opponentIndex];
+      const title = opponent.title;
+      const image = opponent.image;
       const opponentId = `${virtualFloorId}-${opponentIndex}`;
       {
         const $ = createNewEntity<Opponent>(Opponent.load, opponentId);
@@ -196,11 +169,11 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   }
 
   {
-    const resultSourceValues = getNonNullProperty(roomEventInfoMap, 'resultSources').toArray();
-    for (let resultSourceIndex = 0; resultSourceIndex < resultSourceValues.length; resultSourceIndex++) {
-      const resultSourceMap = resultSourceValues[resultSourceIndex].toObject();
-      const title = getNonNullProperty(resultSourceMap, 'title').toString();
-      const url = getNonNullProperty(resultSourceMap, 'url').toString();
+    const resultSources = metadata.resultSources;
+    for (let resultSourceIndex = 0; resultSourceIndex < resultSources.length; resultSourceIndex++) {
+      const resultSource = resultSources[resultSourceIndex];
+      const title = resultSource.title;
+      const url = resultSource.url;
       const resultSourceId = `${virtualFloorId}-${resultSourceIndex}`;
       {
         const $ = createNewEntity<ResultSource>(ResultSource.load, resultSourceId);
@@ -213,18 +186,15 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   }
 
   {
-    const outcomeValues = getNonNullProperty(roomEventInfoMap, 'outcomes').toArray();
+    const outcomes = metadata.outcomes;
     assert(
-      outcomeValues.length == event.params.nOutcomes,
-      'outcomeValues.length = ' + outcomeValues.length.toString()
+      outcomes.length == event.params.nOutcomes,
+      'outcomeValues.length = ' + outcomes.length.toString()
       + ' != event.params.nOutcomes = ' + event.params.nOutcomes.toString());
 
     for (let outcomeIndex = 0; outcomeIndex < event.params.nOutcomes; outcomeIndex++) {
-      const outcomeMap = outcomeValues[outcomeIndex].toObject();
-      const jsonIndex = getNonNullProperty(outcomeMap, 'index').toU64();
-      assert(jsonIndex == outcomeIndex, 'jsonIndex == ' + jsonIndex.toString() + ' != outcomeIndex == ' + outcomeIndex.toString());
-      const title = getNonNullProperty(outcomeMap, 'title').toString();
-
+      const outcome = outcomes[outcomeIndex];
+      const title = outcome.title;
       const outcomeId = `${virtualFloorId}-${outcomeIndex}`;
       {
         const $ = createNewEntity<Outcome>(Outcome.load, outcomeId);

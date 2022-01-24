@@ -109,9 +109,13 @@
 </template>
 
 <script lang="ts">
-import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
+import {
+  DoubleDice as DoubleDiceContract,
+  RoomEventInfo,
+  VirtualFloorCreationParamsStruct
+} from '@doubledice/platform/lib/contracts'
 import { PaymentToken as PaymentTokenEntity } from '@doubledice/platform/lib/graph'
-import { RoomEventInfo, RoomEventInfoClient } from '@doubledice/platform/lib/metadata'
+import { validateRoomEventInfo } from '@doubledice/platform/lib/metadata'
 import { BigNumber as EthersBigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
@@ -208,7 +212,7 @@ export default class NewVirtualFloor extends Vue {
   }
 
   async createVpf(): Promise<void> {
-    const roomEventInfo: RoomEventInfo = {
+    const metadata: RoomEventInfo = {
       title: this.title,
       description: this.description,
       isListed: this.isListed,
@@ -218,7 +222,12 @@ export default class NewVirtualFloor extends Vue {
       outcomes: this.outcomes,
       resultSources: this.resultSources
     }
-    const metadataHash = await new RoomEventInfoClient().submitRoomEventInfo(roomEventInfo)
+
+    if (!validateRoomEventInfo(metadata)) {
+      console.error(validateRoomEventInfo.errors)
+      alert(JSON.stringify(validateRoomEventInfo.errors))
+      return
+    }
 
     // Generate a virtualFloorId in the hex form 00_0000000000000000000000000000000000000000000000_XXXXXXXXXXXXXXXX
     // - First byte = 0x00, meaning "virtualfloor token type"
@@ -237,18 +246,19 @@ export default class NewVirtualFloor extends Vue {
     const nOutcomes = this.nOutcomes
     const { address: paymentToken } = this.selectedPaymentToken as PaymentTokenEntity
 
+    const params: VirtualFloorCreationParamsStruct = {
+      virtualFloorId,
+      betaOpen_e18,
+      tOpen,
+      tClose,
+      tResolve,
+      nOutcomes,
+      paymentToken,
+      metadata
+    }
     // eslint-disable-next-line space-before-function-paren
     tryCatch(async () => {
-      const tx = await this.contract.createVirtualFloor({
-        virtualFloorId,
-        betaOpen_e18,
-        tOpen,
-        tClose,
-        tResolve,
-        nOutcomes,
-        paymentToken,
-        metadataHash
-      })
+      const tx = await this.contract.createVirtualFloor(params)
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`
       console.log(`Sent ${txUrl}`)

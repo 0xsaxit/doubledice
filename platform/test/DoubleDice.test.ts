@@ -10,7 +10,9 @@ import {
   DoubleDice,
   DoubleDice__factory,
   DummyERC20,
-  DummyUSDCoin__factory
+  DummyUSDCoin,
+  DummyUSDCoin__factory,
+  DummyWrappedBTC
 } from '../lib/contracts';
 import {
   DUMMY_METADATA_HASH,
@@ -45,7 +47,7 @@ describe('DoubleDice', function () {
   let user3Signer: SignerWithAddress;
   let user4Signer: SignerWithAddress;
   let contract: DoubleDice;
-  let token: DummyERC20;
+  let token: DummyUSDCoin | DummyWrappedBTC;
 
   it('should go through the entire VPF cycle successfully', async function () {
     [

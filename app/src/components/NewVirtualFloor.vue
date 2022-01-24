@@ -39,6 +39,45 @@
         </td>
       </tr>
       <tr>
+        <th>Title</th>
+        <td>
+          <input v-model="title" type="text" placeholder="Enter title" size="40" />
+        </td>
+      </tr>
+      <tr>
+        <th>Description</th>
+        <td>
+          <textarea v-model="description" placeholder="Enter description" cols="80" />
+        </td>
+      </tr>
+      <tr>
+        <th>Listed</th>
+        <td>
+          <input type="radio" v-model="visibility" id="choice-public" value="public" />
+          <label for="choice-public">Public</label>
+          <input type="radio" v-model="visibility" id="choice-unlisted" value="unlisted" />
+          <label for="choice-unlisted">Unlisted</label>
+        </td>
+      </tr>
+      <tr>
+        <th>Category</th>
+        <td>
+          <select v-model="category">
+            <option value="sports">Sports</option>
+            <option value="other">Other</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <th>Subcategory</th>
+        <td>
+          <select v-model="subcategory">
+            <option value="football">Football</option>
+            <option value="other">Other</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
         <th>Opponents</th>
         <td>
           <NewOpponentsComponent v-model="opponents" />
@@ -76,10 +115,16 @@ import { RoomEventInfo, RoomEventInfoClient } from '@doubledice/platform/lib/met
 import { BigNumber as EthersBigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
-import { createRoomEventInfo, tryCatch } from '../utils'
+import { tryCatch } from '../utils'
 import NewOpponentsComponent from './NewOpponentsComponent.vue'
 import NewOutcomesComponent from './NewOutcomesComponent.vue'
 import NewResultSourcesComponent from './NewResultSourcesComponent.vue'
+
+// See https://class-component.vuejs.org/guide/class-component.html#data
+// > Note that if the initial value is undefined,
+// > the class property will not be reactive which means the changes for the properties
+// > will not be detected
+const NOT_UNDEFINED_STRING = ''
 
 @Options({
   props: {
@@ -105,11 +150,44 @@ export default class NewVirtualFloor extends Vue {
 
   betaOpen = 10
 
-  tOpen!: string
+  tOpen = NOT_UNDEFINED_STRING
 
-  tClose!: string
+  tClose = NOT_UNDEFINED_STRING
 
-  tResolve!: string
+  tResolve = NOT_UNDEFINED_STRING
+
+  _title: RoomEventInfo['title'] = NOT_UNDEFINED_STRING
+
+  set title(value: string) {
+    this._title = value
+  }
+
+  get title(): string {
+    return this._title || this.opponents.map(({ title }) => title).join(' vs ')
+  }
+
+  _description: RoomEventInfo['description'] = NOT_UNDEFINED_STRING
+
+  set description(value: string) {
+    this._description = value
+  }
+
+  get description(): string {
+    const opponentNames = this.opponents.map(({ title }) => title)
+    const opponents = opponentNames.length >= 2 ? opponentNames.join(' & ') : ''
+    const date = new Date(this.tResolve).toDateString()
+    return this._description || (opponents ? `Match on ${date} between ${opponents}` : '')
+  }
+
+  visibility: 'public' | 'unlisted' = 'public'
+
+  get isListed(): boolean {
+    return this.visibility === 'public'
+  }
+
+  category: RoomEventInfo['category'] = 'sports'
+
+  subcategory: RoomEventInfo['subcategory'] = 'football'
 
   get nOutcomes(): number {
     return this.outcomes.length
@@ -130,9 +208,12 @@ export default class NewVirtualFloor extends Vue {
   }
 
   async createVpf(): Promise<void> {
-    let roomEventInfo = await createRoomEventInfo()
-    roomEventInfo = {
-      ...roomEventInfo,
+    const roomEventInfo: RoomEventInfo = {
+      title: this.title,
+      description: this.description,
+      isListed: this.isListed,
+      category: this.category,
+      subcategory: this.subcategory,
       opponents: this.opponents,
       outcomes: this.outcomes,
       resultSources: this.resultSources

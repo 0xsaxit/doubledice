@@ -18,6 +18,10 @@
             <span style="float: right">
               <span class="label">{{ virtualFloor.subcategory.category.slug }}</span>
               <span class="label">{{ virtualFloor.subcategory.slug }}</span>
+              <span class="label">
+                <span title="visibility: public" v-if="virtualFloor.isListed">👁️</span>
+                <span title="visibility: unlisted" v-else>🙈</span>
+              </span>
             </span>
           </h2>
           <p>{{ virtualFloor.description }}</p>

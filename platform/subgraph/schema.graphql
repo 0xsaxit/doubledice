@@ -51,6 +51,7 @@ type VirtualFloor @entity {
   # properties (event)
   paymentToken: PaymentToken!
   betaOpen: BigDecimal!
+  feeRate: BigDecimal!
   tCreated: BigInt!
   tOpen: BigInt!
   tClose: BigInt!

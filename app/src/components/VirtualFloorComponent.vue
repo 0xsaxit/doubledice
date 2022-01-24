@@ -1,7 +1,7 @@
 <template>
   <tbody class="virtual-floor">
     <tr :id="`virtual-floor-${virtualFloor.id}`">
-      <td :colspan="7 + maxOutcomes">
+      <td :colspan="8 + maxOutcomes">
         <Timeline
           :min="minVirtualFloorTimestamp"
           :start="Number(virtualFloor.tCreated)"
@@ -83,6 +83,7 @@
         </table>
       </td>
       <td>{{ virtualFloor.state }}</td>
+      <td>{{ `${Number(virtualFloor.feeRate) * 100}%` }}</td>
       <td>{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
       <td>{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
       <td>{{ beta.toFixed(6) }}</td>

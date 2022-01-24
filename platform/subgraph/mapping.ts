@@ -168,6 +168,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.paymentToken = event.params.paymentToken.toHex();
 
     $.betaOpen = toDecimal(event.params.betaOpen_e18);
+    $.feeRate = BigDecimal.fromString('0.025'); // placeholder
     $.tCreated = event.block.timestamp;
     $.tOpen = event.params.tOpen;
     $.tClose = event.params.tClose;

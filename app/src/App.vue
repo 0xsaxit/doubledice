@@ -77,6 +77,7 @@
         <th>id</th>
         <th>timeline</th>
         <th>state</th>
+        <th>feeRate</th>
         <th>paymentToken</th>
         <th>owner</th>
         <th>beta</th>
@@ -170,6 +171,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
       symbol
       decimals
     }
+    feeRate
     tCreated
     tOpen
     tClose

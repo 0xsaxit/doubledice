@@ -17,8 +17,6 @@ uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 256;
 
 uint256 constant _BETA_CLOSE_E18 = 1e18;
 
-uint256 constant _FEE_RATE_E18 = 0.01e18;
-
 uint256 constant _TOKENID_TYPE_MASK         = 0xff << 248;
 uint256 constant _TOKENID_TYPE_VIRTUALFLOOR = 0x00 << 248;
 uint256 constant _TOKENID_TYPE_COMMITMENT   = 0x01 << 248;
@@ -53,8 +51,10 @@ struct VirtualFloor {
     uint32 tClose;                    // +  4 bytes 
     uint32 tResolve;                  // +  4 bytes
     uint32 betaOpenMinusBetaClose_e6; // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000
+    uint16 creationFeeRate_e4;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
+    uint16 platformFeeRate_e4;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
     bytes10 paymentTokenId;           // + 10 bytes
-                                      // = 28 bytes => packed into 1 32-byte slot
+                                      // = 32 bytes => packed into 1 32-byte slot
 
     // Storage slot 1: Slot written to during resolve
     uint8 winningOutcomeIndex; // +  1 byte
@@ -106,13 +106,40 @@ contract DoubleDice is
         return balanceOf(_msgSender(), virtualFloorId) == 1;
     }
 
-    address public feeBeneficiary;
+    // ToDo: Setter
+    address public platformFeeBeneficiary;
 
-    constructor(string memory uri_, address feeBeneficiary_)
+    uint16 internal platformFeeRate_e4;
+
+    /// @notice The current platform-fee rate as a proportion of the creator-fee taken
+    /// on virtualfloor resolution.
+    /// E.g. 1.25% would be returned as 0.0125e18
+    function platformFeeRate_e18() external view returns (uint256) {
+        return uint256(platformFeeRate_e4) * 1e14;
+    }
+
+    /// @dev Some extra effort has be placed into maintaining an external
+    /// 18-decimal-place interface for fixed-point values,
+    /// irrespective of their stored representation.
+    /// This might be dropped in favour of less code and checks.
+    function setPlatformFeeRate_e18(uint256 platformFeeRate_e18_)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(platformFeeRate_e18_ <= 1e18, "Error: platformFeeRate > 1.0");
+        platformFeeRate_e4 = (platformFeeRate_e18_ / 1e14).toUint16();
+        require(
+            uint256(platformFeeRate_e4) * 1e14 == platformFeeRate_e18_,
+            "Error: Original platformFeeRate_e18 unrecoverable from stored representation"
+        );
+        emit PlatformFeeRateUpdate(platformFeeRate_e18_);
+    }
+
+    constructor(string memory uri_, address platformFeeBeneficiary_)
         ERC1155(uri_) // ToDo: Override uri() to avoid SLOADs
     {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        feeBeneficiary = feeBeneficiary_;
+        platformFeeBeneficiary = platformFeeBeneficiary_;
     }
 
     mapping(uint256 => VirtualFloor) public _virtualFloors;
@@ -124,6 +151,7 @@ contract DoubleDice is
         // (virtualFloorId, ...) = (params.virtualFloorId, ...)
         uint256 virtualFloorId = params.virtualFloorId;
         uint256 betaOpen_e18 = params.betaOpen_e18;
+        uint256 creationFeeRate_e18 = params.creationFeeRate_e18;
         uint32 tOpen = params.tOpen;
         uint32 tClose = params.tClose;
         uint32 tResolve = params.tResolve;
@@ -136,6 +164,12 @@ contract DoubleDice is
 
         require(betaOpen_e18 >= _BETA_CLOSE_E18, "Error: betaOpen < 1.0");
         _storeBetaOpenEfficiently(virtualFloor, betaOpen_e18);
+
+        require(creationFeeRate_e18 <= 1e18, "Error: creationFeeRate > 1.0");
+        _storeCreationFeeRateEfficiently(virtualFloor, creationFeeRate_e18);
+
+        // freeze platformFeeRate value as it is right now
+        virtualFloor.platformFeeRate_e4 = platformFeeRate_e4;
 
         // Require all timestamps to be exact multiples of the timeslot-duration.
         // This makes everything simpler to reason about.
@@ -169,6 +203,8 @@ contract DoubleDice is
             virtualFloorId: virtualFloorId,
             creator: _msgSender(),
             betaOpen_e18: betaOpen_e18,
+            creationFeeRate_e18: creationFeeRate_e18,
+            platformFeeRate_e18: uint256(platformFeeRate_e4) * 1e14,
             tOpen: tOpen,
             tClose: tClose,
             tResolve: tResolve,
@@ -190,6 +226,8 @@ contract DoubleDice is
     }
 
     function _storeBetaOpenEfficiently(VirtualFloor storage virtualFloor, uint256 betaOpen_e18) internal {
+        // Note: We already know that betaOpen >= 1.0
+
         // Externally we pass betaOpen_e18, and we also emit this value on the VirtualFloorCreated event.
         // Internally we reduce this to 6 decimal places to achieve an gas-efficient on-chain storage layout.
         virtualFloor.betaOpenMinusBetaClose_e6 = ((betaOpen_e18 - _BETA_CLOSE_E18) / 1e12).toUint32();
@@ -199,6 +237,16 @@ contract DoubleDice is
         require(
             _BETA_CLOSE_E18 + (uint256(virtualFloor.betaOpenMinusBetaClose_e6) * 1e12) == betaOpen_e18,
             "Error: Original betaOpen_e18 unrecoverable from stored representation"
+        );
+    }
+
+    function _storeCreationFeeRateEfficiently(VirtualFloor storage virtualFloor, uint256 creationFeeRate_e18) internal {
+        // Note: We already know that creationFeeRate <= 1.0
+
+        virtualFloor.creationFeeRate_e4 = (creationFeeRate_e18 / 1e14).toUint16();
+        require(
+            uint256(virtualFloor.creationFeeRate_e4) * 1e14 == creationFeeRate_e18,
+            "Error: Original creationFeeRate_e18 unrecoverable from stored representation"
         );
     }
 
@@ -281,38 +329,50 @@ contract DoubleDice is
         uint256 totalWinnerCommitments = virtualFloor.aggregateCommitments[winningOutcomeIndex].amount;
 
         VirtualFloorResolutionType resolutionType;
-        uint256 feeAmount;
+        uint256 platformFeeAmount;
+        uint256 ownerFeeAmount;
         uint256 winnerProfits;
 
         if (totalWinnerCommitments == 0) {
             // All trade commitments fully refunded, no fee taken.
             virtualFloor.state = VirtualFloorState.Cancelled;
             resolutionType = VirtualFloorResolutionType.NoWinners;
-            feeAmount = 0;
+            platformFeeAmount = 0;
+            ownerFeeAmount = 0;
             winnerProfits = 0;
         } else if (totalWinnerCommitments == totalVirtualFloorCommittedAmount) {
             // All trade commitments fully refunded, no fee taken.
             virtualFloor.state = VirtualFloorState.Cancelled;
             resolutionType = VirtualFloorResolutionType.AllWinners;
-            feeAmount = 0;
+            platformFeeAmount = 0;
+            ownerFeeAmount = 0;
             winnerProfits = 0;
         } else {
             virtualFloor.state = VirtualFloorState.Completed;
             resolutionType = VirtualFloorResolutionType.SomeWinners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
-            uint256 maxVirtualFloorFeeAmount = (_FEE_RATE_E18 * totalVirtualFloorCommittedAmount) / 1e18;
+            uint256 maxCreationFeeAmount = (totalVirtualFloorCommittedAmount * virtualFloor.creationFeeRate_e4) / 1e4;
 
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
-            uint256 feePlusWinnerProfits = totalVirtualFloorCommittedAmount - totalWinnerCommitments;
+            uint256 creationFeePlusWinnerProfits = totalVirtualFloorCommittedAmount - totalWinnerCommitments;
 
             // ToDo: Replace Math.min with `a < b ? a : b` and check gas usage
-            feeAmount = Math.min(maxVirtualFloorFeeAmount, feePlusWinnerProfits);
+            uint256 creationFeeAmount = Math.min(maxCreationFeeAmount, creationFeePlusWinnerProfits);
 
-            winnerProfits = feePlusWinnerProfits - feeAmount;
+            winnerProfits = creationFeePlusWinnerProfits - creationFeeAmount;
             virtualFloor.winnerProfits = _toUint192(winnerProfits);
 
-            _idToPaymentToken(virtualFloor.paymentTokenId).safeTransfer(feeBeneficiary, feeAmount);
+            IERC20 paymentToken = _idToPaymentToken(virtualFloor.paymentTokenId);
+
+            platformFeeAmount =  (creationFeeAmount * virtualFloor.platformFeeRate_e4) / 1e4;
+            paymentToken.safeTransfer(platformFeeBeneficiary, platformFeeAmount);
+
+            unchecked {
+                ownerFeeAmount = creationFeeAmount - platformFeeAmount;
+            }
+            // _msgSender() owns the virtual-floor
+            paymentToken.safeTransfer(_msgSender(), ownerFeeAmount);
         }
 
         emit VirtualFloorResolution({
@@ -320,7 +380,8 @@ contract DoubleDice is
             winningOutcomeIndex: winningOutcomeIndex,
             resolutionType: resolutionType,
             winnerProfits: winnerProfits,
-            feeAmount: feeAmount
+            platformFeeAmount: platformFeeAmount,
+            ownerFeeAmount: ownerFeeAmount
         });
     }
 
@@ -383,10 +444,6 @@ contract DoubleDice is
 
     function TIMESLOT_DURATION() external pure returns (uint256) {
         return _TIMESLOT_DURATION;
-    }
-
-    function FEE_RATE_E18() external pure returns (uint256) {
-        return _FEE_RATE_E18;
     }
 
     // ***** TEMPORARY *****

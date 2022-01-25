@@ -21,6 +21,18 @@
         </td>
       </tr>
       <tr>
+        <th>creationFeeRate %</th>
+        <td>
+          <input
+            v-model.number="creationFeeRatePercent"
+            type="number"
+            step="0.01"
+            min="0.00"
+            max="100.00"
+          />
+        </td>
+      </tr>
+      <tr>
         <th>tOpen</th>
         <td>
           <input v-model="tOpen" type="datetime-local" />
@@ -156,6 +168,8 @@ export default class NewVirtualFloor extends Vue {
 
   betaOpen = 10
 
+  creationFeeRatePercent = 2.5
+
   tOpen = NOT_UNDEFINED_STRING
 
   tClose = NOT_UNDEFINED_STRING
@@ -241,6 +255,10 @@ export default class NewVirtualFloor extends Vue {
     // Note: If beta has more than 6 decimal places precision, VF-creation will fail
     const betaOpen_e18 = EthersBigNumber.from(10).pow(12).mul(this.betaOpen * 1_000000)
 
+    // 2.5% => ((2.5 / 100) * 1e4) * 1e18 = 0.025e18
+    // Note: If creationFeeRate has more than 4 decimal places precision, VF-creation will fail
+    const creationFeeRate_e18 = EthersBigNumber.from(10).pow(14).mul(this.creationFeeRatePercent * 100)
+
     let tOpen = new Date(this.tOpen).getTime() / 1000
     let tClose = new Date(this.tClose).getTime() / 1000
     let tResolve = new Date(this.tResolve).getTime() / 1000
@@ -253,6 +271,7 @@ export default class NewVirtualFloor extends Vue {
     const params: VirtualFloorCreationParamsStruct = {
       virtualFloorId,
       betaOpen_e18,
+      creationFeeRate_e18,
       tOpen,
       tClose,
       tResolve,

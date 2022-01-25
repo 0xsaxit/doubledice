@@ -23,6 +23,8 @@ interface IDoubleDice is
         uint256 indexed virtualFloorId,
         address indexed creator,
         uint256 betaOpen_e18,
+        uint256 creationFeeRate_e18,
+        uint256 platformFeeRate_e18,
         uint32 tOpen,
         uint32 tClose,
         uint32 tResolve,
@@ -46,12 +48,18 @@ interface IDoubleDice is
         uint8 winningOutcomeIndex,
         VirtualFloorResolutionType resolutionType,
         uint256 winnerProfits,
-        uint256 feeAmount
+        uint256 platformFeeAmount,
+        uint256 ownerFeeAmount
     );
 
     struct VirtualFloorCreationParams {
         uint256 virtualFloorId;
         uint256 betaOpen_e18;
+
+        /// @dev Purposely called "creation-fee" not "creator-fee",
+        /// as the "creation-fee" will be split between "creator" and "platform".
+        uint256 creationFeeRate_e18;
+
         uint32 tOpen;
         uint32 tClose;
         uint32 tResolve;
@@ -82,7 +90,12 @@ interface IDoubleDice is
     /// are only fungible between themselves.
     function TIMESLOT_DURATION() external view returns (uint256);
 
-    function FEE_RATE_E18() external view returns (uint256);
 
-    function feeBeneficiary() external view returns (address);
+    event PlatformFeeRateUpdate(uint256 platformFeeRate_e18);
+
+    function platformFeeRate_e18() external view returns (uint256);
+
+    function setPlatformFeeRate_e18(uint256 platformFeeRate_e18) external;
+
+    function platformFeeBeneficiary() external view returns (address);
 }

@@ -34,7 +34,8 @@ async function main() {
 
   await (await platform.createVirtualFloor({
     virtualFloorId: vfId,
-    betaOpen_e18: 100_000000_000000_000000n,
+    betaOpen_e18: 100_000000_000000_000000n, // = 100.0
+    creationFeeRate_e18: 12500_000000_000000n, // = 0.0125 = 1.25%
     tOpen: timestamp + 0 * 86400,
     tClose: timestamp + 1 * 86400,
     tResolve: timestamp + 2 * 86400,

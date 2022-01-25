@@ -36,9 +36,16 @@ async function main() {
   await tokenContract2.deployed();
 
   const PAYMENT_TOKEN_WHITELISTER_ROLE = await mainContract.PAYMENT_TOKEN_WHITELISTER_ROLE();
+
+  // As an account with DEFAULT_ADMIN_ROLE (granted in constructor), grant PAYMENT_TOKEN_WHITELISTER_ROLE to self
   await (await mainContract.connect(ownerSigner).grantRole(PAYMENT_TOKEN_WHITELISTER_ROLE, ownerSigner.address)).wait();
+
+  // Then, as an account PAYMENT_TOKEN_WHITELISTER_ROLE, whitelist tokens
   await (await mainContract.connect(ownerSigner).updatePaymentTokenWhitelist(tokenContract1.address, true)).wait();
   await (await mainContract.connect(ownerSigner).updatePaymentTokenWhitelist(tokenContract2.address, true)).wait();
+
+  // 25% => 0.25 => 0.25e18
+  await (await mainContract.connect(ownerSigner).setPlatformFeeRate_e18(250000_000000_000000n)).wait();
 }
 
 main()

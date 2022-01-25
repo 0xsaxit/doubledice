@@ -26,8 +26,8 @@
       <td>{{ owner ? 'yes' : 'no' }}</td>
     </tr>
     <tr>
-      <th>Fee beneficiary</th>
-      <td>{{ feeBeneficiary }}</td>
+      <th>Platform-fee beneficiary</th>
+      <td>{{ platformFeeBeneficiary }}</td>
     </tr>
     <tr>
       <th>Token</th>
@@ -77,7 +77,8 @@
         <th>id</th>
         <th>timeline</th>
         <th>state</th>
-        <th>feeRate</th>
+        <th>creationFeeRate</th>
+        <th>platformFeeRate</th>
         <th>paymentToken</th>
         <th>owner</th>
         <th>beta</th>
@@ -171,7 +172,8 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
       symbol
       decimals
     }
-    feeRate
+    creationFeeRate
+    platformFeeRate
     tCreated
     tOpen
     tClose
@@ -275,7 +277,7 @@ export default class App extends Vue {
 
   tokenDescription?: string
 
-  feeBeneficiary?: string
+  platformFeeBeneficiary?: string
 
   beta?: number
 
@@ -387,7 +389,7 @@ export default class App extends Vue {
 
     this.owner = await mainContract.hasRole(await mainContract.DEFAULT_ADMIN_ROLE(), this.accountAddress)
 
-    this.feeBeneficiary = await mainContract.feeBeneficiary()
+    this.platformFeeBeneficiary = await mainContract.platformFeeBeneficiary()
 
     const tokenAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
 

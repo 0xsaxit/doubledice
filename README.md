@@ -123,3 +123,24 @@ This should install the new packages, and update the corresponding `package-lock
 Repeat for all projects, testing after each step.
 
 You can choose commit all changes either in one big step, or on a project-by-project basis, or sometimes even on a package-by-package basis, depending on how likely it is that you will need to revert the upgrade.
+
+# Fees
+
+During VF-creation, the VF creator specifies the "rake" in the UI. This is referred to in the contract code as the `creationFeeRate`. Not "creator", but "creation". It is the “net” fee-rate applied to a virtual-floor’s profits. If 100$ are lost in total on a bet, and the `creationFeeRate` is 15% (`0.1500`), then (in the simple case) a creation-fee of 15$ will be taken, leaving 85$ to be distributed among winners as profit. In the contract code, this 15$ is referred to as the `creationFeeAmount`.
+
+There is a contract-wide `platformFeeRate` setting stored on the contract. During the VF-creation transaction, this global setting is read from the contract and “frozen” into the VF. In this way, VFs that happen to be unresolved at the instant at which the gobal `platformFeeRate` setting is updated (which will happen very rarely), will be bound with the rate as it was when those VFs were created.
+
+Now, suppose that the VF with 100$ losses has `platformFeeRate` of 33.33%. Then at resolve-time, 5$ of the 15$ will be transferred to the `platformFeeBeneficiary` (contract-wide setting). The 5$ is referred to in the contract code as the `platformFeeAmount`.
+
+The remaining 10$ will go to the VF _owner_ (`ownerFeeAmount`).
+
+In summary:
+```
+creationFeeAmount = 15% × total losses = 15$
+platformFeeAmount = 33.33% × creationFeeAmount = 5$
+ownerFeeAmount = creationFeeAmount - platformFeeAmount = 10$
+```
+
+Unless the original VF creator has transferred the VF to someone else, the VF owner will be the original VF creator. Otherwise, it will be the new owner to whom the VF creator transferred the VF. In general, whoever owns the VF at the moment of resolution, receives the `ownerFeeAmount` (the 10$ in our example).
+
+All fee transfers are (both to owner and to platform) happen during the VF-resolution transaction.

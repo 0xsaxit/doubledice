@@ -66,7 +66,7 @@ describe('DoubleDice', function () {
     );
     await contract.deployed();
 
-    expect(await contract.feeBeneficiary()).to.eq(feeBeneficiarySigner.address);
+    expect(await contract.platformFeeBeneficiary()).to.eq(feeBeneficiarySigner.address);
 
     {
       await expect(contract.connect(ownerSigner).updatePaymentTokenWhitelist(token.address, true)).to.be.reverted;
@@ -98,6 +98,7 @@ describe('DoubleDice', function () {
 
     const virtualFloorId = 12345;
     const betaOpen = BigNumber.from(10).pow(18).mul(13); // 1 unit per hour
+    const creationFeeRate = BigNumber.from(10).pow(18).mul(15).div(1000); // 1.5%
     const tOpen = toTimestamp('2032-01-01T00:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
@@ -114,6 +115,7 @@ describe('DoubleDice', function () {
       } = await (await contract.createVirtualFloor({
         virtualFloorId,
         betaOpen_e18: betaOpen,
+        creationFeeRate_e18: creationFeeRate,
         tOpen,
         tClose,
         tResolve,
@@ -254,7 +256,7 @@ describe('DoubleDice', function () {
     await setNextBlockTimestamp('2032-01-02T00:00:00');
     {
       const { events } = await (await contract.resolve(virtualFloorId, 1)).wait();
-      const { winnerProfits, feeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
+      const { winnerProfits, platformFeeAmount, ownerFeeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
 
       const tcf = sumOf(...aggregateCommitments.map(({ amount }) => amount));
 
@@ -263,9 +265,10 @@ describe('DoubleDice', function () {
         console.log(`amount[${i++}] = ${formatUsdc(amount)}`);
       }
 
-      console.log(`tcf            = ${formatUsdc(tcf)}`);
-      console.log(`winnerProfits  = ${formatUsdc(winnerProfits)}`);
-      console.log(`feeAmount      = ${formatUsdc(feeAmount)}`);
+      console.log(`tcf               = ${formatUsdc(tcf)}`);
+      console.log(`winnerProfits     = ${formatUsdc(winnerProfits)}`);
+      console.log(`platformFeeAmount = ${formatUsdc(platformFeeAmount)}`);
+      console.log(`ownerFeeAmount    = ${formatUsdc(ownerFeeAmount)}`);
 
       // console.log(allUserCommitments)
 

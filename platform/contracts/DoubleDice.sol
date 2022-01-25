@@ -134,7 +134,7 @@ contract DoubleDice is
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
 
-        require(betaOpen_e18 >= _BETA_CLOSE_E18, "Error: betaOpen < 1e18");
+        require(betaOpen_e18 >= _BETA_CLOSE_E18, "Error: betaOpen < 1.0");
         _storeBetaOpenEfficiently(virtualFloor, betaOpen_e18);
 
         // Require all timestamps to be exact multiples of the timeslot-duration.
@@ -196,7 +196,10 @@ contract DoubleDice is
 
         // Ensure that we are able to recover the original betaOpen_e18 from betaOpen_e6,
         // i.e. the original `betaOpen_e18` must be of the form #.######_000000_000000
-        require(_BETA_CLOSE_E18 + (uint256(virtualFloor.betaOpenMinusBetaClose_e6) * 1e12) == betaOpen_e18, "!");
+        require(
+            _BETA_CLOSE_E18 + (uint256(virtualFloor.betaOpenMinusBetaClose_e6) * 1e12) == betaOpen_e18,
+            "Error: Original betaOpen_e18 unrecoverable from stored representation"
+        );
     }
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount)

@@ -17,7 +17,7 @@
       <tr>
         <th>betaOpen</th>
         <td>
-          <input v-model.number="betaOpen" type="number" />
+          <input v-model.number="betaOpen" type="number" step="0.000001" min="1.000000" />
         </td>
       </tr>
       <tr>
@@ -109,6 +109,8 @@
 </template>
 
 <script lang="ts">
+/* eslint-disable camelcase */
+
 import {
   DoubleDice as DoubleDiceContract,
   RoomEventInfo,
@@ -235,8 +237,10 @@ export default class NewVirtualFloor extends Vue {
     // - Lower 8 bytes are actually used for virtualFloorId
     const virtualFloorId = ethers.utils.randomBytes(8)
 
-    // eslint-disable-next-line camelcase
+    // 5.0 => (5.0 * 1e6) * 1e12 = 5e18
+    // Note: If beta has more than 6 decimal places precision, VF-creation will fail
     const betaOpen_e18 = EthersBigNumber.from(10).pow(12).mul(this.betaOpen * 1_000000)
+
     let tOpen = new Date(this.tOpen).getTime() / 1000
     let tClose = new Date(this.tClose).getTime() / 1000
     let tResolve = new Date(this.tResolve).getTime() / 1000

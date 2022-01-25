@@ -52,9 +52,9 @@ struct VirtualFloor {
     uint32 tOpen;                     // +  4 bytes
     uint32 tClose;                    // +  4 bytes 
     uint32 tResolve;                  // +  4 bytes
-    uint32 betaOpenMinusBetaClose_e6; // +  8 bytes ; fits with 6-decimal-place precision all values up to ~4000
+    uint32 betaOpenMinusBetaClose_e6; // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000
     bytes10 paymentTokenId;           // + 10 bytes
-                                      // = 32 bytes => packed into 1 32-byte slot
+                                      // = 28 bytes => packed into 1 32-byte slot
 
     // Storage slot 1: Slot written to during resolve
     uint8 winningOutcomeIndex; // +  1 byte

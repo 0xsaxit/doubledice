@@ -50,8 +50,8 @@ struct VirtualFloor {
     uint32 betaOpenMinusBetaClose_e6; // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000
     uint16 creationFeeRate_e4;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
     uint16 platformFeeRate_e4;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    bytes10 paymentTokenId;           // + 10 bytes
-                                      // = 32 bytes => packed into 1 32-byte slot
+    bytes9 paymentTokenId;            // +  9 bytes
+                                      // = 31 bytes => packed into 1 32-byte slot
 
     // Storage slot 1: Slot written to during resolve
     uint8 winningOutcomeIndex; // +  1 byte

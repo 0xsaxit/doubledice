@@ -5,12 +5,12 @@ pragma solidity 0.8.11;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-function _paymentTokenToId(IERC20 token) pure returns (bytes10 id) {
-    return bytes10(bytes20(address(token)));
+function _paymentTokenToId(IERC20 token) pure returns (bytes9 id) {
+    return bytes9(bytes20(address(token)));
 } 
 
 /// @dev The basic implementation of this whitelist would consist of a simple `mapping(IERC20 => bool)`,
-/// but instead we store a `mapping(bytes10 => (IERC20, bool))`.
+/// but instead we store a `mapping(bytes9 => (IERC20, bool))`.
 /// This allows us to internally reference IERC20 tokens using a 10-byte id rather than a 20-byte address,
 /// at no extra storage cost (address + bool = 21 bytes, which still fits into 1 storage slot).
 /// In return for the added complexity of this contract,
@@ -27,7 +27,7 @@ abstract contract PaymentTokenRegistry is
         bool isWhitelisted;
     }
 
-    mapping(bytes10 => Entry) private _entries;
+    mapping(bytes9 => Entry) private _entries;
 
     event PaymentTokenWhitelistUpdate(IERC20 indexed token, bool enabled);
 
@@ -48,7 +48,7 @@ abstract contract PaymentTokenRegistry is
         return address(entry.registeredToken) == address(token) && entry.isWhitelisted;
     }
 
-    function _idToPaymentToken(bytes10 id) public view returns (IERC20) {
+    function _idToPaymentToken(bytes9 id) public view returns (IERC20) {
         return _entries[id].registeredToken;
     }
 }

@@ -520,9 +520,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes10",
+        "internalType": "bytes9",
         "name": "id",
-        "type": "bytes10"
+        "type": "bytes9"
       }
     ],
     "name": "_idToPaymentToken",
@@ -587,9 +587,9 @@
         "type": "uint16"
       },
       {
-        "internalType": "bytes10",
+        "internalType": "bytes9",
         "name": "paymentTokenId",
-        "type": "bytes10"
+        "type": "bytes9"
       },
       {
         "internalType": "uint8",

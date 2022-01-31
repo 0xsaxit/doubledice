@@ -66,7 +66,7 @@
   <table id="virtual-floors" :class="{ expanded }">
     <colgroup>
       <col />
-      <col class="collapsible-column" />
+      <col />
       <col class="collapsible-column" />
       <col class="collapsible-column" />
       <col class="collapsible-column" />
@@ -75,8 +75,8 @@
       <tr>
         <!-- <th>json</th> -->
         <th>id</th>
-        <th>timeline</th>
         <th>state</th>
+        <th>timeline</th>
         <th>creationFeeRate</th>
         <th>platformFeeRate</th>
         <th>paymentToken</th>

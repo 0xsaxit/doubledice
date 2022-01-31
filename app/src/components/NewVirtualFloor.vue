@@ -1,6 +1,6 @@
 <template>
   <section>
-    <h2>New VPF</h2>
+    <h2>New virtual-floor</h2>
     <table>
       <tr>
         <th>Payment token</th>
@@ -115,7 +115,7 @@
       </tr>
     </table>
     <div>
-      <button @click="createVpf">Create VPF</button>
+      <button @click="createVirtualFloor">Create VF</button>
     </div>
   </section>
 </template>
@@ -176,27 +176,27 @@ export default class NewVirtualFloor extends Vue {
 
   tResolve = NOT_UNDEFINED_STRING
 
-  _title: RoomEventInfo['title'] = NOT_UNDEFINED_STRING
+  internalTitle: RoomEventInfo['title'] = NOT_UNDEFINED_STRING
 
   set title(value: string) {
-    this._title = value
+    this.internalTitle = value
   }
 
   get title(): string {
-    return this._title || this.opponents.map(({ title }) => title).join(' vs ')
+    return this.internalTitle || this.opponents.map(({ title }) => title).join(' vs ')
   }
 
-  _description: RoomEventInfo['description'] = NOT_UNDEFINED_STRING
+  internalDescription: RoomEventInfo['description'] = NOT_UNDEFINED_STRING
 
   set description(value: string) {
-    this._description = value
+    this.internalDescription = value
   }
 
   get description(): string {
     const opponentNames = this.opponents.map(({ title }) => title)
     const opponents = opponentNames.length >= 2 ? opponentNames.join(' & ') : ''
     const date = new Date(this.tResolve).toDateString()
-    return this._description || (opponents ? `Match on ${date} between ${opponents}` : '')
+    return this.internalDescription || (opponents ? `Match on ${date} between ${opponents}` : '')
   }
 
   visibility: 'public' | 'unlisted' = 'public'
@@ -227,7 +227,7 @@ export default class NewVirtualFloor extends Vue {
     this.tResolve = new Date((tOpen + 14 * 24 * 60 * 60) * 1000).toISOString().slice(0, 19) // in 2 weeks' time
   }
 
-  async createVpf(): Promise<void> {
+  async createVirtualFloor(): Promise<void> {
     const metadata: RoomEventInfo = {
       title: this.title,
       description: this.description,
@@ -280,7 +280,7 @@ export default class NewVirtualFloor extends Vue {
       metadata
     }
     // eslint-disable-next-line space-before-function-paren
-    tryCatch(async () => {
+    await tryCatch(async () => {
       const tx = await this.contract.createVirtualFloor(params)
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`

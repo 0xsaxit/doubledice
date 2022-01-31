@@ -61,7 +61,8 @@
           <pre style="font-size: xx-small">{{ JSON.stringify(virtualFloor, null, 2) }}</pre>
         </td>
       -->
-      <td>{{ virtualFloor.id.slice(0, 10) }}</td>
+      <td :title="virtualFloor.id">{{ virtualFloor.id.slice(0, 10) }}</td>
+      <td>{{ virtualFloor.state }}</td>
       <td>
         <table>
           <tr :title="`tCreated = ${virtualFloor.tCreated}`">
@@ -82,7 +83,6 @@
           </tr>
         </table>
       </td>
-      <td>{{ virtualFloor.state }}</td>
       <td>{{ `${Number(virtualFloor.creationFeeRate) * 100}%` }}</td>
       <td>{{ `${Number(virtualFloor.platformFeeRate) * 100}%` }}</td>
       <td>{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>

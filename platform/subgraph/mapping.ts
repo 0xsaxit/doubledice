@@ -318,14 +318,20 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
 }
 
 export function handleTransferSingle(event: TransferSingleEvent): void {
-  // Skip virtualFloor-type tokens for now
-  const tokenType = event.params.id.rightShift(248).toI32();
-  if (tokenType != 1) {
-    log.warning('Ignoring TransferSingle(id={}}) because token is of type {} != 1', [event.params.id.toHex(), tokenType.toString()]);
+
+  if (event.params.id.bitAnd(BigInt.fromU64(0xffffffffff)).equals(BigInt.zero())) {
+    log.warning(
+      'Ignoring TransferSingle(id={}) because token is tracking virtual-floor ownership, and transfers of this token-type are not yet handled',
+      [event.params.id.toHex()]
+    );
     return;
   }
 
   if (event.params.from.equals(Address.zero()) || event.params.to.equals(Address.zero())) {
+    log.warning(
+      'Ignoring TransferSingle(id={}, from={}, to={}) because it is mint or burn',
+      [event.params.id.toHex(), event.params.from.toHex(), event.params.to.toHex()]
+    );
     return;
   }
 

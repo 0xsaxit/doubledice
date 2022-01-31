@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
+import "./ERC1155TokenIds.sol";
 import "./IDoubleDice.sol";
 import "./PaymentTokenRegistry.sol";
 
@@ -16,10 +17,6 @@ uint256 constant _TIMESLOT_DURATION = 60 seconds;
 uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 256;
 
 uint256 constant _BETA_CLOSE_E18 = 1e18;
-
-uint256 constant _TOKENID_TYPE_MASK         = 0xff << 248;
-uint256 constant _TOKENID_TYPE_VIRTUALFLOOR = 0x00 << 248;
-uint256 constant _TOKENID_TYPE_COMMITMENT   = 0x01 << 248;
 
 // ToDo: Can we optimize this by using uint128 and packing both values into 1 slot,
 // or will amountTimesBeta_e18 then not have enough precision?
@@ -65,17 +62,6 @@ struct VirtualFloor {
     // as array-length is instead stored in `nOutcomes` which is packed into 1 byte
     // and packed efficiently in slot 0
     AggregateCommitment[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] aggregateCommitments;
-}
-
-function _calcCommitmentERC1155TokenId(uint256 virtualFloorId, uint8 outcomeIndex, uint256 timeslot) pure returns (uint256 tokenId) {
-    tokenId = uint256(keccak256(abi.encodePacked(
-        virtualFloorId,
-        outcomeIndex,
-        timeslot
-    )));
-
-    // tokenId highest byte overwritten with 0x01 to mark it as a commitment-type ERC-1155 tokenId
-    tokenId = (tokenId & ~_TOKENID_TYPE_MASK) | _TOKENID_TYPE_COMMITMENT;
 }
 
 /// @dev Compare:
@@ -213,10 +199,9 @@ contract DoubleDice is
             metadata: metadata
         });
 
+        require(ERC1155TokenIds.isValidVirtualFloorId(virtualFloorId), "INVALID_VIRTUALFLOOR_ID");
+
         // Represent this virtual-floor as an ERC-1155 *non-fungible* token.
-        // Require virtualfloor-type token ids (0x00-padded to 32 bytes) to start with 0x00,
-        // to distinguish from commitment-type token ids that start with 0x01.
-        require(virtualFloorId & _TOKENID_TYPE_MASK == _TOKENID_TYPE_VIRTUALFLOOR, "INVALID_VIRTUAL_FLOOR_ID");
         _mint({
             to: _msgSender(),
             id: virtualFloorId,
@@ -282,7 +267,7 @@ contract DoubleDice is
         AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
         aggregateCommitments.amount += amount;
         aggregateCommitments.amountTimesBeta_e18 += amount * beta_e18;
-        uint256 tokenId = _calcCommitmentERC1155TokenId(virtualFloorId, outcomeIndex, timeslot);
+        uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(virtualFloorId, outcomeIndex, timeslot);
 
         // From the Graph's point of view...
         // First we declare the parameters bound to a particular tokenId...
@@ -394,7 +379,7 @@ contract DoubleDice is
             // ToDo: Because of this requirement, losing tokens can never be burnt... would we like to burn them? 
             require(context.outcomeIndex == virtualFloor.winningOutcomeIndex, "NOT_WINNING_OUTCOME");
 
-            uint256 tokenId = _calcCommitmentERC1155TokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
+            uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             uint256 beta_e18 = _calcBeta(virtualFloor, context.timeslot);
             uint256 amountTimesBeta_e18 = amount * beta_e18;
@@ -404,7 +389,7 @@ contract DoubleDice is
             _burn(_msgSender(), tokenId, amount);
             _idToPaymentToken(virtualFloor.paymentTokenId).transfer(_msgSender(), payout);
         } else if (virtualFloor.state == VirtualFloorState.Cancelled) {
-            uint256 tokenId = _calcCommitmentERC1155TokenId(context.virtualFloorId, context.outcomeIndex, context.timeslot);
+            uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);

@@ -9,7 +9,6 @@ import { ethers } from 'hardhat';
 import {
   DoubleDice,
   DoubleDice__factory,
-  DummyERC20,
   DummyUSDCoin,
   DummyUSDCoin__factory,
   DummyWrappedBTC
@@ -32,9 +31,11 @@ const setNextBlockTimestamp = async (datetime: string) => {
 };
 
 function tokenIdOf({ virtualFloorId, outcomeIndex, datetime }: { virtualFloorId: BigNumberish; outcomeIndex: number; datetime: string }): BigNumber {
-  const bytes = ethers.utils.arrayify(ethers.utils.solidityKeccak256(['uint256', 'uint8', 'uint256'], [virtualFloorId, outcomeIndex, toTimestamp(datetime)]));
-  bytes[0] = 0x01; // commitment tokenIds must start 0x01...
-  return BigNumber.from(bytes);
+  const timeslot = toTimestamp(datetime);
+  return BigNumber.from(ethers.utils.solidityPack(
+    ['uint216', 'uint8', 'uint32'],
+    [BigNumber.from(virtualFloorId).shr((1 + 4) * 8), outcomeIndex, timeslot]
+  ));
 }
 
 describe('DoubleDice', function () {
@@ -96,7 +97,7 @@ describe('DoubleDice', function () {
     await (await token.connect(user2Signer).approve(contract.address, $(100))).wait();
     await (await token.connect(user3Signer).approve(contract.address, $(100))).wait();
 
-    const virtualFloorId = 12345;
+    const virtualFloorId = 0x123450000000000n; // lower 5 bytes must be all 00
     const betaOpen = BigNumber.from(10).pow(18).mul(13); // 1 unit per hour
     const creationFeeRate = BigNumber.from(10).pow(18).mul(15).div(1000); // 1.5%
     const tOpen = toTimestamp('2032-01-01T00:00:00');

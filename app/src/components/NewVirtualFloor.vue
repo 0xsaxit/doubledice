@@ -249,7 +249,7 @@ export default class NewVirtualFloor extends Vue {
     // - First byte = 0x00, meaning "virtualfloor token type"
     // - Next 23 bytes are all 0x00 to save intrinsic-gas on all future calls that will reference this virtualfloor-id
     // - Lower 8 bytes are actually used for virtualFloorId
-    const virtualFloorId = ethers.utils.randomBytes(8)
+    const virtualFloorId = EthersBigNumber.from(ethers.utils.randomBytes(8)).shl(5 * 8)
 
     // 5.0 => (5.0 * 1e6) * 1e12 = 5e18
     // Note: If beta has more than 6 decimal places precision, VF-creation will fail

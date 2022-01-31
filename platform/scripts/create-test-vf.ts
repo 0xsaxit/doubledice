@@ -29,7 +29,7 @@ async function main() {
 
   console.log(`timestamp = ${timestamp}`);
 
-  const vfId = ethers.utils.hexlify(ethers.utils.randomBytes(8));
+  const vfId = BigNumber.from(ethers.utils.hexlify(ethers.utils.randomBytes(8))).shl(5 * 8);
   console.log(`vfId = ${vfId}`);
 
   await (await platform.createVirtualFloor({

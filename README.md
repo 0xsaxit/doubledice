@@ -144,3 +144,27 @@ ownerFeeAmount = creationFeeAmount - platformFeeAmount = 10$
 Unless the original VF creator has transferred the VF to someone else, the VF owner will be the original VF creator. Otherwise, it will be the new owner to whom the VF creator transferred the VF. In general, whoever owns the VF at the moment of resolution, receives the `ownerFeeAmount` (the 10$ in our example).
 
 All fee transfers are (both to owner and to platform) happen during the VF-resolution transaction.
+
+# ERC-1155 token ids
+
+Two types of entity are represented as tokens on the contract:
+1. Virtual-floors: The user owning a virtual-floor with (32-byte) id `VVVVVVVVVVVVVVVVVVVVVVVVVVV00000` will have balance of 1 on the ERC-1155 token with id:
+   ```
+   VVVVVVVVVVVVVVVVVVVVVVVVVVV00000
+   ```
+   Since the balance of such type of tokens can be only 1 or 0, these tokens are non-fungible.
+2. Commitments: A user who, within a specific (4-byte) timeslot `TTTT`, has committed a total of `N` units of ERC-20 token, to a specific (1-byte) outcome index `I` of a specific virtual-floor `VVVVVVVVVVVVVVVVVVVVVVVVVVV00000`, will have a balance of `N` on the ERC-1155 token with id:
+   ```
+   VVVVVVVVVVVVVVVVVVVVVVVVVVVITTTT
+   ```
+
+The lower 5 bytes of the virtual-floor id are always 5 zero-bytes. Although the upper 27 bytes may be any non-zero value, a virtual-floor with a lot of zero-bytes will be cheaper to pass as an argument to external contract functions. For this purpose, it is recommended that the non-zero part of a virtual-floor id is limited to 8 bytes,  structured as follows:
+```
+0000000000000000000VVVVVVVV00000
+```
+Such an id could be generated in JavaScript via:
+```js
+const virtualFloorId = ethers.BigNumber.from(ethers.utils.randomBytes(8)).shl(5 * 8)
+```
+
+The token-ids are _purposely_ non-opaque (i.e. they are not hashes) to make it possible to slice the id back into its `V`, `I` and `T` components.

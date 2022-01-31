@@ -15,6 +15,18 @@ library ERC1155TokenIds {
         return value & 0xffffffffff == 0;
     }
 
+    function isTypeVirtualFloorOwnership(uint256 erc1155TokenId) internal pure returns (bool) {
+        return erc1155TokenId & 0xffffffffff == 0;
+    }
+
+    function isTypeCommitmentBalance(uint256 erc1155TokenId) internal pure returns (bool) {
+        return !isTypeVirtualFloorOwnership(erc1155TokenId);
+    }
+
+    function extractVirtualFloorId(uint256 erc1155TokenId) internal pure returns (uint256) {
+        return erc1155TokenId & ~uint256(0xffffffffff);
+    }
+
     function vfOutcomeTimeslotIdOf(
         uint256 validVirtualFloorId,
         uint8 outcomeIndex,

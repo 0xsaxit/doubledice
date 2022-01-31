@@ -243,6 +243,9 @@ contract DoubleDice is
 
         require(block.timestamp < virtualFloor.tClose, "MARKET_CLOSED");
         require(outcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+
+        // Note: By enforcing this requirement, we can later assume that 0 committed value = 0 commitments
+        // If we allowed 0-value commitments, it would no longer be possible to make this deduction.
         require(amount > 0, "AMOUNT_ZERO");
 
         _idToPaymentToken(virtualFloor.paymentTokenId).safeTransferFrom(_msgSender(), address(this), amount);
@@ -288,6 +291,44 @@ contract DoubleDice is
             amount: amount,
             data: hex""
         });
+    }
+
+    /// @dev Hook into transfer process to block transfers of
+    /// commitment-type token balances that are tied to virtual-floors
+    /// that are in the wrong state and time-period.
+    function _beforeTokenTransfer(
+        address operator,
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    )
+        internal
+        override
+        virtual
+    {
+        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+
+        // No restrictions on mint/burn
+        if (from == address(0) || to == address(0)) {
+            return;
+        }
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 id = ids[i];
+            // Only restrict commitment-type ERC-1155 token transfers
+            if (ERC1155TokenIds.isTypeCommitmentBalance(id)) {
+                uint256 virtualFloorId = ERC1155TokenIds.extractVirtualFloorId(id);
+                VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
+                require(
+                    virtualFloor.state == VirtualFloorState.RunningOrClosed
+                    &&
+                    virtualFloor.tClose <= block.timestamp && block.timestamp < virtualFloor.tResolve,
+                    "Error: Cannot transfer commitment balance"
+                );
+            }
+        }
     }
 
     function resolve(uint256 virtualFloorId, uint8 winningOutcomeIndex)

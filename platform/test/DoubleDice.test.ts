@@ -26,8 +26,14 @@ chai.use(chaiSubset);
 
 const toTimestamp = (datetime: string): BigNumber => BigNumber.from(new Date(datetime).getTime() / 1000);
 
-const setNextBlockTimestamp = async (datetime: string) => {
-  await ethers.provider.send('evm_setNextBlockTimestamp', [toTimestamp(datetime).toNumber()]);
+const setNextBlockTimestamp = async (datetime: string | number | BigNumber) => {
+  let timestamp: BigNumber;
+  if (typeof datetime === 'string') {
+    timestamp = toTimestamp(datetime);
+  } else {
+    timestamp = BigNumber.from(datetime);
+  }
+  await ethers.provider.send('evm_setNextBlockTimestamp', [timestamp.toNumber()]);
 };
 
 function tokenIdOf({ virtualFloorId, outcomeIndex, datetime }: { virtualFloorId: BigNumberish; outcomeIndex: number; datetime: string }): BigNumber {
@@ -254,6 +260,17 @@ describe('DoubleDice', function () {
     // await setNextBlockTimestamp('2032-01-01T23:59:59')
     // expect(contract.resolve(virtualFloorId, 1)).to.be.revertedWith('TOO_EARLY_TO_RESOLVE')
 
+    await setNextBlockTimestamp(tClose);
+
+    // user3 gives user2 5$ worth of commitment made at 2032-01-01T02:00:00
+    await (await contract.connect(user3Signer).safeTransferFrom(
+      user3Signer.address,
+      user2Signer.address,
+      tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
+      $(5),
+      '0x'
+    )).wait();
+
     await setNextBlockTimestamp('2032-01-02T00:00:00');
     {
       const { events } = await (await contract.resolve(virtualFloorId, 1)).wait();
@@ -272,16 +289,6 @@ describe('DoubleDice', function () {
       console.log(`ownerFeeAmount    = ${formatUsdc(ownerFeeAmount)}`);
 
       // console.log(allUserCommitments)
-
-
-      // user3 gives user2 5$ worth of commitment made at 2032-01-01T02:00:00
-      await (await contract.connect(user3Signer).safeTransferFrom(
-        user3Signer.address,
-        user2Signer.address,
-        tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
-        $(5),
-        '0x'
-      )).wait();
 
       // contract.connect(user3Signer).safeBatchTransferFrom(
       //   user3Signer.address,

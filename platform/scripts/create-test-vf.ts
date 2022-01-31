@@ -32,13 +32,17 @@ async function main() {
   const vfId = BigNumber.from(ethers.utils.hexlify(ethers.utils.randomBytes(8))).shl(5 * 8);
   console.log(`vfId = ${vfId}`);
 
+  const tOpen = timestamp + 0 * 86400;
+  const tClose = timestamp + 1 * 86400;
+  const tResolve = timestamp + 2 * 86400;
+
   await (await platform.createVirtualFloor({
     virtualFloorId: vfId,
     betaOpen_e18: 100_000000_000000_000000n, // = 100.0
     creationFeeRate_e18: 12500_000000_000000n, // = 0.0125 = 1.25%
-    tOpen: timestamp + 0 * 86400,
-    tClose: timestamp + 1 * 86400,
-    tResolve: timestamp + 2 * 86400,
+    tOpen,
+    tClose,
+    tResolve,
     nOutcomes: roomEventInfo.outcomes.length,
     paymentToken: TOKEN_CONTRACT_ADDRESS,
     metadata: roomEventInfo,
@@ -69,6 +73,7 @@ async function main() {
 
   assert(id2.eq(id3));
 
+  await ethers.provider.send('evm_increaseTime', [tClose]);
   await (await platform.connect(user1).safeTransferFrom(user1.address, user2.address, id2, 25000_000000_000000n, '0x')).wait();
 
   console.log({

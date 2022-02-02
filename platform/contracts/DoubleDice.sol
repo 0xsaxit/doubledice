@@ -331,10 +331,17 @@ contract DoubleDice is
             if (ERC1155TokenIds.isTypeCommitmentBalance(id)) {
                 uint256 virtualFloorId = ERC1155TokenIds.extractVirtualFloorId(id);
                 VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
+                // ToDo: Consider splitting this require into
+                // individual requires with more specific revert reasons,
+                // but as this will happen for every transfer,
+                // ensure it will not result in a significant gas increase.
                 require(
                     virtualFloor.state == VirtualFloorState.RunningOrClosed
                     &&
-                    virtualFloor.tClose <= block.timestamp && block.timestamp < virtualFloor.tResolve,
+                    virtualFloor.tClose <= block.timestamp && block.timestamp < virtualFloor.tResolve
+                    &&
+                    // Cannot transfer commitment if the parent virtual-floor is unconcludable
+                    virtualFloor.nonzeroOutcomeCount >= 2,
                     "Error: Cannot transfer commitment balance"
                 );
             }

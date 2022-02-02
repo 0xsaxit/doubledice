@@ -303,6 +303,7 @@ contract DoubleDice is
         });
     }
 
+
     /// @dev Hook into transfer process to block transfers of
     /// commitment-type token balances that are tied to virtual-floors
     /// that are in the wrong state and time-period.
@@ -331,19 +332,20 @@ contract DoubleDice is
             if (ERC1155TokenIds.isTypeCommitmentBalance(id)) {
                 uint256 virtualFloorId = ERC1155TokenIds.extractVirtualFloorId(id);
                 VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-                // ToDo: Consider splitting this require into
-                // individual requires with more specific revert reasons,
-                // but as this will happen for every transfer,
-                // ensure it will not result in a significant gas increase.
-                require(
-                    virtualFloor.state == VirtualFloorState.RunningOrClosed
-                    &&
-                    virtualFloor.tClose <= block.timestamp && block.timestamp < virtualFloor.tResolve
-                    &&
-                    // Cannot transfer commitment if the parent virtual-floor is unconcludable
-                    virtualFloor.nonzeroOutcomeCount >= 2,
-                    "Error: Cannot transfer commitment balance"
-                );
+
+                // ToDo: Does combining these requires into 1 require result in significant gas decrease?
+                if(!(virtualFloor.state == VirtualFloorState.RunningOrClosed)) {
+                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.WrongState);
+                }
+                if(!(virtualFloor.tClose <= block.timestamp)) {
+                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooEarly);
+                }
+                if(!(block.timestamp < virtualFloor.tResolve)) {
+                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooLate);
+                }
+                if(!(virtualFloor.nonzeroOutcomeCount >= 2)) {
+                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.VirtualFloorUnconcludable);
+                }
             }
         }
     }

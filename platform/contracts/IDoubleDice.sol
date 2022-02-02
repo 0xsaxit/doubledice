@@ -83,6 +83,21 @@ interface IDoubleDice is
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
 
+    enum CommitmentBalanceTransferRejectionCause {
+        /// @dev Prevent commitment-balance transfers if parent VF is not RunningOrClosed
+        WrongState,
+        /// @dev Prevent commitment-balance transfers prior to tClose
+        TooEarly,
+        /// @dev Prevent commitment-balance transfers from tResolve onwards,
+        /// as we foresee no legitimate reason for such transfers.
+        TooLate,
+        /// @dev Prevent commitment-balance transfers if parent VF
+        /// does not yet have commitments to at least 2 outcomes.
+        VirtualFloorUnconcludable
+    }
+
+    error CommitmentBalanceTransferRejection(uint256 id, CommitmentBalanceTransferRejectionCause cause);
+
     function cancelUnconcudableVirtualFloor(uint256 virtualFloorId) external;
 
     function resolve(uint256 virtualFloorId, uint8 outcomeIndex) external;

@@ -16,6 +16,22 @@
     "type": "constructor"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum IDoubleDice.CommitmentBalanceTransferRejectionCause",
+        "name": "cause",
+        "type": "uint8"
+      }
+    ],
+    "name": "CommitmentBalanceTransferRejection",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {

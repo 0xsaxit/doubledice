@@ -86,13 +86,13 @@ interface IDoubleDice is
     enum CommitmentBalanceTransferRejectionCause {
         /// @dev Prevent commitment-balance transfers if parent VF is not RunningOrClosed
         WrongState,
-        /// @dev Prevent commitment-balance transfers prior to tClose
-        TooEarly,
         /// @dev Prevent commitment-balance transfers from tResolve onwards,
         /// as we foresee no legitimate reason for such transfers.
         TooLate,
-        /// @dev Prevent commitment-balance transfers if parent VF
-        /// does not yet have commitments to at least 2 outcomes.
+        /// @dev Once a VF has >= 2 outcomes, it is certain that come tClose,
+        /// this VF will not have to be cancelled for being unconcludable.
+        /// So we allow transfers from the moment the VF has >= 2 outcomes onwards,
+        /// even prior to tClose.
         VirtualFloorUnconcludable
     }
 

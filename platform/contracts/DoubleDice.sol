@@ -337,9 +337,6 @@ contract DoubleDice is
                 if(!(virtualFloor.state == VirtualFloorState.RunningOrClosed)) {
                     revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.WrongState);
                 }
-                if(!(virtualFloor.tClose <= block.timestamp)) {
-                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooEarly);
-                }
                 if(!(block.timestamp < virtualFloor.tResolve)) {
                     revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooLate);
                 }

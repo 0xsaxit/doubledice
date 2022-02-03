@@ -56,6 +56,9 @@ struct VirtualFloor {
     bytes9 paymentTokenId;             // +  9 bytes
                                        // = 32 bytes => packed into 1 32-byte slot
 
+    uint8 reserved1;
+    uint8 reserved2;
+
     // Storage slot 1: Slot written to during resolve
     uint8 winningOutcomeIndex; // +  1 byte
     uint192 winnerProfits;     // + 24 bytes ; fits with 18-decimal-place precision all values up to ~1.5e30 (and with less decimals, more)

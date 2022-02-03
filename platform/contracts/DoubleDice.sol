@@ -14,7 +14,8 @@ import "./PaymentTokenRegistry.sol";
 
 uint256 constant _TIMESLOT_DURATION = 60 seconds;
 
-uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 256;
+/// @dev 255 not 256, because we store nOutcomes in a uint8
+uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 255;
 
 uint256 constant _BETA_CLOSE_E18 = 1e18;
 

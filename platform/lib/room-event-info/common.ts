@@ -34,7 +34,7 @@ const schema: JSONSchemaType<RoomEventInfo> = {
         },
         additionalProperties: false,
       },
-      minItems: 2,
+      minItems: 1,
       uniqueItems: true,
     },
     outcomes: {

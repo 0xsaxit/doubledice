@@ -37,7 +37,7 @@ function _requireValidMetadata(uint256 nOutcomes, VirtualFloorMetadata calldata 
     // and we enforce consistency with this check.
     require(metadata.outcomes.length == nOutcomes, "Error: Outcomes length mismatch");
 
-    require(metadata.opponents.length >= 2, "Error: There must be at least 2 opponents");
+    require(metadata.opponents.length >= 1, "Error: There must be at least 1 opponent");
 
     // ToDo: Should we require(metadata.outcomes.length >= metadata.opponents.length)?
     require(metadata.outcomes.length >= 2, "Error: There must be at least 2 outcomes");

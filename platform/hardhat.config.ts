@@ -55,7 +55,11 @@ const config: HardhatUserConfig = {
   },
   typechain: {
     outDir: 'lib/generated/typechain-types'
-  }
+  },
+  gasReporter: {
+    outputFile: 'gas-report.txt',
+    noColors: true,
+  },
 };
 
 export default config;

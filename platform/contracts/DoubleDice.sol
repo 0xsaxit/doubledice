@@ -185,8 +185,6 @@ contract DoubleDice is
         virtualFloor.tResolve = tResolve;
         virtualFloor.nOutcomes = nOutcomes;
 
-        virtualFloor.state = VirtualFloorState.RunningOrClosed;
-
         emit VirtualFloorCreation({
             virtualFloorId: virtualFloorId,
             creator: _msgSender(),

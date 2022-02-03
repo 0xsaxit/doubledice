@@ -906,7 +906,7 @@
             "type": "tuple"
           }
         ],
-        "internalType": "struct IDoubleDice.VirtualFloorCreationParams",
+        "internalType": "struct VirtualFloorCreationParams",
         "name": "params",
         "type": "tuple"
       }

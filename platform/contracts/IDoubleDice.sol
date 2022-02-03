@@ -13,6 +13,22 @@ struct VirtualFloorOutcomeTimeslot {
     uint256 timeslot;
 }
 
+struct VirtualFloorCreationParams {
+    uint256 virtualFloorId;
+    uint256 betaOpen_e18;
+
+    /// @dev Purposely called "creation-fee" not "creator-fee",
+    /// as the "creation-fee" will be split between "creator" and "platform".
+    uint256 creationFeeRate_e18;
+
+    uint32 tOpen;
+    uint32 tClose;
+    uint32 tResolve;
+    uint8 nOutcomes;
+    IERC20 paymentToken;
+    VirtualFloorMetadata metadata;
+}
+
 enum VirtualFloorResolutionType { NoWinners, SomeWinners }
 
 interface IDoubleDice is
@@ -55,22 +71,6 @@ interface IDoubleDice is
         uint256 platformFeeAmount,
         uint256 ownerFeeAmount
     );
-
-    struct VirtualFloorCreationParams {
-        uint256 virtualFloorId;
-        uint256 betaOpen_e18;
-
-        /// @dev Purposely called "creation-fee" not "creator-fee",
-        /// as the "creation-fee" will be split between "creator" and "platform".
-        uint256 creationFeeRate_e18;
-
-        uint32 tOpen;
-        uint32 tClose;
-        uint32 tResolve;
-        uint8 nOutcomes;
-        IERC20 paymentToken;
-        VirtualFloorMetadata metadata;
-    }
 
     /// @notice Create a new virtual-floor.
     /// @dev `virtualFloorId` must start 0x00 (1)

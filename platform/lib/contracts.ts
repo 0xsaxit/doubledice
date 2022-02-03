@@ -3,6 +3,4 @@ export type {
   VirtualFloorMetadataStruct as RoomEventInfo
 } from './generated/typechain-types/DoubleDice';
 
-import type { IDoubleDice } from './generated/typechain-types/DoubleDice';
-
-export type VirtualFloorCreationParamsStruct = IDoubleDice.VirtualFloorCreationParamsStruct
+export type { VirtualFloorCreationParamsStruct } from './generated/typechain-types/IDoubleDice';

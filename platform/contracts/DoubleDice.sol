@@ -41,33 +41,49 @@ enum VirtualFloorState {
     Cancelled
 }
 
-struct VirtualFloor {
-
-    // Storage slot 0: Slot written to during createVirtualFloor
-    VirtualFloorState state;           //    1 byte
-    uint8 nonzeroOutcomeCount;         // +  1 byte  ; number of outcomes having aggregate commitments > 0
+/// @dev These params are extracted into a struct only to work around a Solidity
+/// limitation whereby exceeding a certain threshold of struct member variables
+/// fails compilation with:
+/// "CompilerError: Stack too deep when compiling inline assembly:
+/// Variable value0 is 1 slot(s) too deep inside the stack."
+/// Once it was necessary to seek this workaround, the selected members were
+/// tailored to fit into a single 32-byte slot, and were chosen to be
+/// parameters that are set once in VF-creation and never touched again,
+/// so that from VF-creation onwards, this storage slot becomes "read-only",
+/// thus being gas-efficient.
+struct StoredVirtualFloorCreationParams {
     uint8 nOutcomes;                   // +  1 byte
     uint32 tOpen;                      // +  4 bytes
     uint32 tClose;                     // +  4 bytes 
     uint32 tResolve;                   // +  4 bytes
-    UFixed32x6 betaOpenMinusBetaClose; // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000
+    UFixed32x6 betaOpenMinusBetaClose; // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000.000000
     UFixed16x4 creationFeeRate;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
     UFixed16x4 platformFeeRate;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
     bytes9 paymentTokenId;             // +  9 bytes
-                                       // = 32 bytes => packed into 1 32-byte slot
+                                       // = 30 bytes => packed into 1 32-byte slot
+}
 
-    uint8 reserved1;
-    uint8 reserved2;
+struct VirtualFloor {
 
-    // Storage slot 1: Slot written to during resolve
+    // Storage slot 0: Written to during createVirtualFloor, only read from thereafter
+    StoredVirtualFloorCreationParams creationParams;
+
+    // Storage slot 1: Slot written to during createVirtualFloor, and updated throughout VF lifecycle
+    address reserved1;         //   20 bytes
+    bytes10 reserved2;         // + 10 bytes
+    VirtualFloorState state;   // +  1 byte
+    uint8 nonzeroOutcomeCount; // +  1 byte  ; number of outcomes having aggregate commitments > 0
+                               // = 32 bytes => packed into 1 32-byte slot
+
+    // Storage slot 2: Not written to, but used in calculation of outcome-specific slots
+    // Note: A fixed-length array is used to not an entire 32-byte slot to write array-length,
+    // but instead store the length in 1 byte in `nOutcomes`
+    AggregateCommitment[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] aggregateCommitments;
+
+    // Storage slot 3: Slot written to during resolve
     uint8 winningOutcomeIndex; // +  1 byte
     uint192 winnerProfits;     // + 24 bytes ; fits with 18-decimal-place precision all values up to ~1.5e30 (and with less decimals, more)
                                // = 25 bytes => packed into 1 32-byte slot
-
-    // By using a fixed-length array, we do not waste gas to write array-length,
-    // as array-length is instead stored in `nOutcomes` which is packed into 1 byte
-    // and packed efficiently in slot 0
-    AggregateCommitment[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] aggregateCommitments;
 }
 
 function _toUint192(uint256 value) pure returns (uint192) {
@@ -95,9 +111,9 @@ contract DoubleDice is
     /// have a uint256 representation.
     /// Therefore we sacrifice some (miniscule) rounding error to gain computation reproducibility.
     function _calcBeta(VirtualFloor storage vf, uint256 t) internal view returns (UFixed256x18 beta_e18) {
-        uint256 betaOpenMinusBetaClose_e18 = UFixed256x18.unwrap(vf.betaOpenMinusBetaClose.toUFixed256x18());
+        uint256 betaOpenMinusBetaClose_e18 = UFixed256x18.unwrap(vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18());
         uint256 betaClose_e18 = UFixed256x18.unwrap(_BETA_CLOSE);
-        beta_e18 = UFixed256x18.wrap(betaClose_e18 + ((vf.tClose - t) * betaOpenMinusBetaClose_e18) / (uint256(vf.tClose) - uint256(vf.tOpen)));
+        beta_e18 = UFixed256x18.wrap(betaClose_e18 + ((vf.creationParams.tClose - t) * betaOpenMinusBetaClose_e18) / (uint256(vf.creationParams.tClose) - uint256(vf.creationParams.tOpen)));
     }
 
     function _isMsgSenderVirtualFloorOwner(uint256 virtualFloorId) private view returns (bool) {
@@ -150,16 +166,17 @@ contract DoubleDice is
         VirtualFloorMetadata calldata metadata = params.metadata;
 
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
+
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
 
         require(betaOpen.gte(_BETA_CLOSE), "Error: betaOpen < 1.0");
-        virtualFloor.betaOpenMinusBetaClose = betaOpen.sub(_BETA_CLOSE).toUFixed32x6();
+        virtualFloor.creationParams.betaOpenMinusBetaClose = betaOpen.sub(_BETA_CLOSE).toUFixed32x6();
 
         require(creationFeeRate.lte(UFIXED256X18_ONE), "Error: creationFeeRate > 1.0");
-        virtualFloor.creationFeeRate = creationFeeRate.toUFixed16x4();
+        virtualFloor.creationParams.creationFeeRate = creationFeeRate.toUFixed16x4();
 
         // freeze platformFeeRate value as it is right now
-        virtualFloor.platformFeeRate = platformFeeRate;
+        virtualFloor.creationParams.platformFeeRate = platformFeeRate;
 
         // Require all timestamps to be exact multiples of the timeslot-duration.
         // This makes everything simpler to reason about.
@@ -181,11 +198,11 @@ contract DoubleDice is
         require(isPaymentTokenWhitelisted(paymentToken), "Error: Payment token is not whitelisted");
 
         virtualFloor.state = VirtualFloorState.RunningOrClosed;
-        virtualFloor.paymentTokenId = _paymentTokenToId(paymentToken);
-        virtualFloor.tOpen = tOpen;
-        virtualFloor.tClose = tClose;
-        virtualFloor.tResolve = tResolve;
-        virtualFloor.nOutcomes = nOutcomes;
+        virtualFloor.creationParams.paymentTokenId = _paymentTokenToId(paymentToken);
+        virtualFloor.creationParams.tOpen = tOpen;
+        virtualFloor.creationParams.tClose = tClose;
+        virtualFloor.creationParams.tResolve = tResolve;
+        virtualFloor.creationParams.nOutcomes = nOutcomes;
 
         emit VirtualFloorCreation({
             virtualFloorId: virtualFloorId,
@@ -218,14 +235,14 @@ contract DoubleDice is
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_NOT_FOUND");
 
-        require(block.timestamp < virtualFloor.tClose, "MARKET_CLOSED");
-        require(outcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+        require(block.timestamp < virtualFloor.creationParams.tClose, "MARKET_CLOSED");
+        require(outcomeIndex < virtualFloor.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
         // Note: By enforcing this requirement, we can later assume that 0 committed value = 0 commitments
         // If we allowed 0-value commitments, it would no longer be possible to make this deduction.
         require(amount > 0, "AMOUNT_ZERO");
 
-        _idToPaymentToken(virtualFloor.paymentTokenId).safeTransferFrom(_msgSender(), address(this), amount);
+        _idToPaymentToken(virtualFloor.creationParams.paymentTokenId).safeTransferFrom(_msgSender(), address(this), amount);
 
         // Assign all commitments that happen within the same `_TIMESLOT_DURATION`, to the same "timeslot."
         // These commitments will all be assigned the same associated beta value.
@@ -241,7 +258,7 @@ contract DoubleDice is
         // will be minted as balances on the the same ERC-1155 tokenId, which means that
         // these balances will be exchangeable/tradeable/fungible between themselves,
         // but they will not be fungible with commitments to the same outcome that arrive later.
-        timeslot = Math.max(virtualFloor.tOpen, timeslot);
+        timeslot = Math.max(virtualFloor.creationParams.tOpen, timeslot);
 
         UFixed256x18 beta_e18 = _calcBeta(virtualFloor, timeslot);
         AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
@@ -314,7 +331,7 @@ contract DoubleDice is
                 if(!(virtualFloor.state == VirtualFloorState.RunningOrClosed)) {
                     revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.WrongState);
                 }
-                if(!(block.timestamp < virtualFloor.tResolve)) {
+                if(!(block.timestamp < virtualFloor.creationParams.tResolve)) {
                     revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooLate);
                 }
                 if(!(virtualFloor.nonzeroOutcomeCount >= 2)) {
@@ -337,7 +354,7 @@ contract DoubleDice is
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
-        require(block.timestamp >= virtualFloor.tClose, "TOO_EARLY");
+        require(block.timestamp >= virtualFloor.creationParams.tClose, "TOO_EARLY");
         require(virtualFloor.nonzeroOutcomeCount < 2, "Error: VF only unconcludable if commitments to less than 2 outcomes");
         virtualFloor.state = VirtualFloorState.Cancelled;
         emit VirtualFloorCancellation(virtualFloorId);
@@ -359,13 +376,13 @@ contract DoubleDice is
         // Instead the VF should be cancelled.
         require(virtualFloor.nonzeroOutcomeCount >= 2, "Error: Cannot resolve VF with commitments to less than 2 outcomes");
 
-        require(block.timestamp >= virtualFloor.tResolve, "TOO_EARLY_TO_RESOLVE");
-        require(winningOutcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+        require(block.timestamp >= virtualFloor.creationParams.tResolve, "TOO_EARLY_TO_RESOLVE");
+        require(winningOutcomeIndex < virtualFloor.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
         virtualFloor.winningOutcomeIndex = winningOutcomeIndex;
 
         uint256 totalVirtualFloorCommittedAmount = 0;
-        for (uint256 i = 0; i < virtualFloor.nOutcomes; i++) {
+        for (uint256 i = 0; i < virtualFloor.creationParams.nOutcomes; i++) {
             totalVirtualFloorCommittedAmount += virtualFloor.aggregateCommitments[i].amount;
         }
 
@@ -400,7 +417,7 @@ contract DoubleDice is
             resolutionType = VirtualFloorResolutionType.SomeWinners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
-            uint256 maxCreationFeeAmount = virtualFloor.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
+            uint256 maxCreationFeeAmount = virtualFloor.creationParams.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
 
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
             uint256 creationFeePlusWinnerProfits = totalVirtualFloorCommittedAmount - totalWinnerCommitments;
@@ -411,9 +428,9 @@ contract DoubleDice is
             winnerProfits = creationFeePlusWinnerProfits - creationFeeAmount;
             virtualFloor.winnerProfits = _toUint192(winnerProfits);
 
-            IERC20 paymentToken = _idToPaymentToken(virtualFloor.paymentTokenId);
+            IERC20 paymentToken = _idToPaymentToken(virtualFloor.creationParams.paymentTokenId);
 
-            platformFeeAmount = virtualFloor.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
+            platformFeeAmount = virtualFloor.creationParams.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
             paymentToken.safeTransfer(platformFeeBeneficiary, platformFeeAmount);
 
             unchecked {
@@ -451,13 +468,13 @@ contract DoubleDice is
             uint256 payout = amount + profit;
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            _idToPaymentToken(virtualFloor.paymentTokenId).transfer(_msgSender(), payout);
+            _idToPaymentToken(virtualFloor.creationParams.paymentTokenId).transfer(_msgSender(), payout);
         } else if (virtualFloor.state == VirtualFloorState.Cancelled) {
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            _idToPaymentToken(virtualFloor.paymentTokenId).transfer(_msgSender(), amount);
+            _idToPaymentToken(virtualFloor.creationParams.paymentTokenId).transfer(_msgSender(), amount);
         } else if (virtualFloor.state == VirtualFloorState.RunningOrClosed) {
             revert("MARKET_NOT_RESOLVED");
         } else if (virtualFloor.state == VirtualFloorState.None) {

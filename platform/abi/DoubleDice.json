@@ -576,6 +576,63 @@
     "name": "_virtualFloors",
     "outputs": [
       {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "nOutcomes",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tOpen",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tClose",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tResolve",
+            "type": "uint32"
+          },
+          {
+            "internalType": "UFixed32x6",
+            "name": "betaOpenMinusBetaClose",
+            "type": "uint32"
+          },
+          {
+            "internalType": "UFixed16x4",
+            "name": "creationFeeRate",
+            "type": "uint16"
+          },
+          {
+            "internalType": "UFixed16x4",
+            "name": "platformFeeRate",
+            "type": "uint16"
+          },
+          {
+            "internalType": "bytes9",
+            "name": "paymentTokenId",
+            "type": "bytes9"
+          }
+        ],
+        "internalType": "struct StoredVirtualFloorCreationParams",
+        "name": "creationParams",
+        "type": "tuple"
+      },
+      {
+        "internalType": "address",
+        "name": "reserved1",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes10",
+        "name": "reserved2",
+        "type": "bytes10"
+      },
+      {
         "internalType": "enum VirtualFloorState",
         "name": "state",
         "type": "uint8"
@@ -584,46 +641,6 @@
         "internalType": "uint8",
         "name": "nonzeroOutcomeCount",
         "type": "uint8"
-      },
-      {
-        "internalType": "uint8",
-        "name": "nOutcomes",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint32",
-        "name": "tOpen",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "tClose",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "tResolve",
-        "type": "uint32"
-      },
-      {
-        "internalType": "UFixed32x6",
-        "name": "betaOpenMinusBetaClose",
-        "type": "uint32"
-      },
-      {
-        "internalType": "UFixed16x4",
-        "name": "creationFeeRate",
-        "type": "uint16"
-      },
-      {
-        "internalType": "UFixed16x4",
-        "name": "platformFeeRate",
-        "type": "uint16"
-      },
-      {
-        "internalType": "bytes9",
-        "name": "paymentTokenId",
-        "type": "bytes9"
       },
       {
         "internalType": "uint8",

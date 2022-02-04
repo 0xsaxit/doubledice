@@ -59,8 +59,8 @@ struct StoredVirtualFloorCreationParams {
     UFixed32x6 betaOpenMinusBetaClose; // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000.000000
     UFixed16x4 creationFeeRate;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
     UFixed16x4 platformFeeRate;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    bytes9 paymentTokenId;             // +  9 bytes
-                                       // = 30 bytes => packed into 1 32-byte slot
+    bytes10 paymentTokenId;            // + 10 bytes
+                                       // = 31 bytes => packed into 1 32-byte slot
 }
 
 struct VirtualFloor {

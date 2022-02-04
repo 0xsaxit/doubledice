@@ -549,9 +549,9 @@
   {
     "inputs": [
       {
-        "internalType": "bytes9",
+        "internalType": "bytes10",
         "name": "id",
-        "type": "bytes9"
+        "type": "bytes10"
       }
     ],
     "name": "_idToPaymentToken",
@@ -613,9 +613,9 @@
             "type": "uint16"
           },
           {
-            "internalType": "bytes9",
+            "internalType": "bytes10",
             "name": "paymentTokenId",
-            "type": "bytes9"
+            "type": "bytes10"
           }
         ],
         "internalType": "struct StoredVirtualFloorCreationParams",

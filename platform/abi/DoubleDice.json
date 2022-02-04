@@ -80,7 +80,7 @@
     "inputs": [
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "UFixed256x18",
         "name": "platformFeeRate_e18",
         "type": "uint256"
       }
@@ -291,7 +291,7 @@
       },
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "UFixed256x18",
         "name": "beta_e18",
         "type": "uint256"
       },
@@ -335,19 +335,19 @@
       },
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "UFixed256x18",
         "name": "betaOpen_e18",
         "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "UFixed256x18",
         "name": "creationFeeRate_e18",
         "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "UFixed256x18",
         "name": "platformFeeRate_e18",
         "type": "uint256"
       },
@@ -606,18 +606,18 @@
         "type": "uint32"
       },
       {
-        "internalType": "uint32",
-        "name": "betaOpenMinusBetaClose_e6",
+        "internalType": "UFixed32x6",
+        "name": "betaOpenMinusBetaClose",
         "type": "uint32"
       },
       {
-        "internalType": "uint16",
-        "name": "creationFeeRate_e4",
+        "internalType": "UFixed16x4",
+        "name": "creationFeeRate",
         "type": "uint16"
       },
       {
-        "internalType": "uint16",
-        "name": "platformFeeRate_e4",
+        "internalType": "UFixed16x4",
+        "name": "platformFeeRate",
         "type": "uint16"
       },
       {
@@ -793,12 +793,12 @@
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
+            "internalType": "UFixed256x18",
             "name": "betaOpen_e18",
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
+            "internalType": "UFixed256x18",
             "name": "creationFeeRate_e18",
             "type": "uint256"
           },
@@ -958,7 +958,7 @@
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
+            "internalType": "UFixed256x18",
             "name": "amountTimesBeta_e18",
             "type": "uint256"
           }
@@ -1074,7 +1074,7 @@
     "name": "platformFeeRate_e18",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "UFixed256x18",
         "name": "",
         "type": "uint256"
       }
@@ -1223,7 +1223,7 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "UFixed256x18",
         "name": "platformFeeRate_e18_",
         "type": "uint256"
       }

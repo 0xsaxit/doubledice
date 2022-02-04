@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/IAccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "./FixedPointTypes.sol";
 import "./VirtualFloorMetadata.sol";
 
 struct VirtualFloorOutcomeTimeslot {
@@ -15,11 +16,11 @@ struct VirtualFloorOutcomeTimeslot {
 
 struct VirtualFloorCreationParams {
     uint256 virtualFloorId;
-    uint256 betaOpen_e18;
+    UFixed256x18 betaOpen_e18;
 
     /// @dev Purposely called "creation-fee" not "creator-fee",
     /// as the "creation-fee" will be split between "creator" and "platform".
-    uint256 creationFeeRate_e18;
+    UFixed256x18 creationFeeRate_e18;
 
     uint32 tOpen;
     uint32 tClose;
@@ -38,9 +39,9 @@ interface IDoubleDice is
     event VirtualFloorCreation(
         uint256 indexed virtualFloorId,
         address indexed creator,
-        uint256 betaOpen_e18,
-        uint256 creationFeeRate_e18,
-        uint256 platformFeeRate_e18,
+        UFixed256x18 betaOpen_e18,
+        UFixed256x18 creationFeeRate_e18,
+        UFixed256x18 platformFeeRate_e18,
         uint32 tOpen,
         uint32 tClose,
         uint32 tResolve,
@@ -55,7 +56,7 @@ interface IDoubleDice is
         uint8 outcomeIndex,
         uint256 timeslot,
         uint256 amount,
-        uint256 beta_e18,
+        UFixed256x18 beta_e18,
         uint256 tokenId
     );
 
@@ -112,11 +113,11 @@ interface IDoubleDice is
     function TIMESLOT_DURATION() external view returns (uint256);
 
 
-    event PlatformFeeRateUpdate(uint256 platformFeeRate_e18);
+    event PlatformFeeRateUpdate(UFixed256x18 platformFeeRate_e18);
 
-    function platformFeeRate_e18() external view returns (uint256);
+    function platformFeeRate_e18() external view returns (UFixed256x18);
 
-    function setPlatformFeeRate_e18(uint256 platformFeeRate_e18) external;
+    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18) external;
 
     function platformFeeBeneficiary() external view returns (address);
 }

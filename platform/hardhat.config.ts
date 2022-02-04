@@ -59,6 +59,7 @@ const config: HardhatUserConfig = {
   gasReporter: {
     outputFile: 'gas-report.txt',
     noColors: true,
+    excludeContracts: ['mock/'],
   },
 };
 

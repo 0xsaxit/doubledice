@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 import "./ERC1155TokenIds.sol";
+import "./FixedPointTypes.sol";
 import "./IDoubleDice.sol";
 import "./PaymentTokenRegistry.sol";
 
@@ -17,13 +18,13 @@ uint256 constant _TIMESLOT_DURATION = 60 seconds;
 /// @dev 255 not 256, because we store nOutcomes in a uint8
 uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 255;
 
-uint256 constant _BETA_CLOSE_E18 = 1e18;
+UFixed256x18 constant _BETA_CLOSE = UFIXED256X18_ONE;
 
 // ToDo: Can we optimize this by using uint128 and packing both values into 1 slot,
 // or will amountTimesBeta_e18 then not have enough precision?
 struct AggregateCommitment {
     uint256 amount;
-    uint256 amountTimesBeta_e18;
+    UFixed256x18 amountTimesBeta_e18;
 }
 
 enum VirtualFloorState {
@@ -43,17 +44,17 @@ enum VirtualFloorState {
 struct VirtualFloor {
 
     // Storage slot 0: Slot written to during createVirtualFloor
-    VirtualFloorState state;          //    1 byte
-    uint8 nonzeroOutcomeCount;        // +  1 byte  ; number of outcomes having aggregate commitments > 0
-    uint8 nOutcomes;                  // +  1 byte
-    uint32 tOpen;                     // +  4 bytes
-    uint32 tClose;                    // +  4 bytes 
-    uint32 tResolve;                  // +  4 bytes
-    uint32 betaOpenMinusBetaClose_e6; // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000
-    uint16 creationFeeRate_e4;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    uint16 platformFeeRate_e4;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    bytes9 paymentTokenId;            // +  9 bytes
-                                      // = 32 bytes => packed into 1 32-byte slot
+    VirtualFloorState state;           //    1 byte
+    uint8 nonzeroOutcomeCount;         // +  1 byte  ; number of outcomes having aggregate commitments > 0
+    uint8 nOutcomes;                   // +  1 byte
+    uint32 tOpen;                      // +  4 bytes
+    uint32 tClose;                     // +  4 bytes 
+    uint32 tResolve;                   // +  4 bytes
+    UFixed32x6 betaOpenMinusBetaClose; // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000
+    UFixed16x4 creationFeeRate;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
+    UFixed16x4 platformFeeRate;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
+    bytes9 paymentTokenId;             // +  9 bytes
+                                       // = 32 bytes => packed into 1 32-byte slot
 
     // Storage slot 1: Slot written to during resolve
     uint8 winningOutcomeIndex; // +  1 byte
@@ -64,16 +65,6 @@ struct VirtualFloor {
     // as array-length is instead stored in `nOutcomes` which is packed into 1 byte
     // and packed efficiently in slot 0
     AggregateCommitment[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] aggregateCommitments;
-}
-
-/// @dev Compare:
-/// 1. (((tClose - t) * (betaOpen - 1)) / (tClose - tOpen)) * amount
-/// 2. (((tClose - t) * (betaOpen - 1) * amount) / (tClose - tOpen))
-/// (2) has less rounding error than (1), but then the *precise* effective beta used in the computation might not
-/// have a uint256 representation.
-/// Therefore we sacrifice some (miniscule) rounding error to gain computation reproducibility.
-function _calcBeta(VirtualFloor storage vf, uint256 t) view returns (uint256 beta_e18) {
-    beta_e18 = _BETA_CLOSE_E18 + ((vf.tClose - t) * vf.betaOpenMinusBetaClose_e6 * 1e12) / (uint256(vf.tClose) - uint256(vf.tOpen));
 }
 
 function _toUint192(uint256 value) pure returns (uint192) {
@@ -89,6 +80,22 @@ contract DoubleDice is
 {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
+    using FixedPointTypes for uint256;
+    using FixedPointTypes for UFixed16x4;
+    using FixedPointTypes for UFixed32x6;
+    using FixedPointTypes for UFixed256x18;
+    
+    /// @dev Compare:
+    /// 1. (((tClose - t) * (betaOpen - 1)) / (tClose - tOpen)) * amount
+    /// 2. (((tClose - t) * (betaOpen - 1) * amount) / (tClose - tOpen))
+    /// (2) has less rounding error than (1), but then the *precise* effective beta used in the computation might not
+    /// have a uint256 representation.
+    /// Therefore we sacrifice some (miniscule) rounding error to gain computation reproducibility.
+    function _calcBeta(VirtualFloor storage vf, uint256 t) internal view returns (UFixed256x18 beta_e18) {
+        uint256 betaOpenMinusBetaClose_e18 = UFixed256x18.unwrap(vf.betaOpenMinusBetaClose.toUFixed256x18());
+        uint256 betaClose_e18 = UFixed256x18.unwrap(_BETA_CLOSE);
+        beta_e18 = UFixed256x18.wrap(betaClose_e18 + ((vf.tClose - t) * betaOpenMinusBetaClose_e18) / (uint256(vf.tClose) - uint256(vf.tOpen)));
+    }
 
     function _isMsgSenderVirtualFloorOwner(uint256 virtualFloorId) private view returns (bool) {
         return balanceOf(_msgSender(), virtualFloorId) == 1;
@@ -97,29 +104,21 @@ contract DoubleDice is
     // ToDo: Setter
     address public platformFeeBeneficiary;
 
-    uint16 internal platformFeeRate_e4;
+    UFixed16x4 internal platformFeeRate;
 
     /// @notice The current platform-fee rate as a proportion of the creator-fee taken
     /// on virtualfloor resolution.
     /// E.g. 1.25% would be returned as 0.0125e18
-    function platformFeeRate_e18() external view returns (uint256) {
-        return uint256(platformFeeRate_e4) * 1e14;
+    function platformFeeRate_e18() external view returns (UFixed256x18) {
+        return platformFeeRate.toUFixed256x18();
     }
 
-    /// @dev Some extra effort has be placed into maintaining an external
-    /// 18-decimal-place interface for fixed-point values,
-    /// irrespective of their stored representation.
-    /// This might be dropped in favour of less code and checks.
-    function setPlatformFeeRate_e18(uint256 platformFeeRate_e18_)
+    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(platformFeeRate_e18_ <= 1e18, "Error: platformFeeRate > 1.0");
-        platformFeeRate_e4 = (platformFeeRate_e18_ / 1e14).toUint16();
-        require(
-            uint256(platformFeeRate_e4) * 1e14 == platformFeeRate_e18_,
-            "Error: Original platformFeeRate_e18 unrecoverable from stored representation"
-        );
+        require(platformFeeRate_e18_.lte(UFIXED256X18_ONE), "Error: platformFeeRate > 1.0");
+        platformFeeRate = platformFeeRate_e18_.toUFixed16x4();
         emit PlatformFeeRateUpdate(platformFeeRate_e18_);
     }
 
@@ -138,8 +137,8 @@ contract DoubleDice is
         // Also slightly cheaper than a multiple field assignment
         // (virtualFloorId, ...) = (params.virtualFloorId, ...)
         uint256 virtualFloorId = params.virtualFloorId;
-        uint256 betaOpen_e18 = params.betaOpen_e18;
-        uint256 creationFeeRate_e18 = params.creationFeeRate_e18;
+        UFixed256x18 betaOpen = params.betaOpen_e18;
+        UFixed256x18 creationFeeRate = params.creationFeeRate_e18;
         uint32 tOpen = params.tOpen;
         uint32 tClose = params.tClose;
         uint32 tResolve = params.tResolve;
@@ -150,14 +149,14 @@ contract DoubleDice is
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
 
-        require(betaOpen_e18 >= _BETA_CLOSE_E18, "Error: betaOpen < 1.0");
-        _storeBetaOpenEfficiently(virtualFloor, betaOpen_e18);
+        require(betaOpen.gte(_BETA_CLOSE), "Error: betaOpen < 1.0");
+        virtualFloor.betaOpenMinusBetaClose = betaOpen.sub(_BETA_CLOSE).toUFixed32x6();
 
-        require(creationFeeRate_e18 <= 1e18, "Error: creationFeeRate > 1.0");
-        _storeCreationFeeRateEfficiently(virtualFloor, creationFeeRate_e18);
+        require(creationFeeRate.lte(UFIXED256X18_ONE), "Error: creationFeeRate > 1.0");
+        virtualFloor.creationFeeRate = creationFeeRate.toUFixed16x4();
 
         // freeze platformFeeRate value as it is right now
-        virtualFloor.platformFeeRate_e4 = platformFeeRate_e4;
+        virtualFloor.platformFeeRate = platformFeeRate;
 
         // Require all timestamps to be exact multiples of the timeslot-duration.
         // This makes everything simpler to reason about.
@@ -188,9 +187,9 @@ contract DoubleDice is
         emit VirtualFloorCreation({
             virtualFloorId: virtualFloorId,
             creator: _msgSender(),
-            betaOpen_e18: betaOpen_e18,
-            creationFeeRate_e18: creationFeeRate_e18,
-            platformFeeRate_e18: uint256(platformFeeRate_e4) * 1e14,
+            betaOpen_e18: betaOpen,
+            creationFeeRate_e18: creationFeeRate,
+            platformFeeRate_e18: platformFeeRate.toUFixed256x18(),
             tOpen: tOpen,
             tClose: tClose,
             tResolve: tResolve,
@@ -208,31 +207,6 @@ contract DoubleDice is
             amount: 1,
             data: hex""
         });
-    }
-
-    function _storeBetaOpenEfficiently(VirtualFloor storage virtualFloor, uint256 betaOpen_e18) internal {
-        // Note: We already know that betaOpen >= 1.0
-
-        // Externally we pass betaOpen_e18, and we also emit this value on the VirtualFloorCreated event.
-        // Internally we reduce this to 6 decimal places to achieve an gas-efficient on-chain storage layout.
-        virtualFloor.betaOpenMinusBetaClose_e6 = ((betaOpen_e18 - _BETA_CLOSE_E18) / 1e12).toUint32();
-
-        // Ensure that we are able to recover the original betaOpen_e18 from betaOpen_e6,
-        // i.e. the original `betaOpen_e18` must be of the form #.######_000000_000000
-        require(
-            _BETA_CLOSE_E18 + (uint256(virtualFloor.betaOpenMinusBetaClose_e6) * 1e12) == betaOpen_e18,
-            "Error: Original betaOpen_e18 unrecoverable from stored representation"
-        );
-    }
-
-    function _storeCreationFeeRateEfficiently(VirtualFloor storage virtualFloor, uint256 creationFeeRate_e18) internal {
-        // Note: We already know that creationFeeRate <= 1.0
-
-        virtualFloor.creationFeeRate_e4 = (creationFeeRate_e18 / 1e14).toUint16();
-        require(
-            uint256(virtualFloor.creationFeeRate_e4) * 1e14 == creationFeeRate_e18,
-            "Error: Original creationFeeRate_e18 unrecoverable from stored representation"
-        );
     }
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount)
@@ -266,7 +240,7 @@ contract DoubleDice is
         // but they will not be fungible with commitments to the same outcome that arrive later.
         timeslot = Math.max(virtualFloor.tOpen, timeslot);
 
-        uint256 beta_e18 = _calcBeta(virtualFloor, timeslot);
+        UFixed256x18 beta_e18 = _calcBeta(virtualFloor, timeslot);
         AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
 
         // Only increment this counter the first time an outcome is committed to.
@@ -278,7 +252,8 @@ contract DoubleDice is
         }
 
         aggregateCommitments.amount += amount;
-        aggregateCommitments.amountTimesBeta_e18 += amount * beta_e18;
+        aggregateCommitments.amountTimesBeta_e18 = aggregateCommitments.amountTimesBeta_e18.add(beta_e18.mul0(amount));
+
         uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(virtualFloorId, outcomeIndex, timeslot);
 
         // From the Graph's point of view...
@@ -422,7 +397,7 @@ contract DoubleDice is
             resolutionType = VirtualFloorResolutionType.SomeWinners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
-            uint256 maxCreationFeeAmount = (totalVirtualFloorCommittedAmount * virtualFloor.creationFeeRate_e4) / 1e4;
+            uint256 maxCreationFeeAmount = virtualFloor.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
 
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
             uint256 creationFeePlusWinnerProfits = totalVirtualFloorCommittedAmount - totalWinnerCommitments;
@@ -435,7 +410,7 @@ contract DoubleDice is
 
             IERC20 paymentToken = _idToPaymentToken(virtualFloor.paymentTokenId);
 
-            platformFeeAmount =  (creationFeeAmount * virtualFloor.platformFeeRate_e4) / 1e4;
+            platformFeeAmount = virtualFloor.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
             paymentToken.safeTransfer(platformFeeBeneficiary, platformFeeAmount);
 
             unchecked {
@@ -466,9 +441,10 @@ contract DoubleDice is
 
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
-            uint256 beta_e18 = _calcBeta(virtualFloor, context.timeslot);
-            uint256 amountTimesBeta_e18 = amount * beta_e18;
-            uint256 profit = (amountTimesBeta_e18 * virtualFloor.winnerProfits) / virtualFloor.aggregateCommitments[virtualFloor.winningOutcomeIndex].amountTimesBeta_e18;
+            UFixed256x18 beta = _calcBeta(virtualFloor, context.timeslot);
+            UFixed256x18 amountTimesBeta = beta.mul0(amount);
+            UFixed256x18 aggregateAmountTimesBeta = virtualFloor.aggregateCommitments[virtualFloor.winningOutcomeIndex].amountTimesBeta_e18;
+            uint256 profit = amountTimesBeta.mul0(virtualFloor.winnerProfits).divToUint256(aggregateAmountTimesBeta);
             uint256 payout = amount + profit;
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);

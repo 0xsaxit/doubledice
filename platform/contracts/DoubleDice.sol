@@ -69,7 +69,7 @@ struct VirtualFloor {
     StoredVirtualFloorCreationParams creationParams;
 
     // Storage slot 1: Slot written to during createVirtualFloor, and updated throughout VF lifecycle
-    address reserved1;         //   20 bytes
+    address owner;             //   20 bytes
     bytes10 reserved2;         // + 10 bytes
     VirtualFloorState state;   // +  1 byte
     uint8 nonzeroOutcomeCount; // +  1 byte  ; number of outcomes having aggregate commitments > 0
@@ -115,10 +115,6 @@ contract DoubleDice is
         uint256 betaOpenMinusBetaClose_e18 = UFixed256x18.unwrap(vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18());
         uint256 betaClose_e18 = UFixed256x18.unwrap(_BETA_CLOSE);
         beta_e18 = UFixed256x18.wrap(betaClose_e18 + ((vf.creationParams.tClose - t) * betaOpenMinusBetaClose_e18) / (uint256(vf.creationParams.tClose) - uint256(vf.creationParams.tOpen)));
-    }
-
-    function _isMsgSenderVirtualFloorOwner(uint256 virtualFloorId) private view returns (bool) {
-        return balanceOf(_msgSender(), virtualFloorId) == 1;
     }
 
     // ToDo: Setter
@@ -240,13 +236,10 @@ contract DoubleDice is
 
         require(ERC1155TokenIds.isValidVirtualFloorId(virtualFloorId), "INVALID_VIRTUALFLOOR_ID");
 
-        // Represent this virtual-floor as an ERC-1155 *non-fungible* token.
-        _mint({
-            to: _msgSender(),
-            id: virtualFloorId,
-            amount: 1,
-            data: hex""
-        });
+        // ToDo: For now we simply set owner field on VF data-structure.
+        // Later we might bring back this VF being a NFT, as this would
+        // allow ownership transfer, integration with Etherscan, wallets, etc.
+        virtualFloor.owner = _msgSender();
     }
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount)
@@ -389,7 +382,7 @@ contract DoubleDice is
         // We do this check inline instead of using a special `onlyVirtualFloorOwner` modifier, so that
         // (1) we do not break the pattern by which we always check state first
         // (2) we avoid "hiding away" code in modifiers
-        require(_isMsgSenderVirtualFloorOwner(virtualFloorId), "NOT_VIRTUALFLOOR_OWNER");
+        require(_msgSender() == virtualFloor.owner, "NOT_VIRTUALFLOOR_OWNER");
 
         // If less than 2 outcomes have commitments,
         // then this VF is unconcludable, and resolution is aborted.
@@ -519,6 +512,12 @@ contract DoubleDice is
     }
 
     // ***** INFORMATIONAL *****
+
+    function getVirtualFloorOwner(uint256 virtualFloorId) external view returns (address) {
+        VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
+        require(virtualFloor.state != VirtualFloorState.None, "VIRTUAL_FLOOR_NOT_FOUND");
+        return virtualFloor.owner;
+    }
 
     function getVirtualFloorAggregateCommitments(uint256 virtualFloorId, uint8 outcomeIndex)
         external view returns (AggregateCommitment memory)

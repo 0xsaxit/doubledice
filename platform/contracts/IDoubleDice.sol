@@ -120,4 +120,6 @@ interface IDoubleDice is
     function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18) external;
 
     function platformFeeBeneficiary() external view returns (address);
+
+    function getVirtualFloorOwner(uint256 virtualFloorId) external view returns (address);
 }

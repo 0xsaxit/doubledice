@@ -592,7 +592,7 @@
       },
       {
         "internalType": "address",
-        "name": "reserved1",
+        "name": "owner",
         "type": "address"
       },
       {
@@ -951,6 +951,25 @@
         "internalType": "struct AggregateCommitment",
         "name": "",
         "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getVirtualFloorOwner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
     "stateMutability": "view",

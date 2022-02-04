@@ -43,6 +43,7 @@ struct VirtualFloor {
 
     // Storage slot 0: Slot written to during createVirtualFloor
     VirtualFloorState state;          //    1 byte
+    uint8 nonzeroOutcomeCount;        // +  1 byte  ; number of outcomes having aggregate commitments > 0
     uint8 nOutcomes;                  // +  1 byte
     uint32 tOpen;                     // +  4 bytes
     uint32 tClose;                    // +  4 bytes 
@@ -51,7 +52,7 @@ struct VirtualFloor {
     uint16 creationFeeRate_e4;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
     uint16 platformFeeRate_e4;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
     bytes9 paymentTokenId;            // +  9 bytes
-                                      // = 31 bytes => packed into 1 32-byte slot
+                                      // = 32 bytes => packed into 1 32-byte slot
 
     // Storage slot 1: Slot written to during resolve
     uint8 winningOutcomeIndex; // +  1 byte
@@ -268,6 +269,15 @@ contract DoubleDice is
 
         uint256 beta_e18 = _calcBeta(virtualFloor, timeslot);
         AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
+
+        // Only increment this counter the first time an outcome is committed to.
+        // In this way, this counter will be updated maximum nOutcome times over the entire commitment period.
+        // Some gas could be saved here by marking as unchecked, and by not counting beyond 2,
+        // but we choose to forfeit these micro-optimizations to retain simplicity.
+        if (aggregateCommitments.amount == 0) {
+            virtualFloor.nonzeroOutcomeCount += 1;
+        }
+
         aggregateCommitments.amount += amount;
         aggregateCommitments.amountTimesBeta_e18 += amount * beta_e18;
         uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(virtualFloorId, outcomeIndex, timeslot);
@@ -331,6 +341,25 @@ contract DoubleDice is
         }
     }
 
+    /// @notice A virtual-floor's commitment period closes at `tClose`.
+    /// If at this point there are zero commitments to zero outcomes,
+    /// or there are > 0 commitments, but all to a single outcome,
+    /// then this virtual-floor is considered unconcludeable.
+    /// For such a virtual-floor:
+    /// 1. The only possible action for this virtual-floor is to cancel it via this function,
+    ///    which may be invoked by anyone without restriction.
+    /// 2. Any ERC-1155 commitment-type token balance associated with this virtual-floor is untransferable
+    function cancelUnconcudableVirtualFloor(uint256 virtualFloorId)
+        external
+    {
+        VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
+        require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        require(block.timestamp >= virtualFloor.tClose, "TOO_EARLY");
+        require(virtualFloor.nonzeroOutcomeCount < 2, "Error: VF only unconcludable if commitments to less than 2 outcomes");
+        virtualFloor.state = VirtualFloorState.Cancelled;
+        emit VirtualFloorCancellation(virtualFloorId);
+    }
+
     function resolve(uint256 virtualFloorId, uint8 winningOutcomeIndex)
         external
     {
@@ -341,6 +370,11 @@ contract DoubleDice is
         // (1) we do not break the pattern by which we always check state first
         // (2) we avoid "hiding away" code in modifiers
         require(_isMsgSenderVirtualFloorOwner(virtualFloorId), "NOT_VIRTUALFLOOR_OWNER");
+
+        // If less than 2 outcomes have commitments,
+        // then this VF is unconcludable, and resolution is aborted.
+        // Instead the VF should be cancelled.
+        require(virtualFloor.nonzeroOutcomeCount >= 2, "Error: Cannot resolve VF with commitments to less than 2 outcomes");
 
         require(block.timestamp >= virtualFloor.tResolve, "TOO_EARLY_TO_RESOLVE");
         require(winningOutcomeIndex < virtualFloor.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
@@ -360,19 +394,24 @@ contract DoubleDice is
         uint256 winnerProfits;
 
         if (totalWinnerCommitments == 0) {
-            // All trade commitments fully refunded, no fee taken.
+            // This could happen if e.g. there are commitments to outcome #0 and outcome #1,
+            // but not to outcome #2, and #2 is the winner.
+            // In this case, the current ERC-1155 commitment-type token owner becomes eligible
+            // to reclaim the equivalent original ERC-20 token amount,
+            // i.e. to withdraw the current ERC-1155 balance as ERC-20 tokens.
+            // Neither the creator nor the platform take any fees in this circumstance.
             virtualFloor.state = VirtualFloorState.Cancelled;
             resolutionType = VirtualFloorResolutionType.NoWinners;
             platformFeeAmount = 0;
             ownerFeeAmount = 0;
             winnerProfits = 0;
         } else if (totalWinnerCommitments == totalVirtualFloorCommittedAmount) {
-            // All trade commitments fully refunded, no fee taken.
-            virtualFloor.state = VirtualFloorState.Cancelled;
-            resolutionType = VirtualFloorResolutionType.AllWinners;
-            platformFeeAmount = 0;
-            ownerFeeAmount = 0;
-            winnerProfits = 0;
+            // This used to be handled on this contract as a VirtualFloorResolution of type AllWinners,
+            // but it can no longer happen, because if all commitments are to a single outcome,
+            // transaction would have already been reverted because of
+            // the condition nonzeroOutcomeCount == 1, which is < 2.
+            // We retain this assertion as a form of documentation.
+            assert(false);
         } else {
             virtualFloor.state = VirtualFloorState.Completed;
             resolutionType = VirtualFloorResolutionType.SomeWinners;

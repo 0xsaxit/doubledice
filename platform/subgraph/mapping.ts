@@ -11,6 +11,7 @@ import {
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
   TransferSingle as TransferSingleEvent,
   UserCommitment as UserCommitmentEvent,
+  VirtualFloorCancellation as VirtualFloorCancellationEvent,
   VirtualFloorCreation as VirtualFloorCreationEvent,
   VirtualFloorResolution as VirtualFloorResolutionEvent
 } from '../generated/DoubleDice/DoubleDice';
@@ -406,6 +407,15 @@ export function handleTransferSingle(event: TransferSingleEvent): void {
 }
 
 
+export function handleVirtualFloorCancellation(event: VirtualFloorCancellationEvent): void {
+  const virtualFloorId = event.params.virtualFloorId.toHex();
+  {
+    const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
+    $.state = 'CANCELLED_BECAUSE_UNCONCLUDABLE';
+    $.save();
+  }
+}
+
 export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent): void {
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
@@ -418,9 +428,6 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
         break;
       case 1: // VirtualFloorResolutionType.SomeWinners
         $.state = 'COMPLETED';
-        break;
-      case 2: // VirtualFloorResolutionType.AllWinners
-        $.state = 'CANCELLED_BECAUSE_ALL_WINNERS';
         break;
     }
 

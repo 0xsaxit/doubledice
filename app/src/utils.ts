@@ -18,8 +18,12 @@ export const formatTimestamp = (timestamp: string | number): string => {
   return new Date(parseInt(timestamp.toString()) * 1000).toISOString().slice(0, 19).replace(/-/g, '\u2011')
 }
 
-export const sum = (values: BigDecimal[]): BigDecimal => {
+export const sumBigDecimals = (values: BigDecimal[]): BigDecimal => {
   return values.reduce((a: BigDecimal, b: BigDecimal) => a.plus(b), new BigDecimal(0))
+}
+
+export const sumNumbers = (values: number[]): number => {
+  return values.reduce((a: number, b: number) => a + b, 0)
 }
 
 export const getSystemTimestamp = (): number => Math.floor(Date.now() / 1000)

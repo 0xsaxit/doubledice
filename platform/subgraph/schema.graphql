@@ -30,9 +30,9 @@ type Subcategory @entity {
 
 enum VirtualFloorState {
   RUNNING_OR_CLOSED,
-  COMPLETED,
+  CANCELLED_BECAUSE_UNCONCLUDABLE,
   CANCELLED_BECAUSE_NO_WINNERS,
-  CANCELLED_BECAUSE_ALL_WINNERS
+  COMPLETED
 }
 
 type VirtualFloor @entity {

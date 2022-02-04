@@ -53,6 +53,12 @@
             </template>
           </div>
         </div>
+        <div style="text-align: right">
+          <button
+            :disabled="!isCancellableBecauseUnconcludable"
+            @click="cancelUnconcudableVirtualFloor"
+          >Cancel VF because unconcludable</button>
+        </div>
       </td>
     </tr>
     <tr>
@@ -95,6 +101,7 @@
           :virtualFloor="virtualFloor"
           :outcome="outcome"
           :nextBlockTimestamp="nextBlockTimestamp"
+          :isVirtualFloorUnconcludable="isUnconcludable"
           @balanceChange="$emit('balanceChange')"
         />
       </template>
@@ -104,10 +111,14 @@
 
 <script lang="ts">
 import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
-import { VirtualFloor as VirtualFloorEntity } from '@doubledice/platform/lib/graph'
+import {
+  VirtualFloor as VirtualFloorEntity,
+  VirtualFloorState as VirtualFloorEntityState
+} from '@doubledice/platform/lib/graph'
+import BigDecimal from 'bignumber.js'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
-import { formatTimestamp } from '../utils'
+import { formatTimestamp, sumNumbers, tryCatch } from '../utils'
 import Outcome from './OutcomeComponent.vue'
 import Timeline from './Timeline.vue'
 
@@ -164,6 +175,40 @@ export default class VirtualFloorComponent extends Vue {
   get beta(): number {
     const t = Math.max(this.tOpen, Math.min(this.nextBlockTimestamp, this.tClose))
     return 1 + ((this.tClose - t) * (Number(this.virtualFloor.betaOpen) - 1)) / (this.tClose - this.tOpen)
+  }
+
+  get isRunning(): boolean {
+    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosed && this.nextBlockTimestamp < this.tClose
+  }
+
+  get isClosed(): boolean {
+    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosed && this.nextBlockTimestamp >= this.tClose
+  }
+
+  get isUnconcludable(): boolean {
+    const nonzeroOutcomeCount = sumNumbers(
+      this.virtualFloor.outcomes.map(({ totalSupply }) =>
+        Number(new BigDecimal(totalSupply).gt(0))
+      )
+    )
+    return (this.isClosed && nonzeroOutcomeCount < 2) ||
+      this.virtualFloor.state === VirtualFloorEntityState.CancelledBecauseUnconcludable
+  }
+
+  get isCancellableBecauseUnconcludable(): boolean {
+    return this.isUnconcludable && this.virtualFloor.state !== VirtualFloorEntityState.CancelledBecauseUnconcludable
+  }
+
+  async cancelUnconcudableVirtualFloor(): Promise<void> {
+    // eslint-disable-next-line space-before-function-paren
+    await tryCatch(async () => {
+      const tx = await this.contract.cancelUnconcudableVirtualFloor(this.virtualFloor.id)
+      const { hash } = tx
+      const txUrl = `https://polygonscan.com/tx/${hash}`
+      console.log(`Sent ${txUrl}`)
+      await tx.wait()
+      console.log(`⛏ Mined ${txUrl}`)
+    })
   }
 
   formatTimestamp(timestamp: string | number): string {

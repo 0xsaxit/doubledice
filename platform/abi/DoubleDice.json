@@ -297,6 +297,19 @@
         "internalType": "uint256",
         "name": "virtualFloorId",
         "type": "uint256"
+      }
+    ],
+    "name": "VirtualFloorCancellation",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
       },
       {
         "indexed": true,
@@ -553,6 +566,11 @@
       },
       {
         "internalType": "uint8",
+        "name": "nonzeroOutcomeCount",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
         "name": "nOutcomes",
         "type": "uint8"
       },
@@ -651,6 +669,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "cancelUnconcudableVirtualFloor",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

@@ -13,7 +13,7 @@ struct VirtualFloorOutcomeTimeslot {
     uint256 timeslot;
 }
 
-enum VirtualFloorResolutionType { NoWinners, SomeWinners, AllWinners }
+enum VirtualFloorResolutionType { NoWinners, SomeWinners }
 
 interface IDoubleDice is
     IAccessControl,
@@ -41,6 +41,10 @@ interface IDoubleDice is
         uint256 amount,
         uint256 beta_e18,
         uint256 tokenId
+    );
+
+    event VirtualFloorCancellation(
+        uint256 indexed virtualFloorId
     );
 
     event VirtualFloorResolution(
@@ -78,6 +82,8 @@ interface IDoubleDice is
     function createVirtualFloor(VirtualFloorCreationParams calldata params) external;
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
+
+    function cancelUnconcudableVirtualFloor(uint256 virtualFloorId) external;
 
     function resolve(uint256 virtualFloorId, uint8 outcomeIndex) external;
 

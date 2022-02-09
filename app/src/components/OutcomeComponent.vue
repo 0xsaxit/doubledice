@@ -57,7 +57,7 @@ import { Options, Vue } from 'vue-class-component'
     virtualFloor: Object as PropType<VirtualFloorEntity>,
     outcome: Object as PropType<OutcomeEntity>,
     nextBlockTimestamp: Number,
-    isVirtualFloorUnconcludable: Boolean
+    isVirtualFloorUnresolvable: Boolean
   },
   emits: {
     balanceChange: String // null?
@@ -68,7 +68,7 @@ export default class OutcomeComponent extends Vue {
   virtualFloor!: VirtualFloorEntity
   outcome!: OutcomeEntity
   nextBlockTimestamp!: number
-  isVirtualFloorUnconcludable!: boolean
+  isVirtualFloorUnresolvable!: boolean
 
   get outcomeTotalSupply(): BigDecimal {
     return new BigDecimal(this.outcome.totalSupply)
@@ -127,7 +127,7 @@ export default class OutcomeComponent extends Vue {
   get canResolve(): boolean {
     return this.virtualFloor.state === VirtualFloorState.RunningOrClosed &&
       this.nextBlockTimestamp >= Number(this.virtualFloor.tResolve) &&
-      !this.isVirtualFloorUnconcludable
+      !this.isVirtualFloorUnresolvable
   }
 
   async resolve(): Promise<void> {

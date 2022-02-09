@@ -55,9 +55,9 @@
         </div>
         <div style="text-align: right">
           <button
-            :disabled="!isCancellableBecauseUnconcludable"
-            @click="cancelUnconcudableVirtualFloor"
-          >Cancel VF because unconcludable</button>
+            :disabled="!isCancellableBecauseUnresolvable"
+            @click="cancelVirtualFloorUnresolvable"
+          >Cancel VF because unresolvable</button>
         </div>
       </td>
     </tr>
@@ -101,7 +101,7 @@
           :virtualFloor="virtualFloor"
           :outcome="outcome"
           :nextBlockTimestamp="nextBlockTimestamp"
-          :isVirtualFloorUnconcludable="isUnconcludable"
+          :isVirtualFloorUnresolvable="isUnresolvable"
           @balanceChange="$emit('balanceChange')"
         />
       </template>
@@ -185,24 +185,24 @@ export default class VirtualFloorComponent extends Vue {
     return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosed && this.nextBlockTimestamp >= this.tClose
   }
 
-  get isUnconcludable(): boolean {
+  get isUnresolvable(): boolean {
     const nonzeroOutcomeCount = sumNumbers(
       this.virtualFloor.outcomes.map(({ totalSupply }) =>
         Number(new BigDecimal(totalSupply).gt(0))
       )
     )
     return (this.isClosed && nonzeroOutcomeCount < 2) ||
-      this.virtualFloor.state === VirtualFloorEntityState.CancelledBecauseUnconcludable
+      this.virtualFloor.state === VirtualFloorEntityState.CancelledBecauseUnresolvable
   }
 
-  get isCancellableBecauseUnconcludable(): boolean {
-    return this.isUnconcludable && this.virtualFloor.state !== VirtualFloorEntityState.CancelledBecauseUnconcludable
+  get isCancellableBecauseUnresolvable(): boolean {
+    return this.isUnresolvable && this.virtualFloor.state !== VirtualFloorEntityState.CancelledBecauseUnresolvable
   }
 
-  async cancelUnconcudableVirtualFloor(): Promise<void> {
+  async cancelVirtualFloorUnresolvable(): Promise<void> {
     // eslint-disable-next-line space-before-function-paren
     await tryCatch(async () => {
-      const tx = await this.contract.cancelUnconcudableVirtualFloor(this.virtualFloor.id)
+      const tx = await this.contract.cancelVirtualFloorUnresolvable(this.virtualFloor.id)
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`
       console.log(`Sent ${txUrl}`)

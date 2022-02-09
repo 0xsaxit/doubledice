@@ -411,7 +411,7 @@ export function handleVirtualFloorCancellation(event: VirtualFloorCancellationEv
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
-    $.state = 'CANCELLED_BECAUSE_UNCONCLUDABLE';
+    $.state = 'CANCELLED_BECAUSE_UNRESOLVABLE';
     $.save();
   }
 }

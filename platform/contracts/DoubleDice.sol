@@ -347,8 +347,8 @@ contract DoubleDice is
                 if(!(block.timestamp < virtualFloor.creationParams.tResolve)) {
                     revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooLate);
                 }
-                if(!(virtualFloor.nonzeroOutcomeCount >= 2)) {
-                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.VirtualFloorUnconcludable);
+                if(!_hasCommitmentsToEnoughOutcomes(virtualFloor)) {
+                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.VirtualFloorUnresolvable);
                 }
             }
         }
@@ -362,13 +362,13 @@ contract DoubleDice is
     /// 1. The only possible action for this virtual-floor is to cancel it via this function,
     ///    which may be invoked by anyone without restriction.
     /// 2. Any ERC-1155 commitment-type token balance associated with this virtual-floor is untransferable
-    function cancelUnconcudableVirtualFloor(uint256 virtualFloorId)
+    function cancelVirtualFloorUnresolvable(uint256 virtualFloorId)
         external
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
         require(block.timestamp >= virtualFloor.creationParams.tClose, "TOO_EARLY");
-        require(virtualFloor.nonzeroOutcomeCount < 2, "Error: VF only unconcludable if commitments to less than 2 outcomes");
+        require(!_hasCommitmentsToEnoughOutcomes(virtualFloor), "Error: VF only unresolvable if commitments to less than 2 outcomes");
         virtualFloor.state = VirtualFloorState.Cancelled;
         emit VirtualFloorCancellation(virtualFloorId);
     }
@@ -384,10 +384,7 @@ contract DoubleDice is
         // (2) we avoid "hiding away" code in modifiers
         require(_msgSender() == virtualFloor.owner, "NOT_VIRTUALFLOOR_OWNER");
 
-        // If less than 2 outcomes have commitments,
-        // then this VF is unconcludable, and resolution is aborted.
-        // Instead the VF should be cancelled.
-        require(virtualFloor.nonzeroOutcomeCount >= 2, "Error: Cannot resolve VF with commitments to less than 2 outcomes");
+        require(_hasCommitmentsToEnoughOutcomes(virtualFloor), "Error: Cannot resolve VF with commitments to less than 2 outcomes");
 
         require(block.timestamp >= virtualFloor.creationParams.tResolve, "TOO_EARLY_TO_RESOLVE");
         require(winningOutcomeIndex < virtualFloor.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
@@ -517,6 +514,12 @@ contract DoubleDice is
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.state != VirtualFloorState.None, "VIRTUAL_FLOOR_NOT_FOUND");
         return virtualFloor.owner;
+    }
+
+    // If less than 2 outcomes have commitments, then this VF is unresolvable,
+    // and resolution is aborted. Instead the VF should be cancelled.
+    function _hasCommitmentsToEnoughOutcomes(VirtualFloor storage virtualFloor) internal view returns (bool) {
+        return virtualFloor.nonzeroOutcomeCount >= 2;
     }
 
     function getVirtualFloorAggregateCommitments(uint256 virtualFloorId, uint8 outcomeIndex)

@@ -9,7 +9,7 @@ stateDiagram-v2
     Running --> Closed: block.timestamp ≥ tClosed
     Closed --> Completed: resolve(SomeWinners)
     Closed --> Cancelled: resolve(NoWinners)
-    Closed --> Cancelled: cancelUnconcludable
+    Closed --> Cancelled: cancelUnresolvable
     Completed --> [*]
     Cancelled --> [*]
 ```
@@ -26,8 +26,8 @@ stateDiagram-v2
     [*] --> RUNNING_OR_CLOSED: VirtualFloorCreation
     RUNNING_OR_CLOSED --> COMPLETED: VirtualFloorResolution(SomeWinners)
     RUNNING_OR_CLOSED --> CANCELLED_BECAUSE_NO_WINNERS: VirtualFloorResolution(NoWinners)
-    RUNNING_OR_CLOSED --> CANCELLED_BECAUSE_UNCONCLUDABLE: VirtualFloorCancellation
+    RUNNING_OR_CLOSED --> CANCELLED_BECAUSE_UNRESOLVABLE: VirtualFloorCancellation
     COMPLETED --> [*]
     CANCELLED_BECAUSE_NO_WINNERS --> [*]
-    CANCELLED_BECAUSE_UNCONCLUDABLE --> [*]
+    CANCELLED_BECAUSE_UNRESOLVABLE --> [*]
 ```

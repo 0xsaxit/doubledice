@@ -91,15 +91,15 @@ interface IDoubleDice is
         /// as we foresee no legitimate reason for such transfers.
         TooLate,
         /// @dev Once a VF has >= 2 outcomes, it is certain that come tClose,
-        /// this VF will not have to be cancelled for being unconcludable.
+        /// this VF will not have to be cancelled for being unresolvable.
         /// So we allow transfers from the moment the VF has >= 2 outcomes onwards,
         /// even prior to tClose.
-        VirtualFloorUnconcludable
+        VirtualFloorUnresolvable
     }
 
     error CommitmentBalanceTransferRejection(uint256 id, CommitmentBalanceTransferRejectionCause cause);
 
-    function cancelUnconcudableVirtualFloor(uint256 virtualFloorId) external;
+    function cancelVirtualFloorUnresolvable(uint256 virtualFloorId) external;
 
     function resolve(uint256 virtualFloorId, uint8 outcomeIndex) external;
 

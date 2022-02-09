@@ -17,7 +17,7 @@ dataSources:
         - VirtualFloor
       abis:
         - name: DoubleDice
-          file: ../abi/DoubleDice.json
+          file: ../abi/DoubleDice.no-custom-errors.json
         - name: IERC20Metadata
           file: ../abi/IERC20Metadata.json
       eventHandlers:

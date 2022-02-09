@@ -9,6 +9,7 @@
     "stop": "docker-compose down",
     "contracts:deploy:local": "  hardhat run ./scripts/deploy.ts --network localhost",
     "contracts:deploy:rinkeby": "hardhat run ./scripts/deploy.ts --network rinkeby",
+    "pregraph:codegen": "cat ./abi/DoubleDice.json | jq 'del(.[] | select(.type == \"error\"))' > ./abi/DoubleDice.no-custom-errors.json",
     "graph:codegen": "graph codegen ./subgraph/subgraph.yaml",
     "graph:build": "graph build ./subgraph/subgraph.yaml",
     "graph:create:local": "graph create doubledice-com/doubledice-platform --node http://127.0.0.1:8020",

@@ -8,10 +8,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
+import "./AddressWhitelists.sol";
 import "./ERC1155TokenIds.sol";
 import "./FixedPointTypes.sol";
 import "./IDoubleDice.sol";
-import "./PaymentTokenRegistry.sol";
 
 uint256 constant _TIMESLOT_DURATION = 60 seconds;
 
@@ -52,15 +52,15 @@ enum VirtualFloorState {
 /// so that from VF-creation onwards, this storage slot becomes "read-only",
 /// thus being gas-efficient.
 struct StoredVirtualFloorCreationParams {
-    uint8 nOutcomes;                   // +  1 byte
-    uint32 tOpen;                      // +  4 bytes
-    uint32 tClose;                     // +  4 bytes 
-    uint32 tResolve;                   // +  4 bytes
-    UFixed32x6 betaOpenMinusBetaClose; // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000.000000
-    UFixed16x4 creationFeeRate;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    UFixed16x4 platformFeeRate;        // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    bytes10 paymentTokenId;            // + 10 bytes
-                                       // = 31 bytes => packed into 1 32-byte slot
+    uint8 nOutcomes;                    // +  1 byte
+    uint32 tOpen;                       // +  4 bytes
+    uint32 tClose;                      // +  4 bytes 
+    uint32 tResolve;                    // +  4 bytes
+    UFixed32x6 betaOpenMinusBetaClose;  // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000.000000
+    UFixed16x4 creationFeeRate;         // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
+    UFixed16x4 platformFeeRate;         // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
+    AddressWhitelistKey paymentTokenId; // + 10 bytes
+                                        // = 31 bytes => packed into 1 32-byte slot
 }
 
 struct VirtualFloor {
@@ -94,11 +94,12 @@ function _toUint192(uint256 value) pure returns (uint192) {
 contract DoubleDice is
     IDoubleDice,
     ERC1155,
-    AccessControl,
-    PaymentTokenRegistry
+    AccessControl
 {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
+    using AddressWhitelists for address;
+    using AddressWhitelists for AddressWhitelist;
     using FixedPointTypes for uint256;
     using FixedPointTypes for UFixed16x4;
     using FixedPointTypes for UFixed32x6;
@@ -150,6 +151,25 @@ contract DoubleDice is
 
     mapping(uint256 => VirtualFloor) public _virtualFloors;
 
+
+    AddressWhitelist internal _paymentTokenWhitelist;
+
+    function _paymentTokenOf(VirtualFloor storage virtualFloor) internal view returns (IERC20) {
+        return IERC20(_paymentTokenWhitelist.addressForKey(virtualFloor.creationParams.paymentTokenId));
+    }
+
+    event PaymentTokenWhitelistUpdate(IERC20 indexed token, bool whitelisted);
+
+    function updatePaymentTokenWhitelist(IERC20 token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _paymentTokenWhitelist.setWhitelistStatus(address(token), isWhitelisted);
+        emit PaymentTokenWhitelistUpdate(token, isWhitelisted);
+    }
+
+    function isPaymentTokenWhitelisted(IERC20 token) external view returns (bool) {
+        return _paymentTokenWhitelist.isWhitelisted(address(token));
+    }
+
+
     function createVirtualFloor(VirtualFloorCreationParams calldata params) external {
 
         // ~3000 gas cheaper than using qualified fields param.* throughout.
@@ -195,10 +215,10 @@ contract DoubleDice is
 
         _requireValidMetadata(nOutcomes, metadata);
 
-        require(isPaymentTokenWhitelisted(paymentToken), "Error: Payment token is not whitelisted");
+        require(_paymentTokenWhitelist.isWhitelisted(address(paymentToken)), "Error: Payment token is not whitelisted");
+        virtualFloor.creationParams.paymentTokenId = toAddressWhitelistKey(address(paymentToken));
 
         virtualFloor.state = VirtualFloorState.RunningOrClosed;
-        virtualFloor.creationParams.paymentTokenId = _paymentTokenToId(paymentToken);
         virtualFloor.creationParams.tOpen = tOpen;
         virtualFloor.creationParams.tClose = tClose;
         virtualFloor.creationParams.tResolve = tResolve;
@@ -242,7 +262,7 @@ contract DoubleDice is
         // If we allowed 0-value commitments, it would no longer be possible to make this deduction.
         require(amount > 0, "AMOUNT_ZERO");
 
-        _idToPaymentToken(virtualFloor.creationParams.paymentTokenId).safeTransferFrom(_msgSender(), address(this), amount);
+        _paymentTokenOf(virtualFloor).safeTransferFrom(_msgSender(), address(this), amount);
 
         // Assign all commitments that happen within the same `_TIMESLOT_DURATION`, to the same "timeslot."
         // These commitments will all be assigned the same associated beta value.
@@ -428,16 +448,14 @@ contract DoubleDice is
             winnerProfits = creationFeePlusWinnerProfits - creationFeeAmount;
             virtualFloor.winnerProfits = _toUint192(winnerProfits);
 
-            IERC20 paymentToken = _idToPaymentToken(virtualFloor.creationParams.paymentTokenId);
-
             platformFeeAmount = virtualFloor.creationParams.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
-            paymentToken.safeTransfer(platformFeeBeneficiary, platformFeeAmount);
+            _paymentTokenOf(virtualFloor).safeTransfer(platformFeeBeneficiary, platformFeeAmount);
 
             unchecked {
                 ownerFeeAmount = creationFeeAmount - platformFeeAmount;
             }
             // _msgSender() owns the virtual-floor
-            paymentToken.safeTransfer(_msgSender(), ownerFeeAmount);
+            _paymentTokenOf(virtualFloor).safeTransfer(_msgSender(), ownerFeeAmount);
         }
 
         emit VirtualFloorResolution({
@@ -468,13 +486,13 @@ contract DoubleDice is
             uint256 payout = amount + profit;
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            _idToPaymentToken(virtualFloor.creationParams.paymentTokenId).transfer(_msgSender(), payout);
+            _paymentTokenOf(virtualFloor).transfer(_msgSender(), payout);
         } else if (virtualFloor.state == VirtualFloorState.Cancelled) {
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            _idToPaymentToken(virtualFloor.creationParams.paymentTokenId).transfer(_msgSender(), amount);
+            _paymentTokenOf(virtualFloor).transfer(_msgSender(), amount);
         } else if (virtualFloor.state == VirtualFloorState.RunningOrClosed) {
             revert("MARKET_NOT_RESOLVED");
         } else if (virtualFloor.state == VirtualFloorState.None) {

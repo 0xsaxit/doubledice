@@ -68,7 +68,7 @@
       {
         "indexed": false,
         "internalType": "bool",
-        "name": "enabled",
+        "name": "whitelisted",
         "type": "bool"
       }
     ],
@@ -522,19 +522,6 @@
   },
   {
     "inputs": [],
-    "name": "PAYMENT_TOKEN_WHITELISTER_ROLE",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "TIMESLOT_DURATION",
     "outputs": [
       {
@@ -544,25 +531,6 @@
       }
     ],
     "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes10",
-        "name": "id",
-        "type": "bytes10"
-      }
-    ],
-    "name": "_idToPaymentToken",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -613,7 +581,7 @@
             "type": "uint16"
           },
           {
-            "internalType": "bytes10",
+            "internalType": "AddressWhitelistKey",
             "name": "paymentTokenId",
             "type": "bytes10"
           }

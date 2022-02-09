@@ -47,7 +47,6 @@ function tokenIdOf({ virtualFloorId, outcomeIndex, datetime }: { virtualFloorId:
 describe('DoubleDice', function () {
 
   let ownerSigner: SignerWithAddress;
-  let paymentTokenWhitelister: SignerWithAddress;
   let feeBeneficiarySigner: SignerWithAddress;
   let user1Signer: SignerWithAddress;
   let user2Signer: SignerWithAddress;
@@ -59,14 +58,15 @@ describe('DoubleDice', function () {
   it('should go through the entire VPF cycle successfully', async function () {
     [
       ownerSigner,
-      paymentTokenWhitelister,
       feeBeneficiarySigner,
       user1Signer,
       user2Signer,
       user3Signer
     ] = await ethers.getSigners();
+
     token = await new DummyUSDCoin__factory(ownerSigner).deploy();
     await token.deployed();
+
     contract = await new DoubleDice__factory(ownerSigner).deploy(
       'http://localhost:8080/token/{id}',
       feeBeneficiarySigner.address
@@ -76,19 +76,14 @@ describe('DoubleDice', function () {
     expect(await contract.platformFeeBeneficiary()).to.eq(feeBeneficiarySigner.address);
 
     {
-      await expect(contract.connect(ownerSigner).updatePaymentTokenWhitelist(token.address, true)).to.be.reverted;
-      await expect(contract.connect(paymentTokenWhitelister).updatePaymentTokenWhitelist(token.address, true)).to.be.reverted;
-      const PAYMENT_TOKEN_WHITELISTER_ROLE = await contract.PAYMENT_TOKEN_WHITELISTER_ROLE();
-      expect(await contract.hasRole(PAYMENT_TOKEN_WHITELISTER_ROLE, paymentTokenWhitelister.address)).to.be.false;
-      await (await contract.connect(ownerSigner).grantRole(PAYMENT_TOKEN_WHITELISTER_ROLE, paymentTokenWhitelister.address)).wait();
-      expect(await contract.hasRole(PAYMENT_TOKEN_WHITELISTER_ROLE, paymentTokenWhitelister.address)).to.be.true;
       expect(await contract.isPaymentTokenWhitelisted(token.address)).to.be.false;
-      const { events } = await (await contract.connect(paymentTokenWhitelister).updatePaymentTokenWhitelist(token.address, true)).wait();
+      const { events } = await (await contract.connect(ownerSigner).updatePaymentTokenWhitelist(token.address, true)).wait();
       expect(events).to.have.lengthOf(1);
       expect(findContractEventArgs(events, 'PaymentTokenWhitelistUpdate')).to.containSubset({
         token: token.address,
-        enabled: true
+        whitelisted: true
       });
+      expect(await contract.isPaymentTokenWhitelisted(token.address)).to.be.true;
     }
 
     const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber => BigNumber.from(1000000).mul(dollars).add(millionths);

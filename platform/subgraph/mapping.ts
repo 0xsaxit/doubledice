@@ -11,7 +11,7 @@ import {
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
   TransferSingle as TransferSingleEvent,
   UserCommitment as UserCommitmentEvent,
-  VirtualFloorCancellation as VirtualFloorCancellationEvent,
+  VirtualFloorCancellationUnresolvable as VirtualFloorCancellationUnresolvableEvent,
   VirtualFloorCreation as VirtualFloorCreationEvent,
   VirtualFloorResolution as VirtualFloorResolutionEvent
 } from '../generated/DoubleDice/DoubleDice';
@@ -407,7 +407,7 @@ export function handleTransferSingle(event: TransferSingleEvent): void {
 }
 
 
-export function handleVirtualFloorCancellation(event: VirtualFloorCancellationEvent): void {
+export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCancellationUnresolvableEvent): void {
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
@@ -424,7 +424,7 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
     // Map DoubleDice.sol#VirtualFloorResolutionType => schema.graphql#VirtualFloorState
     switch (event.params.resolutionType) {
       case 0: // VirtualFloorResolutionType.NoWinners
-        $.state = 'CANCELLED_BECAUSE_NO_WINNERS';
+        $.state = 'CANCELLED_BECAUSE_RESOLVED_NO_WINNERS';
         break;
       case 1: // VirtualFloorResolutionType.SomeWinners
         $.state = 'COMPLETED';

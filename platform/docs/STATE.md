@@ -8,10 +8,11 @@ stateDiagram-v2
     None --> Running: createVirtualFloor
     Running --> Closed: block.timestamp ≥ tClosed
     Closed --> Completed: resolve(SomeWinners)
-    Closed --> Cancelled: resolve(NoWinners)
-    Closed --> Cancelled: cancelUnresolvable
+    Closed --> CancelledResolvedNoWinners: resolve(NoWinners)
+    Closed --> CancelledUnresolvable: cancelUnresolvable
     Completed --> [*]
-    Cancelled --> [*]
+    CancelledResolvedNoWinners --> [*]
+    CancelledUnresolvable --> [*]
 ```
 
 Note that on the contract:
@@ -25,9 +26,9 @@ Note that on the contract:
 stateDiagram-v2
     [*] --> RUNNING_OR_CLOSED: VirtualFloorCreation
     RUNNING_OR_CLOSED --> COMPLETED: VirtualFloorResolution(SomeWinners)
-    RUNNING_OR_CLOSED --> CANCELLED_BECAUSE_NO_WINNERS: VirtualFloorResolution(NoWinners)
+    RUNNING_OR_CLOSED --> CANCELLED_BECAUSE_RESOLVED_NO_WINNERS: VirtualFloorResolution(NoWinners)
     RUNNING_OR_CLOSED --> CANCELLED_BECAUSE_UNRESOLVABLE: VirtualFloorCancellation
     COMPLETED --> [*]
-    CANCELLED_BECAUSE_NO_WINNERS --> [*]
+    CANCELLED_BECAUSE_RESOLVED_NO_WINNERS --> [*]
     CANCELLED_BECAUSE_UNRESOLVABLE --> [*]
 ```

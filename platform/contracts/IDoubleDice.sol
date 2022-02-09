@@ -30,7 +30,7 @@ struct VirtualFloorCreationParams {
     VirtualFloorMetadata metadata;
 }
 
-enum VirtualFloorResolutionType { NoWinners, SomeWinners }
+enum VirtualFloorResolutionType { CancelledNoWinners, Completed }
 
 interface IDoubleDice is
     IAccessControl,
@@ -60,7 +60,7 @@ interface IDoubleDice is
         uint256 tokenId
     );
 
-    event VirtualFloorCancellation(
+    event VirtualFloorCancellationUnresolvable(
         uint256 indexed virtualFloorId
     );
 

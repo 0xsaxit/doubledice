@@ -29,8 +29,8 @@ dataSources:
           handler: handleUserCommitment
         - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
           handler: handleTransferSingle
-        - event: VirtualFloorCancellation(indexed uint256)
-          handler: handleVirtualFloorCancellation
+        - event: VirtualFloorCancellationUnresolvable(indexed uint256)
+          handler: handleVirtualFloorCancellationUnresolvable
         - event: VirtualFloorResolution(indexed uint256,uint8,uint8,uint256,uint256,uint256)
           handler: handleVirtualFloorResolution
       file: ./mapping.ts

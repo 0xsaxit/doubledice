@@ -38,7 +38,12 @@ enum VirtualFloorState {
 
     Completed,
 
-    Cancelled
+    /// @dev At tClose there were commitments to less than 2 outcomes,
+    /// so the VF could not possibly be concluded.
+    CancelledUnresolvable,
+
+    /// @dev The VF was resolved, but to an outcome that had 0 commitments
+    CancelledResolvedNoWinners
 }
 
 /// @dev These params are extracted into a struct only to work around a Solidity
@@ -369,8 +374,8 @@ contract DoubleDice is
         require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
         require(block.timestamp >= virtualFloor.creationParams.tClose, "TOO_EARLY");
         require(!_hasCommitmentsToEnoughOutcomes(virtualFloor), "Error: VF only unresolvable if commitments to less than 2 outcomes");
-        virtualFloor.state = VirtualFloorState.Cancelled;
-        emit VirtualFloorCancellation(virtualFloorId);
+        virtualFloor.state = VirtualFloorState.CancelledUnresolvable;
+        emit VirtualFloorCancellationUnresolvable(virtualFloorId);
     }
 
     function resolve(uint256 virtualFloorId, uint8 winningOutcomeIndex)
@@ -410,8 +415,8 @@ contract DoubleDice is
             // to reclaim the equivalent original ERC-20 token amount,
             // i.e. to withdraw the current ERC-1155 balance as ERC-20 tokens.
             // Neither the creator nor the platform take any fees in this circumstance.
-            virtualFloor.state = VirtualFloorState.Cancelled;
-            resolutionType = VirtualFloorResolutionType.NoWinners;
+            virtualFloor.state = VirtualFloorState.CancelledResolvedNoWinners;
+            resolutionType = VirtualFloorResolutionType.CancelledNoWinners;
             platformFeeAmount = 0;
             ownerFeeAmount = 0;
             winnerProfits = 0;
@@ -424,7 +429,7 @@ contract DoubleDice is
             assert(false);
         } else {
             virtualFloor.state = VirtualFloorState.Completed;
-            resolutionType = VirtualFloorResolutionType.SomeWinners;
+            resolutionType = VirtualFloorResolutionType.Completed;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
             uint256 maxCreationFeeAmount = virtualFloor.creationParams.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
@@ -477,7 +482,8 @@ contract DoubleDice is
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
             _paymentTokenOf(virtualFloor).transfer(_msgSender(), payout);
-        } else if (virtualFloor.state == VirtualFloorState.Cancelled) {
+        } else if (virtualFloor.state == VirtualFloorState.CancelledUnresolvable
+                || virtualFloor.state == VirtualFloorState.CancelledResolvedNoWinners) {
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");

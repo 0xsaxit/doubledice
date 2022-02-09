@@ -31,6 +31,8 @@ dataSources:
           handler: handleTransferSingle
         - event: VirtualFloorCancellationUnresolvable(indexed uint256)
           handler: handleVirtualFloorCancellationUnresolvable
+        - event: VirtualFloorCancellationFlagged(indexed uint256,string)
+          handler: handleVirtualFloorCancellationFlagged
         - event: VirtualFloorResolution(indexed uint256,uint8,uint8,uint256,uint256,uint256)
           handler: handleVirtualFloorResolution
       file: ./mapping.ts

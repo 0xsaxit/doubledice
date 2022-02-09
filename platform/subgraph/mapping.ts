@@ -11,6 +11,7 @@ import {
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
   TransferSingle as TransferSingleEvent,
   UserCommitment as UserCommitmentEvent,
+  VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
   VirtualFloorCancellationUnresolvable as VirtualFloorCancellationUnresolvableEvent,
   VirtualFloorCreation as VirtualFloorCreationEvent,
   VirtualFloorResolution as VirtualFloorResolutionEvent
@@ -412,6 +413,16 @@ export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCa
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
     $.state = 'CANCELLED_BECAUSE_UNRESOLVABLE';
+    $.save();
+  }
+}
+
+export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancellationFlaggedEvent): void {
+  const virtualFloorId = event.params.virtualFloorId.toHex();
+  {
+    const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
+    $.state = 'CANCELLED_BECAUSE_FLAGGED';
+    $.flaggingReason = event.params.reason;
     $.save();
   }
 }

@@ -10,9 +10,12 @@ stateDiagram-v2
     Closed --> Completed: resolve(SomeWinners)
     Closed --> CancelledResolvedNoWinners: resolve(NoWinners)
     Closed --> CancelledUnresolvable: cancelUnresolvable
+    Running --> CancelledFlagged: cancelFlagged
+    Closed --> CancelledFlagged: cancelFlagged
     Completed --> [*]
     CancelledResolvedNoWinners --> [*]
     CancelledUnresolvable --> [*]
+    CancelledFlagged --> [*]
 ```
 
 Note that on the contract:

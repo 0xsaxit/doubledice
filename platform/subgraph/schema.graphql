@@ -32,6 +32,7 @@ enum VirtualFloorState {
   RUNNING_OR_CLOSED,
   CANCELLED_BECAUSE_UNRESOLVABLE,
   CANCELLED_BECAUSE_RESOLVED_NO_WINNERS,
+  CANCELLED_BECAUSE_FLAGGED,
   COMPLETED
 }
 
@@ -58,7 +59,8 @@ type VirtualFloor @entity {
   tClose: BigInt!
   tResolve: BigInt!
   state: VirtualFloorState!
-  winningOutcome: Outcome
+  winningOutcome: Outcome # Optional: Only set if VF is resolved
+  flaggingReason: String  # Optional: Only set if VF is cancelled because it was flagged
 
   # properties (ipfs)
   title: String!

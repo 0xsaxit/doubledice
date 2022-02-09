@@ -43,7 +43,10 @@ enum VirtualFloorState {
     CancelledUnresolvable,
 
     /// @dev The VF was resolved, but to an outcome that had 0 commitments
-    CancelledResolvedNoWinners
+    CancelledResolvedNoWinners,
+
+    /// @dev The VF was flagged by the community and cancelled by the admin
+    CancelledFlagged
 }
 
 /// @dev These params are extracted into a struct only to work around a Solidity
@@ -378,6 +381,16 @@ contract DoubleDice is
         emit VirtualFloorCancellationUnresolvable(virtualFloorId);
     }
 
+    function cancelVirtualFloorFlagged(uint256 virtualFloorId, string calldata reason)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
+        require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        virtualFloor.state = VirtualFloorState.CancelledFlagged;
+        emit VirtualFloorCancellationFlagged(virtualFloorId, reason);
+    }
+
     function resolve(uint256 virtualFloorId, uint8 winningOutcomeIndex)
         external
     {
@@ -483,7 +496,8 @@ contract DoubleDice is
             _burn(_msgSender(), tokenId, amount);
             _paymentTokenOf(virtualFloor).transfer(_msgSender(), payout);
         } else if (virtualFloor.state == VirtualFloorState.CancelledUnresolvable
-                || virtualFloor.state == VirtualFloorState.CancelledResolvedNoWinners) {
+                || virtualFloor.state == VirtualFloorState.CancelledResolvedNoWinners
+                || virtualFloor.state == VirtualFloorState.CancelledFlagged) {
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");

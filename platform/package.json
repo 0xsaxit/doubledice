@@ -6,7 +6,7 @@
     "clean": "rimraf abi artifacts build cache generated typechain-types",
     "test": "hardhat typechain && hardhat test",
     "start": "./scripts/start.sh",
-    "stop": "docker-compose down",
+    "stop": "docker-compose down --volumes",
     "contracts:deploy:local": "  hardhat run ./scripts/deploy.ts --network localhost",
     "contracts:deploy:rinkeby": "hardhat run ./scripts/deploy.ts --network rinkeby",
     "pregraph:codegen": "cat ./abi/DoubleDice.json | jq 'del(.[] | select(.type == \"error\"))' > ./abi/DoubleDice.no-custom-errors.json",

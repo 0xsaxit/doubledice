@@ -552,6 +552,59 @@ contract DoubleDice is
         return _TIMESLOT_DURATION;
     }
 
+    function getVirtualFloorParams(uint256 virtualFloorId)
+        external view returns (VirtualFloorParams memory)
+    {
+        VirtualFloor storage vf = _virtualFloors[virtualFloorId];
+        return VirtualFloorParams({
+            betaOpen_e18: vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
+            creationFeeRate_e18: vf.creationParams.creationFeeRate.toUFixed256x18(),
+            platformFeeRate_e18: vf.creationParams.platformFeeRate.toUFixed256x18(),
+            tOpen: vf.creationParams.tOpen,
+            tClose: vf.creationParams.tClose,
+            tResolve: vf.creationParams.tResolve,
+            nOutcomes: vf.creationParams.nOutcomes,
+            paymentToken: _paymentTokenOf(vf),
+            owner: vf.owner
+        });
+    }
+
+    function getVirtualFloorComputedState(
+        uint256 virtualFloorId
+    )
+        public
+        view
+        returns (VirtualFloorComputedState)
+    {
+        VirtualFloor storage vf = _virtualFloors[virtualFloorId];
+        VirtualFloorState state = vf.state;
+        if (state == VirtualFloorState.None) {
+            return VirtualFloorComputedState.None;
+        } else if (state == VirtualFloorState.RunningOrClosed) {
+            if (block.timestamp < vf.creationParams.tClose) {
+                return VirtualFloorComputedState.Running;
+            } else {
+                if (_hasCommitmentsToEnoughOutcomes(vf)) {
+                    if (block.timestamp < vf.creationParams.tResolve) {
+                        return VirtualFloorComputedState.ClosedPreResolvable;
+                    } else {
+                        return VirtualFloorComputedState.ClosedResolvable;
+                    }
+                } else {
+                    return VirtualFloorComputedState.ClosedUnresolvable;
+                }
+            }
+        } else if (state == VirtualFloorState.Completed) {
+            return VirtualFloorComputedState.Completed;
+        } else if (state == VirtualFloorState.CancelledUnresolvable) {
+            return VirtualFloorComputedState.CancelledResolvedNoWinners;
+        } else if (state == VirtualFloorState.CancelledResolvedNoWinners) {
+            return VirtualFloorComputedState.CancelledUnresolvable;
+        } else /* if (state == VirtualFloorState.CancelledFlagged) */ {
+            return VirtualFloorComputedState.CancelledFlagged;
+        }
+    }
+
     // ***** TEMPORARY *****
 
     /// @dev Temporary convenience function, handy for testing.

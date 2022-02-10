@@ -30,6 +30,30 @@ struct VirtualFloorCreationParams {
     VirtualFloorMetadata metadata;
 }
 
+struct VirtualFloorParams {
+    UFixed256x18 betaOpen_e18;
+    UFixed256x18 creationFeeRate_e18;
+    UFixed256x18 platformFeeRate_e18;
+    uint32 tOpen;
+    uint32 tClose;
+    uint32 tResolve;
+    uint8 nOutcomes;
+    IERC20 paymentToken;
+    address owner;
+}
+
+enum VirtualFloorComputedState {
+    None,
+    Running,
+    ClosedUnresolvable,
+    ClosedPreResolvable,
+    ClosedResolvable,
+    Completed,
+    CancelledResolvedNoWinners,
+    CancelledUnresolvable,
+    CancelledFlagged
+}
+
 enum VirtualFloorResolutionType { CancelledNoWinners, Completed }
 
 interface IDoubleDice is
@@ -128,4 +152,8 @@ interface IDoubleDice is
     function platformFeeBeneficiary() external view returns (address);
 
     function getVirtualFloorOwner(uint256 virtualFloorId) external view returns (address);
+
+    function getVirtualFloorParams(uint256 virtualFloorId) external view returns (VirtualFloorParams memory);
+
+    function getVirtualFloorComputedState(uint256 virtualFloorId) external view returns (VirtualFloorComputedState);
 }

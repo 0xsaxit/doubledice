@@ -1001,12 +1001,97 @@
         "type": "uint256"
       }
     ],
+    "name": "getVirtualFloorComputedState",
+    "outputs": [
+      {
+        "internalType": "enum VirtualFloorComputedState",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      }
+    ],
     "name": "getVirtualFloorOwner",
     "outputs": [
       {
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getVirtualFloorParams",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "UFixed256x18",
+            "name": "betaOpen_e18",
+            "type": "uint256"
+          },
+          {
+            "internalType": "UFixed256x18",
+            "name": "creationFeeRate_e18",
+            "type": "uint256"
+          },
+          {
+            "internalType": "UFixed256x18",
+            "name": "platformFeeRate_e18",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tOpen",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tClose",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tResolve",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint8",
+            "name": "nOutcomes",
+            "type": "uint8"
+          },
+          {
+            "internalType": "contract IERC20",
+            "name": "paymentToken",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "owner",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct VirtualFloorParams",
+        "name": "",
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",

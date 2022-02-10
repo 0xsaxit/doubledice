@@ -438,7 +438,7 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
         $.state = 'CANCELLED_BECAUSE_RESOLVED_NO_WINNERS';
         break;
       case 1: // VirtualFloorResolutionType.SomeWinners
-        $.state = 'COMPLETED';
+        $.state = 'RESOLVED_WINNERS';
         break;
     }
 

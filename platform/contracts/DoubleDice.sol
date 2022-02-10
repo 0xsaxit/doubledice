@@ -36,7 +36,7 @@ enum VirtualFloorState {
     /// but the associated event has not yet been resolved.
     RunningOrClosed,
 
-    Completed,
+    ResolvedWinners,
 
     /// @dev At tClose there were commitments to less than 2 outcomes,
     /// so the VF could not possibly be concluded.
@@ -441,8 +441,8 @@ contract DoubleDice is
             // We retain this assertion as a form of documentation.
             assert(false);
         } else {
-            virtualFloor.state = VirtualFloorState.Completed;
-            resolutionType = VirtualFloorResolutionType.Completed;
+            virtualFloor.state = VirtualFloorState.ResolvedWinners;
+            resolutionType = VirtualFloorResolutionType.Winners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
             uint256 maxCreationFeeAmount = virtualFloor.creationParams.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
@@ -480,7 +480,7 @@ contract DoubleDice is
         external
     {
         VirtualFloor storage virtualFloor = _virtualFloors[context.virtualFloorId];
-        if (virtualFloor.state == VirtualFloorState.Completed) {
+        if (virtualFloor.state == VirtualFloorState.ResolvedWinners) {
 
             // ToDo: Because of this requirement, losing tokens can never be burnt... would we like to burn them? 
             require(context.outcomeIndex == virtualFloor.winningOutcomeIndex, "NOT_WINNING_OUTCOME");
@@ -594,8 +594,8 @@ contract DoubleDice is
                     return VirtualFloorComputedState.ClosedUnresolvable;
                 }
             }
-        } else if (state == VirtualFloorState.Completed) {
-            return VirtualFloorComputedState.Completed;
+        } else if (state == VirtualFloorState.ResolvedWinners) {
+            return VirtualFloorComputedState.ResolvedWinners;
         } else if (state == VirtualFloorState.CancelledUnresolvable) {
             return VirtualFloorComputedState.CancelledResolvedNoWinners;
         } else if (state == VirtualFloorState.CancelledResolvedNoWinners) {

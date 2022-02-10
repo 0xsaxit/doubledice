@@ -48,13 +48,13 @@ enum VirtualFloorComputedState {
     ClosedUnresolvable,
     ClosedPreResolvable,
     ClosedResolvable,
-    Completed,
+    ResolvedWinners,
     CancelledResolvedNoWinners,
     CancelledUnresolvable,
     CancelledFlagged
 }
 
-enum VirtualFloorResolutionType { CancelledNoWinners, Completed }
+enum VirtualFloorResolutionType { CancelledNoWinners, Winners }
 
 interface IDoubleDice is
     IAccessControl,

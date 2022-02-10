@@ -156,7 +156,7 @@ export default class OutcomeComponent extends Vue {
 
   get winningText(): string {
     switch (this.virtualFloor.state) {
-      case VirtualFloorState.Completed:
+      case VirtualFloorState.ResolvedWinners:
         return '🏆'
       case VirtualFloorState.CancelledBecauseResolvedNoWinners:
         return '🤷'

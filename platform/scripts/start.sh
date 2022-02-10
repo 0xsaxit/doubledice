@@ -10,8 +10,9 @@ fi
 
 docker-compose up &
 
-while ! nc -z localhost 8545; do   
-  echo "Waiting for localhost:8545..."
+# Wait for Ganache to respond to a test-request, rather than simply waiting for port 8545 to be up
+while ! curl -H "Content-Type: application/json" -X POST --data '{"id":0,"jsonrpc":"2.0","method":"web3_clientVersion","params":[]}' http://localhost:8545; do
+  echo "Waiting for Ganache on localhost:8545 to respond to a test-request..."
   sleep 0.5
 done
 

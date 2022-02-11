@@ -4,3 +4,4 @@ export type {
 } from './generated/typechain-types/DoubleDice';
 
 export type { VirtualFloorCreationParamsStruct } from './generated/typechain-types/IDoubleDice';
+export * from './helpers/sol-enums';

@@ -7,20 +7,20 @@ import {
 } from 'ethers';
 import { ethers } from 'hardhat';
 import {
-  DoubleDice,
-  DoubleDice__factory,
-  DummyUSDCoin,
-  DummyUSDCoin__factory,
-  DummyWrappedBTC
-} from '../lib/contracts';
-import {
+  deployAndInitialize,
   DUMMY_METADATA,
   findContractEventArgs,
   findUserCommitmentEventArgs,
   formatUsdc,
   sumOf,
   UserCommitment
-} from '../helpers/utils';
+} from '../helpers';
+import {
+  DoubleDice,
+  DummyUSDCoin,
+  DummyUSDCoin__factory,
+  DummyWrappedBTC
+} from '../lib/contracts';
 
 chai.use(chaiSubset);
 
@@ -51,7 +51,6 @@ describe('DoubleDice', function () {
   let user1Signer: SignerWithAddress;
   let user2Signer: SignerWithAddress;
   let user3Signer: SignerWithAddress;
-  let user4Signer: SignerWithAddress;
   let contract: DoubleDice;
   let token: DummyUSDCoin | DummyWrappedBTC;
 
@@ -67,12 +66,7 @@ describe('DoubleDice', function () {
     token = await new DummyUSDCoin__factory(ownerSigner).deploy();
     await token.deployed();
 
-
-    contract = await new DoubleDice__factory(ownerSigner).deploy(
-      'http://localhost:8080/token/{id}',
-      feeBeneficiarySigner.address
-    );
-    await contract.deployed();
+    contract = await deployAndInitialize(ownerSigner, { FEE_BENEFICIARY_ADDRESS: feeBeneficiarySigner.address });
 
     expect(await contract.platformFeeBeneficiary()).to.eq(feeBeneficiarySigner.address);
 

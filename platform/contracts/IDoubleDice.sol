@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts/access/IAccessControl.sol";
-import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "./FixedPointTypes.sol";
 import "./VirtualFloorMetadata.sol";
@@ -26,7 +26,7 @@ struct VirtualFloorCreationParams {
     uint32 tClose;
     uint32 tResolve;
     uint8 nOutcomes;
-    IERC20 paymentToken;
+    IERC20Upgradeable paymentToken;
     VirtualFloorMetadata metadata;
 }
 
@@ -38,7 +38,7 @@ struct VirtualFloorParams {
     uint32 tClose;
     uint32 tResolve;
     uint8 nOutcomes;
-    IERC20 paymentToken;
+    IERC20Upgradeable paymentToken;
     address owner;
 }
 
@@ -57,8 +57,8 @@ enum VirtualFloorComputedState {
 enum VirtualFloorResolutionType { CancelledNoWinners, Winners }
 
 interface IDoubleDice is
-    IAccessControl,
-    IERC1155
+    IAccessControlUpgradeable,
+    IERC1155Upgradeable
 {
     event VirtualFloorCreation(
         uint256 indexed virtualFloorId,
@@ -70,7 +70,7 @@ interface IDoubleDice is
         uint32 tClose,
         uint32 tResolve,
         uint8 nOutcomes,
-        IERC20 paymentToken,
+        IERC20Upgradeable paymentToken,
         VirtualFloorMetadata metadata
     );
 

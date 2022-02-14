@@ -54,6 +54,10 @@ const config: HardhatUserConfig = {
     },
   },
   typechain: {
+    externalArtifacts: [
+      'node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json',
+      'node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json',
+    ],
     outDir: 'lib/generated/typechain-types'
   },
   gasReporter: {

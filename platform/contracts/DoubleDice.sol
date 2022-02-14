@@ -2,11 +2,11 @@
 
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./AddressWhitelists.sol";
 import "./ERC1155TokenIds.sol";
@@ -101,11 +101,11 @@ function _toUint192(uint256 value) pure returns (uint192) {
 
 contract DoubleDice is
     IDoubleDice,
-    ERC1155,
-    AccessControl
+    ERC1155Upgradeable,
+    AccessControlUpgradeable
 {
-    using SafeERC20 for IERC20;
-    using SafeCast for uint256;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeCastUpgradeable for uint256;
     using AddressWhitelists for address;
     using AddressWhitelists for AddressWhitelist;
     using FixedPointTypes for uint256;
@@ -146,9 +146,9 @@ contract DoubleDice is
         emit PlatformFeeRateUpdate(platformFeeRate_e18_);
     }
 
-    constructor(string memory uri_, address platformFeeBeneficiary_)
-        ERC1155(uri_) // ToDo: Override uri() to avoid SLOADs
-    {
+    function initialize(string memory uri_, address platformFeeBeneficiary_) external initializer {
+        __ERC1155_init(uri_); // ToDo: Override uri() to avoid SLOADs
+        __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         platformFeeBeneficiary = platformFeeBeneficiary_;
     }
@@ -158,18 +158,18 @@ contract DoubleDice is
 
     AddressWhitelist internal _paymentTokenWhitelist;
 
-    function _paymentTokenOf(VirtualFloor storage virtualFloor) internal view returns (IERC20) {
-        return IERC20(_paymentTokenWhitelist.addressForKey(virtualFloor.creationParams.paymentTokenId));
+    function _paymentTokenOf(VirtualFloor storage virtualFloor) internal view returns (IERC20Upgradeable) {
+        return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(virtualFloor.creationParams.paymentTokenId));
     }
 
-    event PaymentTokenWhitelistUpdate(IERC20 indexed token, bool whitelisted);
+    event PaymentTokenWhitelistUpdate(IERC20Upgradeable indexed token, bool whitelisted);
 
-    function updatePaymentTokenWhitelist(IERC20 token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _paymentTokenWhitelist.setWhitelistStatus(address(token), isWhitelisted);
         emit PaymentTokenWhitelistUpdate(token, isWhitelisted);
     }
 
-    function isPaymentTokenWhitelisted(IERC20 token) external view returns (bool) {
+    function isPaymentTokenWhitelisted(IERC20Upgradeable token) external view returns (bool) {
         return _paymentTokenWhitelist.isWhitelisted(address(token));
     }
 
@@ -186,7 +186,7 @@ contract DoubleDice is
         uint32 tClose = params.tClose;
         uint32 tResolve = params.tResolve;
         uint8 nOutcomes = params.nOutcomes;
-        IERC20 paymentToken = params.paymentToken;
+        IERC20Upgradeable paymentToken = params.paymentToken;
         VirtualFloorMetadata calldata metadata = params.metadata;
 
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
@@ -279,7 +279,7 @@ contract DoubleDice is
         // will be minted as balances on the the same ERC-1155 tokenId, which means that
         // these balances will be exchangeable/tradeable/fungible between themselves,
         // but they will not be fungible with commitments to the same outcome that arrive later.
-        timeslot = Math.max(virtualFloor.creationParams.tOpen, timeslot);
+        timeslot = MathUpgradeable.max(virtualFloor.creationParams.tOpen, timeslot);
 
         UFixed256x18 beta_e18 = _calcBeta(virtualFloor, timeslot);
         AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
@@ -451,7 +451,7 @@ contract DoubleDice is
             uint256 creationFeePlusWinnerProfits = totalVirtualFloorCommittedAmount - totalWinnerCommitments;
 
             // ToDo: Replace Math.min with `a < b ? a : b` and check gas usage
-            uint256 creationFeeAmount = Math.min(maxCreationFeeAmount, creationFeePlusWinnerProfits);
+            uint256 creationFeeAmount = MathUpgradeable.min(maxCreationFeeAmount, creationFeePlusWinnerProfits);
 
             winnerProfits = creationFeePlusWinnerProfits - creationFeeAmount;
             virtualFloor.winnerProfits = _toUint192(winnerProfits);
@@ -522,10 +522,10 @@ contract DoubleDice is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(IERC165, ERC1155, AccessControl)
+        override(IERC165Upgradeable, ERC1155Upgradeable, AccessControlUpgradeable)
         returns (bool)
     {
-        return ERC1155.supportsInterface(interfaceId) || AccessControl.supportsInterface(interfaceId);
+        return ERC1155Upgradeable.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
     }
 
     // ***** INFORMATIONAL *****

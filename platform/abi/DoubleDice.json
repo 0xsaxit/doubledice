@@ -2,22 +2,6 @@
   {
     "inputs": [
       {
-        "internalType": "string",
-        "name": "uri_",
-        "type": "string"
-      },
-      {
-        "internalType": "address",
-        "name": "platformFeeBeneficiary_",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
         "name": "id",
         "type": "uint256"
@@ -61,7 +45,7 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "contract IERC20",
+        "internalType": "contract IERC20Upgradeable",
         "name": "token",
         "type": "address"
       },
@@ -396,7 +380,7 @@
       },
       {
         "indexed": false,
-        "internalType": "contract IERC20",
+        "internalType": "contract IERC20Upgradeable",
         "name": "paymentToken",
         "type": "address"
       },
@@ -845,7 +829,7 @@
             "type": "uint8"
           },
           {
-            "internalType": "contract IERC20",
+            "internalType": "contract IERC20Upgradeable",
             "name": "paymentToken",
             "type": "address"
           },
@@ -1079,7 +1063,7 @@
             "type": "uint8"
           },
           {
-            "internalType": "contract IERC20",
+            "internalType": "contract IERC20Upgradeable",
             "name": "paymentToken",
             "type": "address"
           },
@@ -1142,6 +1126,24 @@
   {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "uri_",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "platformFeeBeneficiary_",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "account",
         "type": "address"
@@ -1166,7 +1168,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract IERC20",
+        "internalType": "contract IERC20Upgradeable",
         "name": "token",
         "type": "address"
       }
@@ -1394,7 +1396,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract IERC20",
+        "internalType": "contract IERC20Upgradeable",
         "name": "token",
         "type": "address"
       },

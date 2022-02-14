@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 type UFixed32x6 is uint32;
 
@@ -17,7 +17,7 @@ UFixed256x18 constant UFIXED256X18_ONE = UFixed256x18.wrap(1e18);
 /// as these are used on the main contract.
 library FixedPointTypes {
 
-    using SafeCast for uint256;
+    using SafeCastUpgradeable for uint256;
     using FixedPointTypes for UFixed16x4;
     using FixedPointTypes for UFixed32x6;
     using FixedPointTypes for UFixed256x18;

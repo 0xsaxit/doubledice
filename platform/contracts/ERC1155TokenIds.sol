@@ -2,11 +2,11 @@
 
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 library ERC1155TokenIds {
 
-    using SafeCast for uint256;
+    using SafeCastUpgradeable for uint256;
 
     /// @dev Any id having lower 5 bytes set to 0 is a valid virtual-floor id.
     /// A valid virtual-floor id doubles as both the virtual-floor's id,

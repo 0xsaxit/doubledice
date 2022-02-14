@@ -20,7 +20,7 @@ import {
   formatUsdc,
   sumOf,
   UserCommitment
-} from './helpers';
+} from '../helpers/utils';
 
 chai.use(chaiSubset);
 
@@ -66,6 +66,7 @@ describe('DoubleDice', function () {
 
     token = await new DummyUSDCoin__factory(ownerSigner).deploy();
     await token.deployed();
+
 
     contract = await new DoubleDice__factory(ownerSigner).deploy(
       'http://localhost:8080/token/{id}',

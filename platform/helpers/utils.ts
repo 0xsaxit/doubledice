@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { BigNumber, BigNumberish, ContractReceipt } from 'ethers';
-import { RoomEventInfo } from '../../lib/contracts';
+import { RoomEventInfo } from '../lib/contracts';
 
 export const toFp18 = (value: number): BigNumber => {
   const sign = Math.sign(value);

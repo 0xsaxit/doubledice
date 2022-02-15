@@ -26,6 +26,7 @@ const config: HardhatUserConfig = {
     only: [
       ':DoubleDice$',
       ':IDoubleDice$',
+      ':IDoubleDiceAdmin$',
       ':DummyUSDCoin$',
       ':IERC20Metadata$',
     ],

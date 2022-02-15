@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import "./AddressWhitelists.sol";
 import "./ERC1155TokenIds.sol";
 import "./FixedPointTypes.sol";
-import "./IDoubleDice.sol";
+import "./IDoubleDiceAdmin.sol";
 
 uint256 constant _TIMESLOT_DURATION = 60 seconds;
 
@@ -100,7 +100,7 @@ function _toUint192(uint256 value) pure returns (uint192) {
 }
 
 contract DoubleDice is
-    IDoubleDice,
+    IDoubleDiceAdmin,
     ERC1155Upgradeable,
     AccessControlUpgradeable
 {

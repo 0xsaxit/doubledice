@@ -101,11 +101,6 @@ interface IDoubleDice is
         uint256 indexed virtualFloorId
     );
 
-    event VirtualFloorCancellationFlagged(
-        uint256 indexed virtualFloorId,
-        string reason
-    );
-
     event VirtualFloorResolution(
         uint256 indexed virtualFloorId,
         uint8 winningOutcomeIndex,
@@ -129,7 +124,6 @@ interface IDoubleDice is
     error CommitmentBalanceTransferRejection(uint256 id, CommitmentBalanceTransferRejectionCause cause);
 
     function cancelVirtualFloorUnresolvable(uint256 virtualFloorId) external;
-    function cancelVirtualFloorFlagged(uint256 virtualFloorId, string calldata reason) external;
 
     function resolve(uint256 virtualFloorId, uint8 outcomeIndex) external;
 
@@ -143,11 +137,7 @@ interface IDoubleDice is
     function TIMESLOT_DURATION() external view returns (uint256);
 
 
-    event PlatformFeeRateUpdate(UFixed256x18 platformFeeRate_e18);
-
     function platformFeeRate_e18() external view returns (UFixed256x18);
-
-    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18) external;
 
     function platformFeeBeneficiary() external view returns (address);
 

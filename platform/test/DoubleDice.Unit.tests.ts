@@ -124,20 +124,27 @@ describe('DoubleDice', function () {
       .pow(18)
       .mul(13); // 1 unit per hour
 
+    const virtualFloorCreationParams: VirtualFloorCreationParamsStruct = {
+      virtualFloorId,
+      tOpen,
+      tClose,
+      tResolve,
+      nOutcomes,
+      betaOpen_e18,
+      creationFeeRate_e18,
+      paymentToken: paymentTokenAddress,
+      metadata: DUMMY_METADATA,
+    };
+
     it('Should revert if time closure for vpf used in the past', async function () {
       const pastTOpenTime = toTimestamp('2020-01-01T11:00:00');
       const pastClosureTime = toTimestamp('2021-01-01T12:00:00');
       await expect(
         contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
+          ...virtualFloorCreationParams,
           tOpen: pastTOpenTime,
           tClose: pastClosureTime,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.reverted;
     });
@@ -146,15 +153,9 @@ describe('DoubleDice', function () {
       const pastResolveTime = toTimestamp('2021-01-01T12:00:00');
       await expect(
         contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18: betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
+          ...virtualFloorCreationParams,
           tResolve: pastResolveTime,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.reverted;
     });
@@ -163,15 +164,9 @@ describe('DoubleDice', function () {
       const greaterThanResolveTime = toTimestamp('2032-01-03T00:00:00');
       await expect(
         contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
+          ...virtualFloorCreationParams,
           tClose: greaterThanResolveTime,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.reverted;
     });
@@ -179,15 +174,9 @@ describe('DoubleDice', function () {
     it('Should revert if outcome provided is less than 2', async function () {
       await expect(
         contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
+          ...virtualFloorCreationParams,
           nOutcomes: 1,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: nOutcomes < 2');
     });
@@ -199,15 +188,10 @@ describe('DoubleDice', function () {
 
       await expect(
         contract.createVirtualFloor({
+          ...virtualFloorCreationParams,
           virtualFloorId: _virtualFloorId,
           betaOpen_e18: betaOpenGreaterThan1e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: betaOpen < 1.0');
     });
@@ -216,15 +200,9 @@ describe('DoubleDice', function () {
       const betaOpenGreaterThan1e18 = BigNumber.from(1).pow(18);
       await expect(
         contract.createVirtualFloor({
-          virtualFloorId,
+          ...virtualFloorCreationParams,
           betaOpen_e18: betaOpenGreaterThan1e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: betaOpen < 1.0');
     });
@@ -232,43 +210,25 @@ describe('DoubleDice', function () {
     it('Assert tOpen tClose & tResolve are multiples of time slot-duration', async function () {
       await expect(
         contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
+          ...virtualFloorCreationParams,
           tClose: tClose.add(1),
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: tClose % _TIMESLOT_DURATION != 0');
 
       await expect(
         contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
+          ...virtualFloorCreationParams,
           tOpen: tOpen.add(1),
-          tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: tOpen % _TIMESLOT_DURATION != 0');
 
       await expect(
         contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
+          ...virtualFloorCreationParams,
           tResolve: tResolve.add(1),
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: tResolve % _TIMESLOT_DURATION != 0');
     });
@@ -280,15 +240,10 @@ describe('DoubleDice', function () {
 
       await expect(
         contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
+          ...virtualFloorCreationParams,
           tOpen: _tOpen,
           tClose: _tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: t >= 10% into open period');
     });
@@ -296,15 +251,8 @@ describe('DoubleDice', function () {
     it.skip('Should mint 1 virtual Id based token to owner', async function () {
       const { events } = await (
         await contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
+          ...virtualFloorCreationParams,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
 
@@ -320,15 +268,9 @@ describe('DoubleDice', function () {
 
       const { events } = await (
         await contract.createVirtualFloor({
+          ...virtualFloorCreationParams,
           virtualFloorId: _virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
 
@@ -343,21 +285,13 @@ describe('DoubleDice', function () {
 
     it('Should revert if VF with same id created before', async function () {
       const params: VirtualFloorCreationParamsStruct = {
-        virtualFloorId,
-        betaOpen_e18,
-        creationFeeRate_e18,
-        tOpen,
-        tClose,
-        tResolve,
-        nOutcomes,
+        ...virtualFloorCreationParams,
         paymentToken: paymentTokenAddress,
-        metadata: DUMMY_METADATA,
       };
       await (await contract.createVirtualFloor(params)).wait();
       await expect(contract.createVirtualFloor(params)).to.be.revertedWith('MARKET_DUPLICATE');
     });
   });
-
   describe('Commit To Virtual Floor', function () {
     // Random virtual floor for each test case
     let virtualFloorId: BigNumberish;
@@ -371,6 +305,8 @@ describe('DoubleDice', function () {
 
     const outcomeIndex = 0;
     const amount = $(10);
+
+    let virtualFloorCreationParams: VirtualFloorCreationParamsStruct;
 
     beforeEach(async () => {
       // Mint 1000$ to each user
@@ -406,17 +342,22 @@ describe('DoubleDice', function () {
 
       virtualFloorId = generateRandomVirtualFloorId();
 
+      virtualFloorCreationParams = {
+        virtualFloorId,
+        tOpen,
+        tClose,
+        tResolve,
+        nOutcomes,
+        betaOpen_e18,
+        creationFeeRate_e18,
+        paymentToken: paymentTokenAddress,
+        metadata: DUMMY_METADATA,
+      };
+
       await (
         await contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
+          ...virtualFloorCreationParams,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
     });
@@ -571,15 +512,10 @@ describe('DoubleDice', function () {
 
       await (
         await contract.createVirtualFloor({
+          ...virtualFloorCreationParams,
           virtualFloorId: virtualFloorId1,
-          betaOpen_e18,
-          creationFeeRate_e18,
           tOpen: _tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
 
@@ -678,6 +614,18 @@ describe('DoubleDice', function () {
     let user2CommitmentEventArgs: UserCommitment;
     let user3CommitmentEventArgs: UserCommitment;
 
+    const virtualFloorCreationParams: VirtualFloorCreationParamsStruct = {
+      virtualFloorId,
+      tOpen,
+      tClose,
+      tResolve,
+      nOutcomes,
+      betaOpen_e18,
+      creationFeeRate_e18,
+      paymentToken: paymentTokenAddress,
+      metadata: DUMMY_METADATA,
+    };
+
     before(async () => {
       // Mint 1000$ to each user
       await (
@@ -703,41 +651,22 @@ describe('DoubleDice', function () {
 
       await (
         await contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
+          ...virtualFloorCreationParams,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
+          ...virtualFloorCreationParams,
           virtualFloorId: virtualFloorId2,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
+          ...virtualFloorCreationParams,
           virtualFloorId: allWinnersVf,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
 
@@ -890,6 +819,18 @@ describe('DoubleDice', function () {
     let user3CommitmentEventArgs: UserCommitment;
     const allWinnersVfCommitmentEventArgs: UserCommitment[] = [];
 
+    const virtualFloorCreationParams: VirtualFloorCreationParamsStruct = {
+      virtualFloorId,
+      tOpen,
+      tClose,
+      tResolve,
+      nOutcomes,
+      betaOpen_e18,
+      creationFeeRate_e18,
+      paymentToken: paymentTokenAddress,
+      metadata: DUMMY_METADATA,
+    };
+
     before(async () => {
 
       // helper.mintTokenAndGiveAllowanceToContract({
@@ -920,41 +861,22 @@ describe('DoubleDice', function () {
 
       await (
         await contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
+          ...virtualFloorCreationParams,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
+          ...virtualFloorCreationParams,
           virtualFloorId: virtualFloorId2,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
+          ...virtualFloorCreationParams,
           virtualFloorId: allWinnersVf,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
 
@@ -1149,20 +1071,26 @@ describe('DoubleDice', function () {
     const tResolve = toTimestamp('2032-01-02T00:00:00');
     const nOutcomes = 3;
 
+    let virtualFloorCreationParams: VirtualFloorCreationParamsStruct;
+
     beforeEach(async () => {
       // Random virtual floor for each test case
       virtualFloorId = generateRandomVirtualFloorId();
+      virtualFloorCreationParams = {
+        virtualFloorId,
+        tOpen,
+        tClose,
+        tResolve,
+        nOutcomes,
+        betaOpen_e18,
+        creationFeeRate_e18,
+        paymentToken: paymentTokenAddress,
+        metadata: DUMMY_METADATA,
+      };
       await (
         await contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          creationFeeRate_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
+          ...virtualFloorCreationParams,
           paymentToken: paymentTokenAddress,
-          metadata: DUMMY_METADATA,
         })
       ).wait();
     });

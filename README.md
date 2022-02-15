@@ -168,3 +168,11 @@ const virtualFloorId = ethers.BigNumber.from(ethers.utils.randomBytes(8)).shl(5 
 ```
 
 The token-ids are _purposely_ non-opaque (i.e. they are not hashes) to make it possible to slice the id back into its `V`, `I` and `T` components.
+
+## Etherscan code-verification
+
+Configure `ETHERSCAN_API_KEY` in `.env` file, then e.g.:
+
+```
+npx hardhat verify --network mumbai CONTRACT_ADDRESS CONSTRUCTOR_ARG_1 CONSTRUCTOR_ARG_2 CONSTRUCTOR_ARG_3
+```

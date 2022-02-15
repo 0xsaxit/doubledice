@@ -1,4 +1,5 @@
 import '@nomiclabs/hardhat-ethers';
+import '@nomiclabs/hardhat-etherscan';
 import '@nomiclabs/hardhat-waffle';
 import '@typechain/hardhat';
 import assert from 'assert';
@@ -22,6 +23,7 @@ const {
   PROVIDER_URL,
   OWNER_PRIVATE_KEY,
   MAINNET_TESTCOIN_DEPLOYER_PRIVATE_KEY,
+  ETHERSCAN_API_KEY,
 } = process.env;
 
 const accounts = [
@@ -93,6 +95,9 @@ const config: HardhatUserConfig = {
     outputFile: 'gas-report.txt',
     noColors: true,
     excludeContracts: ['mock/'],
+  },
+  etherscan: {
+    apiKey: ETHERSCAN_API_KEY
   },
 };
 

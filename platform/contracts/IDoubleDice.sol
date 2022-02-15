@@ -2,7 +2,7 @@
 pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/IERC1155MetadataURIUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "./FixedPointTypes.sol";
@@ -71,7 +71,7 @@ enum CommitmentBalanceTransferRejectionCause {
 
 interface IDoubleDice is
     IAccessControlUpgradeable,
-    IERC1155Upgradeable
+    IERC1155MetadataURIUpgradeable
 {
     event VirtualFloorCreation(
         uint256 indexed virtualFloorId,

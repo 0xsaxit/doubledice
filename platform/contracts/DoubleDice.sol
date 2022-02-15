@@ -162,8 +162,6 @@ contract DoubleDice is
         return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(virtualFloor.creationParams.paymentTokenId));
     }
 
-    event PaymentTokenWhitelistUpdate(IERC20Upgradeable indexed token, bool whitelisted);
-
     function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _paymentTokenWhitelist.setWhitelistStatus(address(token), isWhitelisted);
         emit PaymentTokenWhitelistUpdate(token, isWhitelisted);

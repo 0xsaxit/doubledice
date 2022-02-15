@@ -17,4 +17,9 @@ interface IDoubleDiceAdmin is
     event PlatformFeeRateUpdate(UFixed256x18 platformFeeRate_e18);
 
     function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18) external;
+
+
+    event PaymentTokenWhitelistUpdate(IERC20Upgradeable indexed token, bool whitelisted);
+
+    function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external;
 }

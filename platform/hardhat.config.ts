@@ -45,6 +45,11 @@ const config: HardhatUserConfig = {
       accounts: [OWNER_PRIVATE_KEY],
       chainId: 4,
     },
+    mumbai: {
+      url: PROVIDER_URL,
+      accounts: [OWNER_PRIVATE_KEY],
+      chainId: 80001,
+    },
   },
   solidity: {
     version: '0.8.11',

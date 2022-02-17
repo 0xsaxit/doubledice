@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Unlicensed
 
-pragma solidity 0.8.11;
+pragma solidity 0.8.12;
 
 struct VirtualFloorMetadataOpponent {
     string title;

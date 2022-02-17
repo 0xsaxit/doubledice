@@ -73,7 +73,11 @@ async function main() {
 
   assert(id2.eq(id3));
 
-  await ethers.provider.send('evm_increaseTime', [tClose]);
+  // ToDo: Use evm_setNextBlockTimestamp as soon as we move to hardhat in Docker configuration,
+  // or as soon as ganache-cli supports it
+  await ethers.provider.send('evm_mine', []);
+  const { timestamp: now } = await ethers.provider.getBlock('latest');
+  await ethers.provider.send('evm_increaseTime', [tClose - now]);
   await (await platform.connect(user1).safeTransferFrom(user1.address, user2.address, id2, 25000_000000_000000n, '0x')).wait();
 
   console.log({

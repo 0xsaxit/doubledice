@@ -21,6 +21,7 @@ assert(OWNER_PRIVATE_KEY);
 
 const config: HardhatUserConfig = {
   abiExporter: {
+    path: './generated/abi',
     clear: true,
     flat: true,
     only: [

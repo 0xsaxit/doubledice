@@ -10,7 +10,7 @@
     "contracts:deploy:local": "  hardhat run ./scripts/deploy.ts --network localhost",
     "contracts:deploy:rinkeby": "hardhat run ./scripts/deploy.ts --network rinkeby",
     "contracts:deploy:mumbai": "hardhat run ./scripts/deploy.ts --network mumbai",
-    "graph:patch-abi-json": "cat ./abi/DoubleDice.json | jq 'del(.[] | select(.type == \"error\"))' > ./abi/DoubleDice.no-custom-errors.json",
+    "graph:patch-abi-json": "cat ./generated/abi/DoubleDice.json | jq 'del(.[] | select(.type == \"error\"))' > ./generated/abi/DoubleDice.no-custom-errors.json",
     "graph:envsub-subgraph-yaml": "envsub --protect --env-file .env ./subgraph/subgraph.template.yaml ./subgraph/subgraph.envsubbed.yaml",
     "pregraph:codegen": "npm run graph:patch-abi-json && npm run graph:envsub-subgraph-yaml",
     "graph:codegen": "graph codegen ./subgraph/subgraph.envsubbed.yaml",

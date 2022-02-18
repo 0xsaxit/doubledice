@@ -17,9 +17,9 @@ dataSources:
         - VirtualFloor
       abis:
         - name: DoubleDice
-          file: ../abi/DoubleDice.no-custom-errors.json
+          file: ../generated/abi/DoubleDice.no-custom-errors.json
         - name: IERC20Metadata
-          file: ../abi/IERC20Metadata.json
+          file: ../generated/abi/IERC20Metadata.json
       eventHandlers:
         - event: PaymentTokenWhitelistUpdate(indexed address,bool)
           handler: handlePaymentTokenWhitelistUpdate

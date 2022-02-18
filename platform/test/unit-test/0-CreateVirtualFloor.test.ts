@@ -114,6 +114,19 @@ describe('DoubleDice', function () {
       ).to.be.reverted;
     });
 
+    it('Should revert if closure and resolve time are the same', async function () {
+      const closureTime = toTimestamp('2021-01-01T12:00:00');
+      const resolveTime = toTimestamp('2021-01-01T12:00:00');
+      await expect(
+        contract.createVirtualFloor({
+          ...virtualFloorCreationParams,
+          tClose: closureTime,
+          tResolve: resolveTime,
+          paymentToken: paymentTokenAddress,
+        })
+      ).to.be.reverted;
+    });
+
     it('Should revert if closure time is later than resolve time', async function () {
       const greaterThanResolveTime = toTimestamp('2032-01-03T00:00:00');
       await expect(

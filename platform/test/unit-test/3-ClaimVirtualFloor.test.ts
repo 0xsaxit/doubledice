@@ -252,97 +252,101 @@ describe('DoubleDice', function () {
       await checkpoint.revertTo();
     });
 
-    // ToDo: This will no longer work with an all-winners VF,
-    // because such VFs can no longer be resolved.
-    // Instead, this same test should be run against a VF that get resolved
-    // but cancelled because there are *no* winners.
-    it.skip('Should be able to claim original committed amount if the VF got cancelled and also transfer the amount to the user and burn the minted tokens', async function () {
+    it('Should be able to claim original committed amount if the VF got cancelled and also transfer the amount to the user and burn the minted tokens', async function () {
       const checkpoint = await EvmCheckpoint.create();
-      await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
-      await (await contract.resolve(allWinnersVf, 1)).wait();
+      const vfAggregateCommitments = await contract.getVirtualFloorAggregateCommitments(
+        virtualFloorId,
+        2
+      );
+      expect(vfAggregateCommitments.amount).to.be.eq(0);
 
-      const balanceBeforeClaim = await token.balanceOf(user1Signer.address);
+      await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
+      await (await contract.resolve(virtualFloorId, 2)).wait();
+
+      const balanceBeforeClaim = await token.balanceOf(user2Signer.address);
 
       await (
-        await contract.connect(user1Signer).claim({
-          virtualFloorId: allWinnersVf,
+        await contract.connect(user2Signer).claim({
+          virtualFloorId,
           outcomeIndex: 1,
-          timeslot: allWinnersVfCommitmentEventArgs[0].timeslot,
+          timeslot: user2CommitmentEventArgs.timeslot,
         })
       ).wait();
 
-      const balanceAfterClaim = await token.balanceOf(user1Signer.address);
+      const balanceAfterClaim = await token.balanceOf(user2Signer.address);
       expect(balanceAfterClaim).to.be.gt(0);
       expect(balanceAfterClaim.sub(balanceBeforeClaim)).to.be.eq(
-        allWinnersVfCommitmentEventArgs[0].amount
+        user2CommitmentEventArgs.amount
       );
       await checkpoint.revertTo();
     });
 
-    // ToDo: This will no longer work with an all-winners VF,
-    // because such VFs can no longer be resolved.
-    // Instead, this same test should be run against a VF that get resolved
-    // but cancelled because there are *no* winners.
-    it.skip('Should not be able to claim a transferred commitment', async () => {
+    it('Should not be able to claim a transferred commitment', async () => {
       const checkpoint = await EvmCheckpoint.create();
-      await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
-      await (await contract.resolve(allWinnersVf, 1)).wait();
-
-      const balanceBeforeClaim = await token.balanceOf(user4Signer.address);
+      const vfAggregateCommitments = await contract.getVirtualFloorAggregateCommitments(
+        virtualFloorId,
+        2
+      );
+      expect(vfAggregateCommitments.amount).to.be.eq(0);
 
       await contract
-        .connect(user1Signer)
+        .connect(user2Signer)
         .safeTransferFrom(
-          user1Signer.address,
+          user2Signer.address,
           user4Signer.address,
-          allWinnersVfCommitmentEventArgs[0].tokenId,
-          allWinnersVfCommitmentEventArgs[0].amount,
+          user2CommitmentEventArgs.tokenId,
+          user2CommitmentEventArgs.amount,
           '0x0000000000000000000000000000000000000000000000000000000000000000'
         );
 
+      await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
+      await (await contract.resolve(virtualFloorId, 2)).wait();
+
       await expect(
-        contract.connect(user1Signer).claim({
-          virtualFloorId: allWinnersVf,
+        contract.connect(user2Signer).claim({
+          virtualFloorId,
           outcomeIndex: 1,
-          timeslot: allWinnersVfCommitmentEventArgs[0].timeslot,
+          timeslot: user2CommitmentEventArgs.timeslot,
         })
       ).to.be.revertedWith('ZERO_BALANCE');
       await checkpoint.revertTo();
     });
 
-    // ToDo: This will no longer work with an all-winners VF,
-    // because such VFs can no longer be resolved.
-    // Instead, this same test should be run against a VF that get resolved
-    // but cancelled because there are *no* winners.
-    it.skip('Should be able to claim a transferred cancelled commitment same amount as the committed amount', async function () {
+    it('Should be able to claim a transferred cancelled commitment same amount as the committed amount', async function () {
       const checkpoint = await EvmCheckpoint.create();
-      await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
-      await (await contract.resolve(allWinnersVf, 1)).wait();
+      const vfAggregateCommitments = await contract.getVirtualFloorAggregateCommitments(
+        virtualFloorId,
+        2
+      );
+      expect(vfAggregateCommitments.amount).to.be.eq(0);
 
       const balanceBeforeClaim = await token.balanceOf(user4Signer.address);
 
       await contract
-        .connect(user1Signer)
+        .connect(user2Signer)
         .safeTransferFrom(
-          user1Signer.address,
+          user2Signer.address,
           user4Signer.address,
-          allWinnersVfCommitmentEventArgs[0].tokenId,
-          allWinnersVfCommitmentEventArgs[0].amount,
+          user2CommitmentEventArgs.tokenId,
+          user2CommitmentEventArgs.amount,
           '0x0000000000000000000000000000000000000000000000000000000000000000'
         );
 
+      await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
+      await (await contract.resolve(virtualFloorId, 2)).wait();
+
       await (
         await contract.connect(user4Signer).claim({
-          virtualFloorId: allWinnersVf,
+          virtualFloorId,
           outcomeIndex: 1,
-          timeslot: allWinnersVfCommitmentEventArgs[0].timeslot,
+          timeslot: user2CommitmentEventArgs.timeslot,
         })
       ).wait();
 
       const balanceAfterClaim = await token.balanceOf(user4Signer.address);
       expect(balanceAfterClaim).to.be.gt(0);
       expect(balanceAfterClaim.sub(balanceBeforeClaim)).to.be.eq(
-        allWinnersVfCommitmentEventArgs[0].amount
+        user2CommitmentEventArgs.amount
       );
       await checkpoint.revertTo();
     });

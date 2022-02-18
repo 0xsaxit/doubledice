@@ -7,6 +7,7 @@ import {
   DoubleDicePlatformHelper,
   DUMMY_METADATA,
   EvmCheckpoint,
+  findVFResolutionEventArgs,
   generateRandomVirtualFloorId,
   SignerWithAddress,
   UserCommitment
@@ -251,14 +252,17 @@ describe('DoubleDice', function () {
       await checkpoint.revertTo();
     });
 
-    it('Should set VF state to completed as well resolution type to some winners and set winnerProfits also transfer to the feeBeneficary the fee amount', async function () {
+    it(`Should set VF state to completed as well as resolution type to
+        some winners and set winnerProfits, transfer to
+        the feeBeneficary the fee amount and emit correct event with
+        VirtualFloorResolution with right parameters`, async function () {
       const checkpoint = await EvmCheckpoint.create();
       const balanceOfFeeBeneficaryBefore = await token.balanceOf(
         platformFeeBeneficiarySigner.address
       );
 
       await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
-      await (await contract.resolve(virtualFloorId, 1)).wait();
+      const { events } = await (await contract.resolve(virtualFloorId, 1)).wait();
 
       const balanceOfFeeBeneficaryAfter = await token.balanceOf(
         platformFeeBeneficiarySigner.address
@@ -271,6 +275,11 @@ describe('DoubleDice', function () {
         balanceOfFeeBeneficaryBefore.toNumber()
       );
       await checkpoint.revertTo();
+
+      const VFResolutionEventArgs = findVFResolutionEventArgs(events);
+
+      expect(VFResolutionEventArgs.virtualFloorId).to.eq(virtualFloorId);
+      expect(VFResolutionEventArgs.winningOutcomeIndex).to.eq(1);
     });
 
     it.skip('Should calculate beta right (WIP)', async () => {
@@ -294,5 +303,6 @@ describe('DoubleDice', function () {
       // uint256 profit = (weightedAmount * virtualFloor.winnerProfits) / virtualFloor.aggregateCommitments[virtualFloor.outcome].weightedAmount;
       await checkpoint.revertTo();
     });
+
   });
 });

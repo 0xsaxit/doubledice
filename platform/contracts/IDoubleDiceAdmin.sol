@@ -14,6 +14,11 @@ interface IDoubleDiceAdmin is
     function cancelVirtualFloorFlagged(uint256 virtualFloorId, string calldata reason) external;
 
 
+    event PlatformFeeBeneficiaryUpdate(address platformFeeBeneficiary);
+
+    function setPlatformFeeBeneficiary(address platformFeeBeneficiary) external;
+
+
     event PlatformFeeRateUpdate(UFixed256x18 platformFeeRate_e18);
 
     function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18) external;

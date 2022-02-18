@@ -125,8 +125,18 @@ contract DoubleDice is
         beta_e18 = UFixed256x18.wrap(betaClose_e18 + ((vf.creationParams.tClose - t) * betaOpenMinusBetaClose_e18) / (uint256(vf.creationParams.tClose) - uint256(vf.creationParams.tOpen)));
     }
 
-    // ToDo: Setter
+
     address public platformFeeBeneficiary;
+
+    function setPlatformFeeBeneficiary(address platformFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
+    }
+
+    function _setPlatformFeeBeneficiary(address platformFeeBeneficiary_) internal {
+        platformFeeBeneficiary = platformFeeBeneficiary_;
+        emit PlatformFeeBeneficiaryUpdate(platformFeeBeneficiary_);
+    }
+
 
     UFixed16x4 internal platformFeeRate;
 
@@ -146,11 +156,14 @@ contract DoubleDice is
         emit PlatformFeeRateUpdate(platformFeeRate_e18_);
     }
 
-    function initialize(string memory uri_, address platformFeeBeneficiary_) external initializer {
+    function initialize(
+        string memory uri_,
+        address platformFeeBeneficiary_
+    ) external initializer {
         __ERC1155_init(uri_); // ToDo: Override uri() to avoid SLOADs
         __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        platformFeeBeneficiary = platformFeeBeneficiary_;
+        _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
     }
 
     mapping(uint256 => VirtualFloor) public _virtualFloors;

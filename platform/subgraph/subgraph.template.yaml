@@ -14,7 +14,20 @@ dataSources:
       apiVersion: 0.0.6
       language: wasm/assemblyscript
       entities:
+        - Category
+        - Opponent
+        - Outcome
+        - OutcomeTimeslot
+        - OutcomeTimeslotTransfer
+        - PaymentToken
+        - ResultSource
+        - Subcategory
+        - Timeslot
+        - User
+        - UserOutcome
+        - UserOutcomeTimeslot
         - VirtualFloor
+        - VirtualFloorTimeslot
       abis:
         - name: DoubleDice
           file: ../generated/abi/DoubleDice.no-custom-errors.json

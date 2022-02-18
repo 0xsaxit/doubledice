@@ -7,3 +7,4 @@ build/
 .env
 
 abi/DoubleDice.no-custom-errors.json
+subgraph/subgraph.envsubbed.yaml

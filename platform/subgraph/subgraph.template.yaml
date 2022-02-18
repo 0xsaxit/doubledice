@@ -5,9 +5,9 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: DoubleDice
-    network: mainnet
+    network: "${DOUBLEDICE_CONTRACT_NETWORK}"
     source:
-      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+      address: "${DOUBLEDICE_CONTRACT_ADDRESS}"
       abi: DoubleDice
     mapping:
       kind: ethereum/events

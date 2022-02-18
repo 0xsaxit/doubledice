@@ -1,8 +1,11 @@
+import { BigNumberish } from 'ethers';
 import { SignerWithAddress } from '.';
 import { DoubleDice, DoubleDice__factory, DummyUSDCoin__factory, DummyWrappedBTC__factory, ProxyAdmin__factory, TransparentUpgradeableProxy__factory } from '../lib/contracts';
 
 export interface DeploymentParams {
-  FEE_BENEFICIARY_ADDRESS: string;
+  tokenMetadataUriTemplate: string,
+  platformFeeRate_e18: BigNumberish,
+  platformFeeBeneficiary: string,
 }
 
 export interface DeploymentOptions {
@@ -17,7 +20,7 @@ export interface DeploymentOptions {
 // This replacement can be dropped as soon as there is support
 const mimicHardhatUpgradesDeployProxy = async (
   ownerSigner: SignerWithAddress,
-  { FEE_BENEFICIARY_ADDRESS }: DeploymentParams,
+  deploymentArgs: DeploymentParams,
   forceNonce: boolean
 ) => {
   const impl = await new DoubleDice__factory(ownerSigner).deploy(forceNonce ? { nonce: 0 } : {});
@@ -28,12 +31,20 @@ const mimicHardhatUpgradesDeployProxy = async (
   process.stdout.write(`Deploying ProxyAdmin to: ${proxyAdmin.address}...\n`);
   await proxyAdmin.deployed();
 
+  const {
+    tokenMetadataUriTemplate,
+    platformFeeRate_e18,
+    platformFeeBeneficiary,
+  } = deploymentArgs;
+
+
   const proxy = await new TransparentUpgradeableProxy__factory(ownerSigner).deploy(
     impl.address,
     proxyAdmin.address,
     impl.interface.encodeFunctionData('initialize', [
-      'http://localhost:8080/token/{id}',
-      FEE_BENEFICIARY_ADDRESS
+      tokenMetadataUriTemplate,
+      platformFeeRate_e18,
+      platformFeeBeneficiary,
     ])
   );
 
@@ -45,12 +56,12 @@ const mimicHardhatUpgradesDeployProxy = async (
 
 export async function deployAndInitialize(
   ownerSigner: SignerWithAddress,
-  { FEE_BENEFICIARY_ADDRESS }: DeploymentParams,
+  deploymentArgs: DeploymentParams,
   deploymentOptions?: DeploymentOptions
 ): Promise<DoubleDice> {
   const { forceNonce = false } = deploymentOptions || {};
 
-  const mainContract = await mimicHardhatUpgradesDeployProxy(ownerSigner, { FEE_BENEFICIARY_ADDRESS }, forceNonce);
+  const mainContract = await mimicHardhatUpgradesDeployProxy(ownerSigner, deploymentArgs, forceNonce);
 
   const tokenContract1 = await new DummyUSDCoin__factory(ownerSigner).deploy();
   process.stdout.write(`Deploying USDC contract to: ${tokenContract1.address}...\n`);
@@ -62,9 +73,6 @@ export async function deployAndInitialize(
 
   await (await mainContract.connect(ownerSigner).updatePaymentTokenWhitelist(tokenContract1.address, true)).wait();
   await (await mainContract.connect(ownerSigner).updatePaymentTokenWhitelist(tokenContract2.address, true)).wait();
-
-  // 25% => 0.25 => 0.25e18
-  await (await mainContract.connect(ownerSigner).setPlatformFeeRate_e18(250000_000000_000000n)).wait();
 
   return mainContract;
 }

@@ -13,6 +13,7 @@ import {
   findUserCommitmentEventArgs,
   formatUsdc,
   sumOf,
+  toFp18,
   UserCommitment
 } from '../helpers';
 import {
@@ -66,7 +67,11 @@ describe('DoubleDice', function () {
     token = await new DummyUSDCoin__factory(ownerSigner).deploy();
     await token.deployed();
 
-    contract = await deployAndInitialize(ownerSigner, { FEE_BENEFICIARY_ADDRESS: feeBeneficiarySigner.address });
+    contract = await deployAndInitialize(ownerSigner, {
+      tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
+      platformFeeRate_e18: toFp18(0.2500),
+      platformFeeBeneficiary: feeBeneficiarySigner.address,
+    });
 
     expect(await contract.platformFeeBeneficiary()).to.eq(feeBeneficiarySigner.address);
 

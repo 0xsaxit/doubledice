@@ -2,9 +2,10 @@ import assert from 'assert';
 import { BigNumber, BigNumberish, ContractReceipt } from 'ethers';
 import { RoomEventInfo } from '../lib/contracts';
 
-export const toFp18 = (value: number): BigNumber => {
-  const sign = Math.sign(value);
-  const magnitude = Math.abs(value);
+export const toFp18 = (value: number | string): BigNumber => {
+  const numericValue = typeof value === 'number' ? value : parseFloat(value);
+  const sign = Math.sign(numericValue);
+  const magnitude = Math.abs(numericValue);
   if (magnitude === 0) {
     return BigNumber.from(0);
   }
@@ -14,7 +15,7 @@ export const toFp18 = (value: number): BigNumber => {
     intermediate *= 10;
     i++; // eslint-disable-line no-plusplus
   }
-  if (Math.floor(intermediate) !== intermediate) {
+  if (Math.trunc(intermediate) !== intermediate) {
     throw new Error('!');
   }
   return BigNumber.from(intermediate).mul(BigNumber.from(10).pow(BigNumber.from(18 - i))).mul(BigNumber.from(sign));

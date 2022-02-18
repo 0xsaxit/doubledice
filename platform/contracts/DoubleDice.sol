@@ -126,6 +126,14 @@ contract DoubleDice is
     }
 
 
+    function setTokenMetadataUriTemplate(string calldata template)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setURI(template);
+    }
+
+
     address public platformFeeBeneficiary;
 
     function setPlatformFeeBeneficiary(address platformFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -147,22 +155,25 @@ contract DoubleDice is
         return platformFeeRate.toUFixed256x18();
     }
 
-    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setPlatformFeeRate_e18(platformFeeRate_e18_);
+    }
+
+    function _setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) internal {
         require(platformFeeRate_e18_.lte(UFIXED256X18_ONE), "Error: platformFeeRate > 1.0");
         platformFeeRate = platformFeeRate_e18_.toUFixed16x4();
         emit PlatformFeeRateUpdate(platformFeeRate_e18_);
     }
 
     function initialize(
-        string memory uri_,
+        string memory tokenMetadataUriTemplate,
+        UFixed256x18 platformFeeRate_e18_,
         address platformFeeBeneficiary_
     ) external initializer {
-        __ERC1155_init(uri_); // ToDo: Override uri() to avoid SLOADs
+        __ERC1155_init(tokenMetadataUriTemplate);
         __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setPlatformFeeRate_e18(platformFeeRate_e18_);
         _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
     }
 
@@ -616,16 +627,4 @@ contract DoubleDice is
         }
     }
 
-    // ***** TEMPORARY *****
-
-    /// @dev Temporary convenience function, handy for testing.
-    /// Eventually uri would be fixed in constructor,
-    /// and even better would be passed as "" to super constructor,
-    /// and uri() overridden to avoid SLOADs
-    function setURI(string calldata newuri)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        _setURI(newuri);        
-    }
 }

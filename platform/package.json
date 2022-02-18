@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "clean": "rimraf abi artifacts build cache generated typechain-types",
+    "clean": "rimraf abi artifacts build cache generated lib/generated graphql/generated",
     "test": "hardhat typechain && hardhat test",
     "start": "./scripts/start.sh",
     "stop": "docker-compose down --volumes",
@@ -20,7 +20,7 @@
     "graph:deploy:mumbai": "graph deploy doubledicedev/doubledice-mumbai --node https://api.thegraph.com/deploy/ --version-label 0.0.1 ./subgraph/subgraph.envsubbed.yaml",
     "graph:all:local": "npm run graph:generate-ts-bindings && npm run graph:codegen && npm run graph:build && npm run graph:create:local && npm run graph:deploy:local",
     "test:local:create-vf": "hardhat run --network ganache ./scripts/create-test-vf.ts",
-    "pregraph:generate-ts-bindings": "cat ./graphql/schema.preamble.graphql ./subgraph/schema.graphql > ./graphql/generated/schema.graphql",
+    "pregraph:generate-ts-bindings": "mkdir -pv ./graphql/generated && cat ./graphql/schema.preamble.graphql ./subgraph/schema.graphql > ./graphql/generated/schema.graphql",
     "graph:generate-ts-bindings": "graphql-codegen --config ./graphql/codegen.yml",
     "codegen": "hardhat compile && npm run graph:generate-ts-bindings",
     "postinstall": "npm run codegen"

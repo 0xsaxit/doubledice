@@ -129,8 +129,6 @@ interface IDoubleDice is
 
     function claim(VirtualFloorOutcomeTimeslot calldata context) external;
 
-    function claimBatch(VirtualFloorOutcomeTimeslot[] calldata commitments) external;
-
     /// @notice The timeline is split into a number of non-overlapping consecutive timeslots of this duration.
     /// Token amounts committed to a specific outcome of a specific virtual-floor within a specific timeslot
     /// are only fungible between themselves.

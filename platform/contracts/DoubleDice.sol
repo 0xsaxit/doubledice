@@ -532,15 +532,6 @@ contract DoubleDice is
         }
     }
 
-    function claimBatch(VirtualFloorOutcomeTimeslot[] calldata commitments)
-        external
-    {
-        // batch all ERC1155 burns into a single TransferBatch event
-        // batch all ERC20 transfers into a single Transfer event,
-        // or maybe do not batch across different VirtualFloors, to make it easier
-        // to track VirtualFloor in/out-flows
-    }
-
     function supportsInterface(bytes4 interfaceId)
         public
         view

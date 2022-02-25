@@ -6,14 +6,6 @@ import "./IDoubleDice.sol";
 interface IDoubleDiceAdmin is
     IDoubleDice
 {
-    event VirtualFloorCancellationFlagged(
-        uint256 indexed virtualFloorId,
-        string reason
-    );
-
-    function cancelVirtualFloorFlagged(uint256 virtualFloorId, string calldata reason) external;
-
-
     event PlatformFeeBeneficiaryUpdate(address platformFeeBeneficiary);
 
     function setPlatformFeeBeneficiary(address platformFeeBeneficiary) external;

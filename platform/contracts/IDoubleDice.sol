@@ -97,6 +97,11 @@ interface IDoubleDice is
         uint256 tokenId
     );
 
+    event VirtualFloorCancellationFlagged(
+        uint256 indexed virtualFloorId,
+        string reason
+    );
+
     event VirtualFloorCancellationUnresolvable(
         uint256 indexed virtualFloorId
     );
@@ -122,6 +127,8 @@ interface IDoubleDice is
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
 
     error CommitmentBalanceTransferRejection(uint256 id, CommitmentBalanceTransferRejectionCause cause);
+
+    function cancelVirtualFloorFlagged(uint256 virtualFloorId, string calldata reason) external;
 
     function cancelVirtualFloorUnresolvable(uint256 virtualFloorId) external;
 

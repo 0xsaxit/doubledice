@@ -37,11 +37,11 @@ const setNextBlockTimestamp = async (datetime: string | number | BigNumber) => {
   await ethers.provider.send('evm_setNextBlockTimestamp', [timestamp.toNumber()]);
 };
 
-function tokenIdOf({ virtualFloorId, outcomeIndex, datetime }: { virtualFloorId: BigNumberish; outcomeIndex: number; datetime: string }): BigNumber {
+function tokenIdOf({ vfId, outcomeIndex, datetime }: { vfId: BigNumberish; outcomeIndex: number; datetime: string }): BigNumber {
   const timeslot = toTimestamp(datetime);
   return BigNumber.from(ethers.utils.solidityPack(
     ['uint216', 'uint8', 'uint32'],
-    [BigNumber.from(virtualFloorId).shr((1 + 4) * 8), outcomeIndex, timeslot]
+    [BigNumber.from(vfId).shr((1 + 4) * 8), outcomeIndex, timeslot]
   ));
 }
 
@@ -128,8 +128,8 @@ describe('DoubleDice', function () {
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
 
-      const virtualFloorCreatedEventArgs = findContractEventArgs(events, 'VirtualFloorCreation');
-      expect(virtualFloorCreatedEventArgs.virtualFloorId).to.eq(virtualFloorId);
+      const vfCreatedEventArgs = findContractEventArgs(events, 'VirtualFloorCreation');
+      expect(vfCreatedEventArgs.virtualFloorId).to.eq(virtualFloorId);
     }
 
     {
@@ -140,8 +140,8 @@ describe('DoubleDice', function () {
 
       const { events, blockHash } = await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)).wait();
 
-      const virtualFloorCommitmentArgs = findUserCommitmentEventArgs(events);
-      allUserCommitments.push(virtualFloorCommitmentArgs);
+      const vfCommitmentArgs = findUserCommitmentEventArgs(events);
+      allUserCommitments.push(vfCommitmentArgs);
 
       const token1155TransferArgs = findContractEventArgs(events, 'TransferSingle');
 
@@ -152,11 +152,11 @@ describe('DoubleDice', function () {
       const nftId = token1155TransferArgs.id;
       // console.log(`nftId = ${nftId}`)
 
-      expect(virtualFloorCommitmentArgs.virtualFloorId).to.eq(virtualFloorId);
-      expect(virtualFloorCommitmentArgs.outcomeIndex).to.eq(outcomeIndex);
-      expect(virtualFloorCommitmentArgs.amount).to.eq(amount);
-      expect(virtualFloorCommitmentArgs.tokenId).to.eq(nftId);
-      expect(virtualFloorCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T01:00:00'));
+      expect(vfCommitmentArgs.virtualFloorId).to.eq(virtualFloorId);
+      expect(vfCommitmentArgs.outcomeIndex).to.eq(outcomeIndex);
+      expect(vfCommitmentArgs.amount).to.eq(amount);
+      expect(vfCommitmentArgs.tokenId).to.eq(nftId);
+      expect(vfCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T01:00:00'));
 
       expect((await ethers.provider.getBlock(blockHash)).timestamp).to.eq(toTimestamp('2032-01-01T01:00:00'));
 
@@ -200,10 +200,10 @@ describe('DoubleDice', function () {
     }
 
     // await setNextBlockTimestamp('2032-01-01T12:00:00')
-    // expect(contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10))).to.be.revertedWith('MARKET_CLOSED')
+    // expect(contract.connect(user3Signer).commitToVirtualFloor(vfId, 2, $(10))).to.be.revertedWith('MARKET_CLOSED')
 
-    // const virtualFloor = await contract._virtualFloors(virtualFloorId)
-    // console.log(virtualFloor)
+    // const vf = await contract._vfs(vfId)
+    // console.log(vf)
 
     interface OutcomeTotals {
       amount: BigNumber;
@@ -253,7 +253,7 @@ describe('DoubleDice', function () {
     ));
 
     // await setNextBlockTimestamp('2032-01-01T23:59:59')
-    // expect(contract.resolve(virtualFloorId, 1)).to.be.revertedWith('TOO_EARLY_TO_RESOLVE')
+    // expect(contract.resolve(vfId, 1)).to.be.revertedWith('TOO_EARLY_TO_RESOLVE')
 
     await setNextBlockTimestamp(tClose);
 
@@ -261,7 +261,7 @@ describe('DoubleDice', function () {
     await (await contract.connect(user3Signer).safeTransferFrom(
       user3Signer.address,
       user2Signer.address,
-      tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
+      tokenIdOf({ vfId: virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
       $(5),
       '0x'
     )).wait();
@@ -289,8 +289,8 @@ describe('DoubleDice', function () {
       //   user3Signer.address,
       //   user4Signer.address,
       //   [
-      //     tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
-      //     tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
+      //     tokenIdOf({ vfId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
+      //     tokenIdOf({ vfId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
       //   ], // ids
       //   [], // amounts
       //   '0x'

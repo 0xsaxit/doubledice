@@ -180,13 +180,13 @@ contract DoubleDice is
         _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
     }
 
-    mapping(uint256 => VirtualFloor) public _virtualFloors;
+    mapping(uint256 => VirtualFloor) public _vfs;
 
 
     AddressWhitelist internal _paymentTokenWhitelist;
 
-    function _paymentTokenOf(VirtualFloor storage virtualFloor) internal view returns (IERC20Upgradeable) {
-        return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(virtualFloor.creationParams.paymentTokenId));
+    function _paymentTokenOf(VirtualFloor storage vf) internal view returns (IERC20Upgradeable) {
+        return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(vf.creationParams.paymentTokenId));
     }
 
     function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -203,8 +203,8 @@ contract DoubleDice is
 
         // ~3000 gas cheaper than using qualified fields param.* throughout.
         // Also slightly cheaper than a multiple field assignment
-        // (virtualFloorId, ...) = (params.virtualFloorId, ...)
-        uint256 virtualFloorId = params.virtualFloorId;
+        // (vfId, ...) = (params.virtualFloorId, ...)
+        uint256 vfId = params.virtualFloorId;
         UFixed256x18 betaOpen = params.betaOpen_e18;
         UFixed256x18 creationFeeRate = params.creationFeeRate_e18;
         uint32 tOpen = params.tOpen;
@@ -214,18 +214,18 @@ contract DoubleDice is
         IERC20Upgradeable paymentToken = params.paymentToken;
         VirtualFloorMetadata calldata metadata = params.metadata;
 
-        VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
+        VirtualFloor storage vf = _vfs[vfId];
 
-        require(virtualFloor.internalState == VirtualFloorInternalState.None, "MARKET_DUPLICATE");
+        require(vf.internalState == VirtualFloorInternalState.None, "MARKET_DUPLICATE");
 
         require(betaOpen.gte(_BETA_CLOSE), "Error: betaOpen < 1.0");
-        virtualFloor.creationParams.betaOpenMinusBetaClose = betaOpen.sub(_BETA_CLOSE).toUFixed32x6();
+        vf.creationParams.betaOpenMinusBetaClose = betaOpen.sub(_BETA_CLOSE).toUFixed32x6();
 
         require(creationFeeRate.lte(UFIXED256X18_ONE), "Error: creationFeeRate > 1.0");
-        virtualFloor.creationParams.creationFeeRate = creationFeeRate.toUFixed16x4();
+        vf.creationParams.creationFeeRate = creationFeeRate.toUFixed16x4();
 
         // freeze platformFeeRate value as it is right now
-        virtualFloor.creationParams.platformFeeRate = platformFeeRate;
+        vf.creationParams.platformFeeRate = platformFeeRate;
 
         // Require all timestamps to be exact multiples of the timeslot-duration.
         // This makes everything simpler to reason about.
@@ -245,16 +245,16 @@ contract DoubleDice is
         _requireValidMetadata(nOutcomes, metadata);
 
         require(_paymentTokenWhitelist.isWhitelisted(address(paymentToken)), "Error: Payment token is not whitelisted");
-        virtualFloor.creationParams.paymentTokenId = toAddressWhitelistKey(address(paymentToken));
+        vf.creationParams.paymentTokenId = toAddressWhitelistKey(address(paymentToken));
 
-        virtualFloor.internalState = VirtualFloorInternalState.RunningOrClosed;
-        virtualFloor.creationParams.tOpen = tOpen;
-        virtualFloor.creationParams.tClose = tClose;
-        virtualFloor.creationParams.tResolve = tResolve;
-        virtualFloor.creationParams.nOutcomes = nOutcomes;
+        vf.internalState = VirtualFloorInternalState.RunningOrClosed;
+        vf.creationParams.tOpen = tOpen;
+        vf.creationParams.tClose = tClose;
+        vf.creationParams.tResolve = tResolve;
+        vf.creationParams.nOutcomes = nOutcomes;
 
         emit VirtualFloorCreation({
-            virtualFloorId: virtualFloorId,
+            virtualFloorId: vfId,
             creator: _msgSender(),
             betaOpen_e18: betaOpen,
             creationFeeRate_e18: creationFeeRate,
@@ -267,28 +267,28 @@ contract DoubleDice is
             metadata: metadata
         });
 
-        require(ERC1155TokenIds.isValidVirtualFloorId(virtualFloorId), "INVALID_VIRTUALFLOOR_ID");
+        require(ERC1155TokenIds.isValidVirtualFloorId(vfId), "INVALID_VIRTUALFLOOR_ID");
 
         // ToDo: For now we simply set owner field on VF data-structure.
         // Later we might bring back this VF being a NFT, as this would
         // allow ownership transfer, integration with Etherscan, wallets, etc.
-        virtualFloor.creator = _msgSender();
+        vf.creator = _msgSender();
     }
 
-    function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount)
+    function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount)
         external
     {
-        VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_NOT_FOUND");
+        VirtualFloor storage vf = _vfs[vfId];
+        require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_NOT_FOUND");
 
-        require(block.timestamp < virtualFloor.creationParams.tClose, "MARKET_CLOSED");
-        require(outcomeIndex < virtualFloor.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+        require(block.timestamp < vf.creationParams.tClose, "MARKET_CLOSED");
+        require(outcomeIndex < vf.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
         // Note: By enforcing this requirement, we can later assume that 0 committed value = 0 commitments
         // If we allowed 0-value commitments, it would no longer be possible to make this deduction.
         require(amount > 0, "AMOUNT_ZERO");
 
-        _paymentTokenOf(virtualFloor).safeTransferFrom(_msgSender(), address(this), amount);
+        _paymentTokenOf(vf).safeTransferFrom(_msgSender(), address(this), amount);
 
         // Assign all commitments that happen within the same `_TIMESLOT_DURATION`, to the same "timeslot."
         // These commitments will all be assigned the same associated beta value.
@@ -304,28 +304,28 @@ contract DoubleDice is
         // will be minted as balances on the the same ERC-1155 tokenId, which means that
         // these balances will be exchangeable/tradeable/fungible between themselves,
         // but they will not be fungible with commitments to the same outcome that arrive later.
-        timeslot = MathUpgradeable.max(virtualFloor.creationParams.tOpen, timeslot);
+        timeslot = MathUpgradeable.max(vf.creationParams.tOpen, timeslot);
 
-        UFixed256x18 beta_e18 = _calcBeta(virtualFloor, timeslot);
-        OutcomeTotals storage outcomeTotals = virtualFloor.outcomeTotals[outcomeIndex];
+        UFixed256x18 beta_e18 = _calcBeta(vf, timeslot);
+        OutcomeTotals storage outcomeTotals = vf.outcomeTotals[outcomeIndex];
 
         // Only increment this counter the first time an outcome is committed to.
         // In this way, this counter will be updated maximum nOutcome times over the entire commitment period.
         // Some gas could be saved here by marking as unchecked, and by not counting beyond 2,
         // but we choose to forfeit these micro-optimizations to retain simplicity.
         if (outcomeTotals.amount == 0) {
-            virtualFloor.nonzeroOutcomeCount += 1;
+            vf.nonzeroOutcomeCount += 1;
         }
 
         outcomeTotals.amount += amount;
         outcomeTotals.amountTimesBeta_e18 = outcomeTotals.amountTimesBeta_e18.add(beta_e18.mul0(amount));
 
-        uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(virtualFloorId, outcomeIndex, timeslot);
+        uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(vfId, outcomeIndex, timeslot);
 
         // From the Graph's point of view...
         // First we declare the parameters bound to a particular tokenId...
         emit UserCommitment({
-            virtualFloorId: virtualFloorId,
+            virtualFloorId: vfId,
             committer: _msgSender(),
             outcomeIndex: outcomeIndex,
             timeslot: timeslot,
@@ -370,17 +370,17 @@ contract DoubleDice is
             uint256 id = ids[i];
             // Only restrict commitment-type ERC-1155 token transfers
             if (ERC1155TokenIds.isTypeCommitmentBalance(id)) {
-                uint256 virtualFloorId = ERC1155TokenIds.extractVirtualFloorId(id);
-                VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
+                uint256 vfId = ERC1155TokenIds.extractVirtualFloorId(id);
+                VirtualFloor storage vf = _vfs[vfId];
 
                 // ToDo: Does combining these requires into 1 require result in significant gas decrease?
-                if(!(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed)) {
+                if(!(vf.internalState == VirtualFloorInternalState.RunningOrClosed)) {
                     revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.WrongState);
                 }
-                if(!(block.timestamp < virtualFloor.creationParams.tResolve)) {
+                if(!(block.timestamp < vf.creationParams.tResolve)) {
                     revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooLate);
                 }
-                if(!_hasCommitmentsToEnoughOutcomes(virtualFloor)) {
+                if(!_hasCommitmentsToEnoughOutcomes(vf)) {
                     revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.VirtualFloorUnresolvable);
                 }
             }
@@ -395,51 +395,51 @@ contract DoubleDice is
     /// 1. The only possible action for this virtual-floor is to cancel it via this function,
     ///    which may be invoked by anyone without restriction.
     /// 2. Any ERC-1155 commitment-type token balance associated with this virtual-floor is untransferable
-    function cancelVirtualFloorUnresolvable(uint256 virtualFloorId)
+    function cancelVirtualFloorUnresolvable(uint256 vfId)
         external
     {
-        VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
-        require(block.timestamp >= virtualFloor.creationParams.tClose, "TOO_EARLY");
-        require(!_hasCommitmentsToEnoughOutcomes(virtualFloor), "Error: VF only unresolvable if commitments to less than 2 outcomes");
-        virtualFloor.internalState = VirtualFloorInternalState.CancelledUnresolvable;
-        emit VirtualFloorCancellationUnresolvable(virtualFloorId);
+        VirtualFloor storage vf = _vfs[vfId];
+        require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        require(block.timestamp >= vf.creationParams.tClose, "TOO_EARLY");
+        require(!_hasCommitmentsToEnoughOutcomes(vf), "Error: VF only unresolvable if commitments to less than 2 outcomes");
+        vf.internalState = VirtualFloorInternalState.CancelledUnresolvable;
+        emit VirtualFloorCancellationUnresolvable(vfId);
     }
 
-    function cancelVirtualFloorFlagged(uint256 virtualFloorId, string calldata reason)
+    function cancelVirtualFloorFlagged(uint256 vfId, string calldata reason)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
-        virtualFloor.internalState = VirtualFloorInternalState.CancelledFlagged;
-        emit VirtualFloorCancellationFlagged(virtualFloorId, reason);
+        VirtualFloor storage vf = _vfs[vfId];
+        require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        vf.internalState = VirtualFloorInternalState.CancelledFlagged;
+        emit VirtualFloorCancellationFlagged(vfId, reason);
     }
 
-    function resolve(uint256 virtualFloorId, uint8 winningOutcomeIndex)
+    function resolve(uint256 vfId, uint8 winningOutcomeIndex)
         external
     {
-        VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        VirtualFloor storage vf = _vfs[vfId];
+        require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
 
         // We do this check inline instead of using a special `onlyVirtualFloorCreator` modifier, so that
         // (1) we do not break the pattern by which we always check state first
         // (2) we avoid "hiding away" code in modifiers
-        require(_msgSender() == virtualFloor.creator, "NOT_VIRTUALFLOOR_OWNER");
+        require(_msgSender() == vf.creator, "NOT_VIRTUALFLOOR_OWNER");
 
-        require(_hasCommitmentsToEnoughOutcomes(virtualFloor), "Error: Cannot resolve VF with commitments to less than 2 outcomes");
+        require(_hasCommitmentsToEnoughOutcomes(vf), "Error: Cannot resolve VF with commitments to less than 2 outcomes");
 
-        require(block.timestamp >= virtualFloor.creationParams.tResolve, "TOO_EARLY_TO_RESOLVE");
-        require(winningOutcomeIndex < virtualFloor.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+        require(block.timestamp >= vf.creationParams.tResolve, "TOO_EARLY_TO_RESOLVE");
+        require(winningOutcomeIndex < vf.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
-        virtualFloor.winningOutcomeIndex = winningOutcomeIndex;
+        vf.winningOutcomeIndex = winningOutcomeIndex;
 
         uint256 totalVirtualFloorCommittedAmount = 0;
-        for (uint256 i = 0; i < virtualFloor.creationParams.nOutcomes; i++) {
-            totalVirtualFloorCommittedAmount += virtualFloor.outcomeTotals[i].amount;
+        for (uint256 i = 0; i < vf.creationParams.nOutcomes; i++) {
+            totalVirtualFloorCommittedAmount += vf.outcomeTotals[i].amount;
         }
 
-        uint256 totalWinnerCommitments = virtualFloor.outcomeTotals[winningOutcomeIndex].amount;
+        uint256 totalWinnerCommitments = vf.outcomeTotals[winningOutcomeIndex].amount;
 
         VirtualFloorResolutionType resolutionType;
         uint256 platformFeeAmount;
@@ -453,7 +453,7 @@ contract DoubleDice is
             // to reclaim the equivalent original ERC-20 token amount,
             // i.e. to withdraw the current ERC-1155 balance as ERC-20 tokens.
             // Neither the creator nor the platform take any fees in this circumstance.
-            virtualFloor.internalState = VirtualFloorInternalState.CancelledResolvedNoWinners;
+            vf.internalState = VirtualFloorInternalState.CancelledResolvedNoWinners;
             resolutionType = VirtualFloorResolutionType.CancelledNoWinners;
             platformFeeAmount = 0;
             creatorFeeAmount = 0;
@@ -466,11 +466,11 @@ contract DoubleDice is
             // We retain this assertion as a form of documentation.
             assert(false);
         } else {
-            virtualFloor.internalState = VirtualFloorInternalState.ResolvedWinners;
+            vf.internalState = VirtualFloorInternalState.ResolvedWinners;
             resolutionType = VirtualFloorResolutionType.Winners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
-            uint256 maxCreationFeeAmount = virtualFloor.creationParams.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
+            uint256 maxCreationFeeAmount = vf.creationParams.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
 
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
             uint256 creationFeePlusWinnerProfits = totalVirtualFloorCommittedAmount - totalWinnerCommitments;
@@ -479,20 +479,20 @@ contract DoubleDice is
             uint256 creationFeeAmount = MathUpgradeable.min(maxCreationFeeAmount, creationFeePlusWinnerProfits);
 
             winnerProfits = creationFeePlusWinnerProfits - creationFeeAmount;
-            virtualFloor.winnerProfits = winnerProfits.toUint192();
+            vf.winnerProfits = winnerProfits.toUint192();
 
-            platformFeeAmount = virtualFloor.creationParams.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
-            _paymentTokenOf(virtualFloor).safeTransfer(platformFeeBeneficiary, platformFeeAmount);
+            platformFeeAmount = vf.creationParams.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
+            _paymentTokenOf(vf).safeTransfer(platformFeeBeneficiary, platformFeeAmount);
 
             unchecked {
                 creatorFeeAmount = creationFeeAmount - platformFeeAmount;
             }
             // _msgSender() owns the virtual-floor
-            _paymentTokenOf(virtualFloor).safeTransfer(_msgSender(), creatorFeeAmount);
+            _paymentTokenOf(vf).safeTransfer(_msgSender(), creatorFeeAmount);
         }
 
         emit VirtualFloorResolution({
-            virtualFloorId: virtualFloorId,
+            virtualFloorId: vfId,
             winningOutcomeIndex: winningOutcomeIndex,
             resolutionType: resolutionType,
             winnerProfits: winnerProfits,
@@ -504,33 +504,33 @@ contract DoubleDice is
     function claim(VirtualFloorOutcomeTimeslot calldata context)
         external
     {
-        VirtualFloor storage virtualFloor = _virtualFloors[context.virtualFloorId];
-        if (virtualFloor.internalState == VirtualFloorInternalState.ResolvedWinners) {
+        VirtualFloor storage vf = _vfs[context.virtualFloorId];
+        if (vf.internalState == VirtualFloorInternalState.ResolvedWinners) {
 
             // ToDo: Because of this requirement, losing tokens can never be burnt... would we like to burn them? 
-            require(context.outcomeIndex == virtualFloor.winningOutcomeIndex, "NOT_WINNING_OUTCOME");
+            require(context.outcomeIndex == vf.winningOutcomeIndex, "NOT_WINNING_OUTCOME");
 
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
-            UFixed256x18 beta = _calcBeta(virtualFloor, context.timeslot);
+            UFixed256x18 beta = _calcBeta(vf, context.timeslot);
             UFixed256x18 amountTimesBeta = beta.mul0(amount);
-            UFixed256x18 aggregateAmountTimesBeta = virtualFloor.outcomeTotals[virtualFloor.winningOutcomeIndex].amountTimesBeta_e18;
-            uint256 profit = amountTimesBeta.mul0(virtualFloor.winnerProfits).divToUint256(aggregateAmountTimesBeta);
+            UFixed256x18 aggregateAmountTimesBeta = vf.outcomeTotals[vf.winningOutcomeIndex].amountTimesBeta_e18;
+            uint256 profit = amountTimesBeta.mul0(vf.winnerProfits).divToUint256(aggregateAmountTimesBeta);
             uint256 payout = amount + profit;
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            _paymentTokenOf(virtualFloor).transfer(_msgSender(), payout);
-        } else if (virtualFloor.internalState == VirtualFloorInternalState.CancelledUnresolvable
-                || virtualFloor.internalState == VirtualFloorInternalState.CancelledResolvedNoWinners
-                || virtualFloor.internalState == VirtualFloorInternalState.CancelledFlagged) {
+            _paymentTokenOf(vf).transfer(_msgSender(), payout);
+        } else if (vf.internalState == VirtualFloorInternalState.CancelledUnresolvable
+                || vf.internalState == VirtualFloorInternalState.CancelledResolvedNoWinners
+                || vf.internalState == VirtualFloorInternalState.CancelledFlagged) {
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
-            _paymentTokenOf(virtualFloor).transfer(_msgSender(), amount);
-        } else if (virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed) {
+            _paymentTokenOf(vf).transfer(_msgSender(), amount);
+        } else if (vf.internalState == VirtualFloorInternalState.RunningOrClosed) {
             revert("MARKET_NOT_RESOLVED");
-        } else if (virtualFloor.internalState == VirtualFloorInternalState.None) {
+        } else if (vf.internalState == VirtualFloorInternalState.None) {
             revert("MARKET_NOT_FOUND");
         }
     }
@@ -546,32 +546,32 @@ contract DoubleDice is
 
     // ***** INFORMATIONAL *****
 
-    function getVirtualFloorCreator(uint256 virtualFloorId) external view returns (address) {
-        VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.internalState != VirtualFloorInternalState.None, "VIRTUAL_FLOOR_NOT_FOUND");
-        return virtualFloor.creator;
+    function getVirtualFloorCreator(uint256 vfId) external view returns (address) {
+        VirtualFloor storage vf = _vfs[vfId];
+        require(vf.internalState != VirtualFloorInternalState.None, "VIRTUAL_FLOOR_NOT_FOUND");
+        return vf.creator;
     }
 
     // If less than 2 outcomes have commitments, then this VF is unresolvable,
     // and resolution is aborted. Instead the VF should be cancelled.
-    function _hasCommitmentsToEnoughOutcomes(VirtualFloor storage virtualFloor) internal view returns (bool) {
-        return virtualFloor.nonzeroOutcomeCount >= 2;
+    function _hasCommitmentsToEnoughOutcomes(VirtualFloor storage vf) internal view returns (bool) {
+        return vf.nonzeroOutcomeCount >= 2;
     }
 
-    function getVirtualFloorOutcomeTotals(uint256 virtualFloorId, uint8 outcomeIndex)
+    function getVirtualFloorOutcomeTotals(uint256 vfId, uint8 outcomeIndex)
         external view returns (OutcomeTotals memory)
     {
-        return _virtualFloors[virtualFloorId].outcomeTotals[outcomeIndex];
+        return _vfs[vfId].outcomeTotals[outcomeIndex];
     }
 
     function TIMESLOT_DURATION() external pure returns (uint256) {
         return _TIMESLOT_DURATION;
     }
 
-    function getVirtualFloorParams(uint256 virtualFloorId)
+    function getVirtualFloorParams(uint256 vfId)
         external view returns (VirtualFloorParams memory)
     {
-        VirtualFloor storage vf = _virtualFloors[virtualFloorId];
+        VirtualFloor storage vf = _vfs[vfId];
         return VirtualFloorParams({
             betaOpen_e18: vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
             creationFeeRate_e18: vf.creationParams.creationFeeRate.toUFixed256x18(),
@@ -586,13 +586,13 @@ contract DoubleDice is
     }
 
     function getVirtualFloorState(
-        uint256 virtualFloorId
+        uint256 vfId
     )
         public
         view
         returns (VirtualFloorState)
     {
-        VirtualFloor storage vf = _virtualFloors[virtualFloorId];
+        VirtualFloor storage vf = _vfs[vfId];
         VirtualFloorInternalState internalState = vf.internalState;
         if (internalState == VirtualFloorInternalState.None) {
             return VirtualFloorState.None;

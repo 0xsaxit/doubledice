@@ -45,7 +45,7 @@
 
 <script lang="ts">
 import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
-import { Outcome as OutcomeEntity, VirtualFloor as VirtualFloorEntity, VirtualFloorState } from '@doubledice/platform/lib/graph'
+import { Outcome as OutcomeEntity, VirtualFloor as VirtualFloorEntity, VirtualFloorInternalState } from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
 import { BigNumber } from 'ethers'
 import { PropType } from 'vue'
@@ -100,7 +100,7 @@ export default class OutcomeComponent extends Vue {
   }
 
   get canCommit(): boolean {
-    return this.virtualFloor.state === VirtualFloorState.RunningOrClosed &&
+    return this.virtualFloor.state === VirtualFloorInternalState.RunningOrClosed &&
       this.nextBlockTimestamp < Number(this.virtualFloor.tClose)
   }
 
@@ -125,7 +125,7 @@ export default class OutcomeComponent extends Vue {
   }
 
   get canResolve(): boolean {
-    return this.virtualFloor.state === VirtualFloorState.RunningOrClosed &&
+    return this.virtualFloor.state === VirtualFloorInternalState.RunningOrClosed &&
       this.nextBlockTimestamp >= Number(this.virtualFloor.tResolve) &&
       !this.isVirtualFloorUnresolvable
   }
@@ -150,15 +150,15 @@ export default class OutcomeComponent extends Vue {
   }
 
   get isWinningOutcome(): boolean {
-    return this.virtualFloor.state !== VirtualFloorState.RunningOrClosed && this.outcome.index === this.virtualFloor.winningOutcome?.index
+    return this.virtualFloor.state !== VirtualFloorInternalState.RunningOrClosed && this.outcome.index === this.virtualFloor.winningOutcome?.index
     // return false
   }
 
   get winningText(): string {
     switch (this.virtualFloor.state) {
-      case VirtualFloorState.ResolvedWinners:
+      case VirtualFloorInternalState.ResolvedWinners:
         return '🏆'
-      case VirtualFloorState.CancelledBecauseResolvedNoWinners:
+      case VirtualFloorInternalState.CancelledBecauseResolvedNoWinners:
         return '🤷'
       default:
         return '?'

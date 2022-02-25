@@ -113,7 +113,7 @@
 import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
 import {
   VirtualFloor as VirtualFloorEntity,
-  VirtualFloorState as VirtualFloorEntityState
+  VirtualFloorInternalState as VirtualFloorEntityState
 } from '@doubledice/platform/lib/graph'
 import BigDecimal from 'bignumber.js'
 import { PropType } from 'vue'

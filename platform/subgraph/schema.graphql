@@ -28,7 +28,7 @@ type Subcategory @entity {
   slug: String!
 }
 
-enum VirtualFloorState {
+enum VirtualFloorInternalState {
   RUNNING_OR_CLOSED,
   CANCELLED_BECAUSE_UNRESOLVABLE,
   CANCELLED_BECAUSE_RESOLVED_NO_WINNERS,
@@ -58,7 +58,7 @@ type VirtualFloor @entity {
   tOpen: BigInt!
   tClose: BigInt!
   tResolve: BigInt!
-  state: VirtualFloorState!
+  state: VirtualFloorInternalState!
   winningOutcome: Outcome # Optional: Only set if VF is resolved
   flaggingReason: String  # Optional: Only set if VF is cancelled because it was flagged
 

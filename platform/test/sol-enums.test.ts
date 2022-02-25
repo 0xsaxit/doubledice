@@ -8,8 +8,8 @@ import {
   VirtualFloorComputedStateWrapper__factory,
   VirtualFloorResolutionType,
   VirtualFloorResolutionTypeWrapper__factory,
-  VirtualFloorState,
-  VirtualFloorStateWrapper__factory
+  VirtualFloorInternalState,
+  VirtualFloorInternalStateWrapper__factory
 } from '../lib/contracts';
 
 describe('Check manual Solidity-enum-type TypeScript analogs against actual values', () => {
@@ -20,15 +20,15 @@ describe('Check manual Solidity-enum-type TypeScript analogs against actual valu
     [signer] = await ethers.getSigners();
   });
 
-  it('VirtualFloorState', async () => {
-    const lib = await new VirtualFloorStateWrapper__factory(signer).deploy();
+  it('VirtualFloorInternalState', async () => {
+    const lib = await new VirtualFloorInternalStateWrapper__factory(signer).deploy();
     await lib.deployed();
-    expect(VirtualFloorState.None).to.eq(await lib.None());
-    expect(VirtualFloorState.RunningOrClosed).to.eq(await lib.RunningOrClosed());
-    expect(VirtualFloorState.ResolvedWinners).to.eq(await lib.ResolvedWinners());
-    expect(VirtualFloorState.CancelledUnresolvable).to.eq(await lib.CancelledUnresolvable());
-    expect(VirtualFloorState.CancelledResolvedNoWinners).to.eq(await lib.CancelledResolvedNoWinners());
-    expect(VirtualFloorState.CancelledFlagged).to.eq(await lib.CancelledFlagged());
+    expect(VirtualFloorInternalState.None).to.eq(await lib.None());
+    expect(VirtualFloorInternalState.RunningOrClosed).to.eq(await lib.RunningOrClosed());
+    expect(VirtualFloorInternalState.ResolvedWinners).to.eq(await lib.ResolvedWinners());
+    expect(VirtualFloorInternalState.CancelledUnresolvable).to.eq(await lib.CancelledUnresolvable());
+    expect(VirtualFloorInternalState.CancelledResolvedNoWinners).to.eq(await lib.CancelledResolvedNoWinners());
+    expect(VirtualFloorInternalState.CancelledFlagged).to.eq(await lib.CancelledFlagged());
   });
 
   it('VirtualFloorComputedState', async () => {

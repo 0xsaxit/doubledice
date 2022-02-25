@@ -432,7 +432,7 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
 
-    // Map DoubleDice.sol#VirtualFloorResolutionType => schema.graphql#VirtualFloorState
+    // Map DoubleDice.sol#VirtualFloorResolutionType => schema.graphql#VirtualFloorInternalState
     switch (event.params.resolutionType) {
       case 0: // VirtualFloorResolutionType.NoWinners
         $.state = 'CANCELLED_BECAUSE_RESOLVED_NO_WINNERS';

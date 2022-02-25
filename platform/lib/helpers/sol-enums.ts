@@ -1,4 +1,4 @@
-export enum VirtualFloorState {
+export enum VirtualFloorInternalState {
   None,
   RunningOrClosed,
   ResolvedWinners,

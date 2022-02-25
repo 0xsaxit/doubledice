@@ -4,11 +4,11 @@ pragma solidity 0.8.12;
 
 import "../../DoubleDice.sol";
 
-contract VirtualFloorStateWrapper {
-    VirtualFloorState constant public None = VirtualFloorState.None;
-    VirtualFloorState constant public RunningOrClosed = VirtualFloorState.RunningOrClosed;
-    VirtualFloorState constant public ResolvedWinners = VirtualFloorState.ResolvedWinners;
-    VirtualFloorState constant public CancelledUnresolvable = VirtualFloorState.CancelledUnresolvable;
-    VirtualFloorState constant public CancelledResolvedNoWinners = VirtualFloorState.CancelledResolvedNoWinners;
-    VirtualFloorState constant public CancelledFlagged = VirtualFloorState.CancelledFlagged;
+contract VirtualFloorInternalStateWrapper {
+    VirtualFloorInternalState constant public None = VirtualFloorInternalState.None;
+    VirtualFloorInternalState constant public RunningOrClosed = VirtualFloorInternalState.RunningOrClosed;
+    VirtualFloorInternalState constant public ResolvedWinners = VirtualFloorInternalState.ResolvedWinners;
+    VirtualFloorInternalState constant public CancelledUnresolvable = VirtualFloorInternalState.CancelledUnresolvable;
+    VirtualFloorInternalState constant public CancelledResolvedNoWinners = VirtualFloorInternalState.CancelledResolvedNoWinners;
+    VirtualFloorInternalState constant public CancelledFlagged = VirtualFloorInternalState.CancelledFlagged;
 }

@@ -27,7 +27,7 @@ struct OutcomeTotals {
     UFixed256x18 amountTimesBeta_e18;
 }
 
-enum VirtualFloorState {
+enum VirtualFloorInternalState {
     None,
 
     /// @dev Running if t < tClose else Closed
@@ -79,7 +79,7 @@ struct VirtualFloor {
     // Storage slot 1: Slot written to during createVirtualFloor, and updated throughout VF lifecycle
     address owner;             //   20 bytes
     bytes10 reserved2;         // + 10 bytes
-    VirtualFloorState state;   // +  1 byte
+    VirtualFloorInternalState internalState;   // +  1 byte
     uint8 nonzeroOutcomeCount; // +  1 byte  ; number of outcomes having aggregate commitments > 0
                                // = 32 bytes => packed into 1 32-byte slot
 
@@ -213,7 +213,7 @@ contract DoubleDice is
 
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
 
-        require(virtualFloor.state == VirtualFloorState.None, "MARKET_DUPLICATE");
+        require(virtualFloor.internalState == VirtualFloorInternalState.None, "MARKET_DUPLICATE");
 
         require(betaOpen.gte(_BETA_CLOSE), "Error: betaOpen < 1.0");
         virtualFloor.creationParams.betaOpenMinusBetaClose = betaOpen.sub(_BETA_CLOSE).toUFixed32x6();
@@ -244,7 +244,7 @@ contract DoubleDice is
         require(_paymentTokenWhitelist.isWhitelisted(address(paymentToken)), "Error: Payment token is not whitelisted");
         virtualFloor.creationParams.paymentTokenId = toAddressWhitelistKey(address(paymentToken));
 
-        virtualFloor.state = VirtualFloorState.RunningOrClosed;
+        virtualFloor.internalState = VirtualFloorInternalState.RunningOrClosed;
         virtualFloor.creationParams.tOpen = tOpen;
         virtualFloor.creationParams.tClose = tClose;
         virtualFloor.creationParams.tResolve = tResolve;
@@ -276,7 +276,7 @@ contract DoubleDice is
         external
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_NOT_FOUND");
+        require(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_NOT_FOUND");
 
         require(block.timestamp < virtualFloor.creationParams.tClose, "MARKET_CLOSED");
         require(outcomeIndex < virtualFloor.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
@@ -371,7 +371,7 @@ contract DoubleDice is
                 VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
 
                 // ToDo: Does combining these requires into 1 require result in significant gas decrease?
-                if(!(virtualFloor.state == VirtualFloorState.RunningOrClosed)) {
+                if(!(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed)) {
                     revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.WrongState);
                 }
                 if(!(block.timestamp < virtualFloor.creationParams.tResolve)) {
@@ -396,10 +396,10 @@ contract DoubleDice is
         external
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        require(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
         require(block.timestamp >= virtualFloor.creationParams.tClose, "TOO_EARLY");
         require(!_hasCommitmentsToEnoughOutcomes(virtualFloor), "Error: VF only unresolvable if commitments to less than 2 outcomes");
-        virtualFloor.state = VirtualFloorState.CancelledUnresolvable;
+        virtualFloor.internalState = VirtualFloorInternalState.CancelledUnresolvable;
         emit VirtualFloorCancellationUnresolvable(virtualFloorId);
     }
 
@@ -408,8 +408,8 @@ contract DoubleDice is
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
-        virtualFloor.state = VirtualFloorState.CancelledFlagged;
+        require(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        virtualFloor.internalState = VirtualFloorInternalState.CancelledFlagged;
         emit VirtualFloorCancellationFlagged(virtualFloorId, reason);
     }
 
@@ -417,7 +417,7 @@ contract DoubleDice is
         external
     {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.state == VirtualFloorState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        require(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
 
         // We do this check inline instead of using a special `onlyVirtualFloorOwner` modifier, so that
         // (1) we do not break the pattern by which we always check state first
@@ -450,7 +450,7 @@ contract DoubleDice is
             // to reclaim the equivalent original ERC-20 token amount,
             // i.e. to withdraw the current ERC-1155 balance as ERC-20 tokens.
             // Neither the creator nor the platform take any fees in this circumstance.
-            virtualFloor.state = VirtualFloorState.CancelledResolvedNoWinners;
+            virtualFloor.internalState = VirtualFloorInternalState.CancelledResolvedNoWinners;
             resolutionType = VirtualFloorResolutionType.CancelledNoWinners;
             platformFeeAmount = 0;
             ownerFeeAmount = 0;
@@ -463,7 +463,7 @@ contract DoubleDice is
             // We retain this assertion as a form of documentation.
             assert(false);
         } else {
-            virtualFloor.state = VirtualFloorState.ResolvedWinners;
+            virtualFloor.internalState = VirtualFloorInternalState.ResolvedWinners;
             resolutionType = VirtualFloorResolutionType.Winners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
@@ -502,7 +502,7 @@ contract DoubleDice is
         external
     {
         VirtualFloor storage virtualFloor = _virtualFloors[context.virtualFloorId];
-        if (virtualFloor.state == VirtualFloorState.ResolvedWinners) {
+        if (virtualFloor.internalState == VirtualFloorInternalState.ResolvedWinners) {
 
             // ToDo: Because of this requirement, losing tokens can never be burnt... would we like to burn them? 
             require(context.outcomeIndex == virtualFloor.winningOutcomeIndex, "NOT_WINNING_OUTCOME");
@@ -517,17 +517,17 @@ contract DoubleDice is
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
             _paymentTokenOf(virtualFloor).transfer(_msgSender(), payout);
-        } else if (virtualFloor.state == VirtualFloorState.CancelledUnresolvable
-                || virtualFloor.state == VirtualFloorState.CancelledResolvedNoWinners
-                || virtualFloor.state == VirtualFloorState.CancelledFlagged) {
+        } else if (virtualFloor.internalState == VirtualFloorInternalState.CancelledUnresolvable
+                || virtualFloor.internalState == VirtualFloorInternalState.CancelledResolvedNoWinners
+                || virtualFloor.internalState == VirtualFloorInternalState.CancelledFlagged) {
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
             _paymentTokenOf(virtualFloor).transfer(_msgSender(), amount);
-        } else if (virtualFloor.state == VirtualFloorState.RunningOrClosed) {
+        } else if (virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed) {
             revert("MARKET_NOT_RESOLVED");
-        } else if (virtualFloor.state == VirtualFloorState.None) {
+        } else if (virtualFloor.internalState == VirtualFloorInternalState.None) {
             revert("MARKET_NOT_FOUND");
         }
     }
@@ -545,7 +545,7 @@ contract DoubleDice is
 
     function getVirtualFloorOwner(uint256 virtualFloorId) external view returns (address) {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
-        require(virtualFloor.state != VirtualFloorState.None, "VIRTUAL_FLOOR_NOT_FOUND");
+        require(virtualFloor.internalState != VirtualFloorInternalState.None, "VIRTUAL_FLOOR_NOT_FOUND");
         return virtualFloor.owner;
     }
 
@@ -590,10 +590,10 @@ contract DoubleDice is
         returns (VirtualFloorComputedState)
     {
         VirtualFloor storage vf = _virtualFloors[virtualFloorId];
-        VirtualFloorState state = vf.state;
-        if (state == VirtualFloorState.None) {
+        VirtualFloorInternalState state = vf.internalState;
+        if (state == VirtualFloorInternalState.None) {
             return VirtualFloorComputedState.None;
-        } else if (state == VirtualFloorState.RunningOrClosed) {
+        } else if (state == VirtualFloorInternalState.RunningOrClosed) {
             if (block.timestamp < vf.creationParams.tClose) {
                 return VirtualFloorComputedState.Running;
             } else {
@@ -607,13 +607,13 @@ contract DoubleDice is
                     return VirtualFloorComputedState.ClosedUnresolvable;
                 }
             }
-        } else if (state == VirtualFloorState.ResolvedWinners) {
+        } else if (state == VirtualFloorInternalState.ResolvedWinners) {
             return VirtualFloorComputedState.ResolvedWinners;
-        } else if (state == VirtualFloorState.CancelledUnresolvable) {
+        } else if (state == VirtualFloorInternalState.CancelledUnresolvable) {
             return VirtualFloorComputedState.CancelledResolvedNoWinners;
-        } else if (state == VirtualFloorState.CancelledResolvedNoWinners) {
+        } else if (state == VirtualFloorInternalState.CancelledResolvedNoWinners) {
             return VirtualFloorComputedState.CancelledUnresolvable;
-        } else /* if (state == VirtualFloorState.CancelledFlagged) */ {
+        } else /* if (state == VirtualFloorInternalState.CancelledFlagged) */ {
             return VirtualFloorComputedState.CancelledFlagged;
         }
     }

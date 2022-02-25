@@ -39,7 +39,7 @@ struct VirtualFloorParams {
     uint32 tResolve;
     uint8 nOutcomes;
     IERC20Upgradeable paymentToken;
-    address owner;
+    address creator;
 }
 
 enum VirtualFloorState {
@@ -112,7 +112,7 @@ interface IDoubleDice is
         VirtualFloorResolutionType resolutionType,
         uint256 winnerProfits,
         uint256 platformFeeAmount,
-        uint256 ownerFeeAmount
+        uint256 creatorFeeAmount
     );
 
     /// @notice Create a new virtual-floor.
@@ -146,7 +146,7 @@ interface IDoubleDice is
 
     function platformFeeBeneficiary() external view returns (address);
 
-    function getVirtualFloorOwner(uint256 virtualFloorId) external view returns (address);
+    function getVirtualFloorCreator(uint256 virtualFloorId) external view returns (address);
 
     function getVirtualFloorParams(uint256 virtualFloorId) external view returns (VirtualFloorParams memory);
 

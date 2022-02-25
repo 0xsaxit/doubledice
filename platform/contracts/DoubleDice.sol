@@ -77,7 +77,7 @@ struct VirtualFloor {
     StoredVirtualFloorCreationParams creationParams;
 
     // Storage slot 1: Slot written to during createVirtualFloor, and updated throughout VF lifecycle
-    address owner;             //   20 bytes
+    address creator;             //   20 bytes
     bytes10 reserved2;         // + 10 bytes
     VirtualFloorInternalState internalState;   // +  1 byte
     uint8 nonzeroOutcomeCount; // +  1 byte  ; number of outcomes having aggregate commitments > 0
@@ -272,7 +272,7 @@ contract DoubleDice is
         // ToDo: For now we simply set owner field on VF data-structure.
         // Later we might bring back this VF being a NFT, as this would
         // allow ownership transfer, integration with Etherscan, wallets, etc.
-        virtualFloor.owner = _msgSender();
+        virtualFloor.creator = _msgSender();
     }
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount)
@@ -422,10 +422,10 @@ contract DoubleDice is
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
 
-        // We do this check inline instead of using a special `onlyVirtualFloorOwner` modifier, so that
+        // We do this check inline instead of using a special `onlyVirtualFloorCreator` modifier, so that
         // (1) we do not break the pattern by which we always check state first
         // (2) we avoid "hiding away" code in modifiers
-        require(_msgSender() == virtualFloor.owner, "NOT_VIRTUALFLOOR_OWNER");
+        require(_msgSender() == virtualFloor.creator, "NOT_VIRTUALFLOOR_OWNER");
 
         require(_hasCommitmentsToEnoughOutcomes(virtualFloor), "Error: Cannot resolve VF with commitments to less than 2 outcomes");
 
@@ -443,7 +443,7 @@ contract DoubleDice is
 
         VirtualFloorResolutionType resolutionType;
         uint256 platformFeeAmount;
-        uint256 ownerFeeAmount;
+        uint256 creatorFeeAmount;
         uint256 winnerProfits;
 
         if (totalWinnerCommitments == 0) {
@@ -456,7 +456,7 @@ contract DoubleDice is
             virtualFloor.internalState = VirtualFloorInternalState.CancelledResolvedNoWinners;
             resolutionType = VirtualFloorResolutionType.CancelledNoWinners;
             platformFeeAmount = 0;
-            ownerFeeAmount = 0;
+            creatorFeeAmount = 0;
             winnerProfits = 0;
         } else if (totalWinnerCommitments == totalVirtualFloorCommittedAmount) {
             // This used to be handled on this contract as a VirtualFloorResolution of type AllWinners,
@@ -485,10 +485,10 @@ contract DoubleDice is
             _paymentTokenOf(virtualFloor).safeTransfer(platformFeeBeneficiary, platformFeeAmount);
 
             unchecked {
-                ownerFeeAmount = creationFeeAmount - platformFeeAmount;
+                creatorFeeAmount = creationFeeAmount - platformFeeAmount;
             }
             // _msgSender() owns the virtual-floor
-            _paymentTokenOf(virtualFloor).safeTransfer(_msgSender(), ownerFeeAmount);
+            _paymentTokenOf(virtualFloor).safeTransfer(_msgSender(), creatorFeeAmount);
         }
 
         emit VirtualFloorResolution({
@@ -497,7 +497,7 @@ contract DoubleDice is
             resolutionType: resolutionType,
             winnerProfits: winnerProfits,
             platformFeeAmount: platformFeeAmount,
-            ownerFeeAmount: ownerFeeAmount
+            creatorFeeAmount: creatorFeeAmount
         });
     }
 
@@ -546,10 +546,10 @@ contract DoubleDice is
 
     // ***** INFORMATIONAL *****
 
-    function getVirtualFloorOwner(uint256 virtualFloorId) external view returns (address) {
+    function getVirtualFloorCreator(uint256 virtualFloorId) external view returns (address) {
         VirtualFloor storage virtualFloor = _virtualFloors[virtualFloorId];
         require(virtualFloor.internalState != VirtualFloorInternalState.None, "VIRTUAL_FLOOR_NOT_FOUND");
-        return virtualFloor.owner;
+        return virtualFloor.creator;
     }
 
     // If less than 2 outcomes have commitments, then this VF is unresolvable,
@@ -581,7 +581,7 @@ contract DoubleDice is
             tResolve: vf.creationParams.tResolve,
             nOutcomes: vf.creationParams.nOutcomes,
             paymentToken: _paymentTokenOf(vf),
-            owner: vf.owner
+            creator: vf.creator
         });
     }
 

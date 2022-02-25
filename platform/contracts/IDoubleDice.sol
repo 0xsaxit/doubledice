@@ -42,7 +42,7 @@ struct VirtualFloorParams {
     address owner;
 }
 
-enum VirtualFloorComputedState {
+enum VirtualFloorState {
     None,
     Running,
     ClosedUnresolvable,
@@ -150,7 +150,7 @@ interface IDoubleDice is
 
     function getVirtualFloorParams(uint256 virtualFloorId) external view returns (VirtualFloorParams memory);
 
-    function getVirtualFloorComputedState(uint256 virtualFloorId) external view returns (VirtualFloorComputedState);
+    function getVirtualFloorState(uint256 virtualFloorId) external view returns (VirtualFloorState);
 
 
     function isPaymentTokenWhitelisted(IERC20Upgradeable token) external view returns (bool);

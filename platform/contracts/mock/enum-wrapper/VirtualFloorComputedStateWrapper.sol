@@ -4,14 +4,14 @@ pragma solidity 0.8.12;
 
 import "../../IDoubleDice.sol";
 
-contract VirtualFloorComputedStateWrapper {
-    VirtualFloorComputedState constant public None = VirtualFloorComputedState.None;
-    VirtualFloorComputedState constant public Running = VirtualFloorComputedState.Running;
-    VirtualFloorComputedState constant public ClosedUnresolvable = VirtualFloorComputedState.ClosedUnresolvable;
-    VirtualFloorComputedState constant public ClosedPreResolvable = VirtualFloorComputedState.ClosedPreResolvable;
-    VirtualFloorComputedState constant public ClosedResolvable = VirtualFloorComputedState.ClosedResolvable;
-    VirtualFloorComputedState constant public ResolvedWinners = VirtualFloorComputedState.ResolvedWinners;
-    VirtualFloorComputedState constant public CancelledResolvedNoWinners = VirtualFloorComputedState.CancelledResolvedNoWinners;
-    VirtualFloorComputedState constant public CancelledUnresolvable = VirtualFloorComputedState.CancelledUnresolvable;
-    VirtualFloorComputedState constant public CancelledFlagged = VirtualFloorComputedState.CancelledFlagged;
+contract VirtualFloorStateWrapper {
+    VirtualFloorState constant public None = VirtualFloorState.None;
+    VirtualFloorState constant public Running = VirtualFloorState.Running;
+    VirtualFloorState constant public ClosedUnresolvable = VirtualFloorState.ClosedUnresolvable;
+    VirtualFloorState constant public ClosedPreResolvable = VirtualFloorState.ClosedPreResolvable;
+    VirtualFloorState constant public ClosedResolvable = VirtualFloorState.ClosedResolvable;
+    VirtualFloorState constant public ResolvedWinners = VirtualFloorState.ResolvedWinners;
+    VirtualFloorState constant public CancelledResolvedNoWinners = VirtualFloorState.CancelledResolvedNoWinners;
+    VirtualFloorState constant public CancelledUnresolvable = VirtualFloorState.CancelledUnresolvable;
+    VirtualFloorState constant public CancelledFlagged = VirtualFloorState.CancelledFlagged;
 }

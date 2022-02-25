@@ -12,7 +12,7 @@ export enum VirtualFloorResolutionType {
   Winners
 }
 
-export enum VirtualFloorComputedState {
+export enum VirtualFloorState {
   None,
   Running,
   ClosedUnresolvable,

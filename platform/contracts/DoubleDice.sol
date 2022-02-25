@@ -582,39 +582,39 @@ contract DoubleDice is
         });
     }
 
-    function getVirtualFloorComputedState(
+    function getVirtualFloorState(
         uint256 virtualFloorId
     )
         public
         view
-        returns (VirtualFloorComputedState)
+        returns (VirtualFloorState)
     {
         VirtualFloor storage vf = _virtualFloors[virtualFloorId];
-        VirtualFloorInternalState state = vf.internalState;
-        if (state == VirtualFloorInternalState.None) {
-            return VirtualFloorComputedState.None;
-        } else if (state == VirtualFloorInternalState.RunningOrClosed) {
+        VirtualFloorInternalState internalState = vf.internalState;
+        if (internalState == VirtualFloorInternalState.None) {
+            return VirtualFloorState.None;
+        } else if (internalState == VirtualFloorInternalState.RunningOrClosed) {
             if (block.timestamp < vf.creationParams.tClose) {
-                return VirtualFloorComputedState.Running;
+                return VirtualFloorState.Running;
             } else {
                 if (_hasCommitmentsToEnoughOutcomes(vf)) {
                     if (block.timestamp < vf.creationParams.tResolve) {
-                        return VirtualFloorComputedState.ClosedPreResolvable;
+                        return VirtualFloorState.ClosedPreResolvable;
                     } else {
-                        return VirtualFloorComputedState.ClosedResolvable;
+                        return VirtualFloorState.ClosedResolvable;
                     }
                 } else {
-                    return VirtualFloorComputedState.ClosedUnresolvable;
+                    return VirtualFloorState.ClosedUnresolvable;
                 }
             }
-        } else if (state == VirtualFloorInternalState.ResolvedWinners) {
-            return VirtualFloorComputedState.ResolvedWinners;
-        } else if (state == VirtualFloorInternalState.CancelledUnresolvable) {
-            return VirtualFloorComputedState.CancelledResolvedNoWinners;
-        } else if (state == VirtualFloorInternalState.CancelledResolvedNoWinners) {
-            return VirtualFloorComputedState.CancelledUnresolvable;
-        } else /* if (state == VirtualFloorInternalState.CancelledFlagged) */ {
-            return VirtualFloorComputedState.CancelledFlagged;
+        } else if (internalState == VirtualFloorInternalState.ResolvedWinners) {
+            return VirtualFloorState.ResolvedWinners;
+        } else if (internalState == VirtualFloorInternalState.CancelledUnresolvable) {
+            return VirtualFloorState.CancelledResolvedNoWinners;
+        } else if (internalState == VirtualFloorInternalState.CancelledResolvedNoWinners) {
+            return VirtualFloorState.CancelledUnresolvable;
+        } else /* if (internalState == VirtualFloorInternalState.CancelledFlagged) */ {
+            return VirtualFloorState.CancelledFlagged;
         }
     }
 

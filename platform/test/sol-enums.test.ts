@@ -4,8 +4,8 @@ import { ethers } from 'hardhat';
 import {
   CommitmentBalanceTransferRejectionCause,
   CommitmentBalanceTransferRejectionCauseWrapper__factory,
-  VirtualFloorComputedState,
-  VirtualFloorComputedStateWrapper__factory,
+  VirtualFloorState,
+  VirtualFloorStateWrapper__factory,
   VirtualFloorResolutionType,
   VirtualFloorResolutionTypeWrapper__factory,
   VirtualFloorInternalState,
@@ -31,18 +31,18 @@ describe('Check manual Solidity-enum-type TypeScript analogs against actual valu
     expect(VirtualFloorInternalState.CancelledFlagged).to.eq(await lib.CancelledFlagged());
   });
 
-  it('VirtualFloorComputedState', async () => {
-    const lib = await new VirtualFloorComputedStateWrapper__factory(signer).deploy();
+  it('VirtualFloorState', async () => {
+    const lib = await new VirtualFloorStateWrapper__factory(signer).deploy();
     await lib.deployed();
-    expect(VirtualFloorComputedState.None).to.eq(await lib.None());
-    expect(VirtualFloorComputedState.Running).to.eq(await lib.Running());
-    expect(VirtualFloorComputedState.ClosedUnresolvable).to.eq(await lib.ClosedUnresolvable());
-    expect(VirtualFloorComputedState.ClosedPreResolvable).to.eq(await lib.ClosedPreResolvable());
-    expect(VirtualFloorComputedState.ClosedResolvable).to.eq(await lib.ClosedResolvable());
-    expect(VirtualFloorComputedState.ResolvedWinners).to.eq(await lib.ResolvedWinners());
-    expect(VirtualFloorComputedState.CancelledResolvedNoWinners).to.eq(await lib.CancelledResolvedNoWinners());
-    expect(VirtualFloorComputedState.CancelledUnresolvable).to.eq(await lib.CancelledUnresolvable());
-    expect(VirtualFloorComputedState.CancelledFlagged).to.eq(await lib.CancelledFlagged());
+    expect(VirtualFloorState.None).to.eq(await lib.None());
+    expect(VirtualFloorState.Running).to.eq(await lib.Running());
+    expect(VirtualFloorState.ClosedUnresolvable).to.eq(await lib.ClosedUnresolvable());
+    expect(VirtualFloorState.ClosedPreResolvable).to.eq(await lib.ClosedPreResolvable());
+    expect(VirtualFloorState.ClosedResolvable).to.eq(await lib.ClosedResolvable());
+    expect(VirtualFloorState.ResolvedWinners).to.eq(await lib.ResolvedWinners());
+    expect(VirtualFloorState.CancelledResolvedNoWinners).to.eq(await lib.CancelledResolvedNoWinners());
+    expect(VirtualFloorState.CancelledUnresolvable).to.eq(await lib.CancelledUnresolvable());
+    expect(VirtualFloorState.CancelledFlagged).to.eq(await lib.CancelledFlagged());
   });
 
   it('VirtualFloorResolutionType', async () => {

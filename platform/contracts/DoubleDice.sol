@@ -94,9 +94,11 @@ struct VirtualFloor {
                                // = 25 bytes => packed into 1 32-byte slot
 }
 
-function _toUint192(uint256 value) pure returns (uint192) {
-    require(value <= type(uint192).max, "SafeCast: value doesn't fit in 192 bits");
-    return uint192(value);
+library Utils {
+    function toUint192(uint256 value) internal pure returns (uint192) {
+        require(value <= type(uint192).max, "SafeCast: value doesn't fit in 192 bits");
+        return uint192(value);
+    }
 }
 
 contract DoubleDice is
@@ -104,15 +106,16 @@ contract DoubleDice is
     ERC1155Upgradeable,
     AccessControlUpgradeable
 {
-    using SafeERC20Upgradeable for IERC20Upgradeable;
-    using SafeCastUpgradeable for uint256;
     using AddressWhitelists for address;
     using AddressWhitelists for AddressWhitelist;
-    using FixedPointTypes for uint256;
     using FixedPointTypes for UFixed16x4;
-    using FixedPointTypes for UFixed32x6;
     using FixedPointTypes for UFixed256x18;
-    
+    using FixedPointTypes for UFixed32x6;
+    using FixedPointTypes for uint256;
+    using SafeCastUpgradeable for uint256;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using Utils for uint256;
+
     /// @dev Compare:
     /// 1. (((tClose - t) * (betaOpen - 1)) / (tClose - tOpen)) * amount
     /// 2. (((tClose - t) * (betaOpen - 1) * amount) / (tClose - tOpen))
@@ -476,7 +479,7 @@ contract DoubleDice is
             uint256 creationFeeAmount = MathUpgradeable.min(maxCreationFeeAmount, creationFeePlusWinnerProfits);
 
             winnerProfits = creationFeePlusWinnerProfits - creationFeeAmount;
-            virtualFloor.winnerProfits = _toUint192(winnerProfits);
+            virtualFloor.winnerProfits = winnerProfits.toUint192();
 
             platformFeeAmount = virtualFloor.creationParams.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
             _paymentTokenOf(virtualFloor).safeTransfer(platformFeeBeneficiary, platformFeeAmount);

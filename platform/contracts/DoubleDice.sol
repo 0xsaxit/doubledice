@@ -368,21 +368,18 @@ contract DoubleDice is
 
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
-            // Only restrict commitment-type ERC-1155 token transfers
-            if (ERC1155TokenIds.isTypeCommitmentBalance(id)) {
-                uint256 vfId = ERC1155TokenIds.extractVirtualFloorId(id);
-                VirtualFloor storage vf = _vfs[vfId];
+            uint256 vfId = ERC1155TokenIds.extractVirtualFloorId(id);
+            VirtualFloor storage vf = _vfs[vfId];
 
-                // ToDo: Does combining these requires into 1 require result in significant gas decrease?
-                if(!(vf.internalState == VirtualFloorInternalState.RunningOrClosed)) {
-                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.WrongState);
-                }
-                if(!(block.timestamp < vf.creationParams.tResolve)) {
-                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooLate);
-                }
-                if(!_hasCommitmentsToEnoughOutcomes(vf)) {
-                    revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.VirtualFloorUnresolvable);
-                }
+            // ToDo: Does combining these requires into 1 require result in significant gas decrease?
+            if(!(vf.internalState == VirtualFloorInternalState.RunningOrClosed)) {
+                revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.WrongState);
+            }
+            if(!(block.timestamp < vf.creationParams.tResolve)) {
+                revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooLate);
+            }
+            if(!_hasCommitmentsToEnoughOutcomes(vf)) {
+                revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.VirtualFloorUnresolvable);
             }
         }
     }

@@ -523,6 +523,7 @@ abstract contract BaseDoubleDice is
         public
         view
         override(IERC165Upgradeable, ERC1155Upgradeable, AccessControlUpgradeable)
+        virtual // Leave door open for extending contracts to support further interfaces
         returns (bool)
     {
         return ERC1155Upgradeable.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);

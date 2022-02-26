@@ -22,7 +22,7 @@ UFixed256x18 constant _BETA_CLOSE = UFIXED256X18_ONE;
 
 // ToDo: Can we optimize this by using uint128 and packing both values into 1 slot,
 // or will amountTimesBeta_e18 then not have enough precision?
-struct AggregateCommitment {
+struct OutcomeTotals {
     uint256 amount;
     UFixed256x18 amountTimesBeta_e18;
 }
@@ -86,7 +86,7 @@ struct VirtualFloor {
     // Storage slot 2: Not written to, but used in calculation of outcome-specific slots
     // Note: A fixed-length array is used to not an entire 32-byte slot to write array-length,
     // but instead store the length in 1 byte in `nOutcomes`
-    AggregateCommitment[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] aggregateCommitments;
+    OutcomeTotals[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] outcomeTotals;
 
     // Storage slot 3: Slot written to during resolve
     uint8 winningOutcomeIndex; // +  1 byte
@@ -304,18 +304,18 @@ contract DoubleDice is
         timeslot = MathUpgradeable.max(virtualFloor.creationParams.tOpen, timeslot);
 
         UFixed256x18 beta_e18 = _calcBeta(virtualFloor, timeslot);
-        AggregateCommitment storage aggregateCommitments = virtualFloor.aggregateCommitments[outcomeIndex];
+        OutcomeTotals storage outcomeTotals = virtualFloor.outcomeTotals[outcomeIndex];
 
         // Only increment this counter the first time an outcome is committed to.
         // In this way, this counter will be updated maximum nOutcome times over the entire commitment period.
         // Some gas could be saved here by marking as unchecked, and by not counting beyond 2,
         // but we choose to forfeit these micro-optimizations to retain simplicity.
-        if (aggregateCommitments.amount == 0) {
+        if (outcomeTotals.amount == 0) {
             virtualFloor.nonzeroOutcomeCount += 1;
         }
 
-        aggregateCommitments.amount += amount;
-        aggregateCommitments.amountTimesBeta_e18 = aggregateCommitments.amountTimesBeta_e18.add(beta_e18.mul0(amount));
+        outcomeTotals.amount += amount;
+        outcomeTotals.amountTimesBeta_e18 = outcomeTotals.amountTimesBeta_e18.add(beta_e18.mul0(amount));
 
         uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(virtualFloorId, outcomeIndex, timeslot);
 
@@ -433,10 +433,10 @@ contract DoubleDice is
 
         uint256 totalVirtualFloorCommittedAmount = 0;
         for (uint256 i = 0; i < virtualFloor.creationParams.nOutcomes; i++) {
-            totalVirtualFloorCommittedAmount += virtualFloor.aggregateCommitments[i].amount;
+            totalVirtualFloorCommittedAmount += virtualFloor.outcomeTotals[i].amount;
         }
 
-        uint256 totalWinnerCommitments = virtualFloor.aggregateCommitments[winningOutcomeIndex].amount;
+        uint256 totalWinnerCommitments = virtualFloor.outcomeTotals[winningOutcomeIndex].amount;
 
         VirtualFloorResolutionType resolutionType;
         uint256 platformFeeAmount;
@@ -511,7 +511,7 @@ contract DoubleDice is
             uint256 amount = balanceOf(_msgSender(), tokenId);
             UFixed256x18 beta = _calcBeta(virtualFloor, context.timeslot);
             UFixed256x18 amountTimesBeta = beta.mul0(amount);
-            UFixed256x18 aggregateAmountTimesBeta = virtualFloor.aggregateCommitments[virtualFloor.winningOutcomeIndex].amountTimesBeta_e18;
+            UFixed256x18 aggregateAmountTimesBeta = virtualFloor.outcomeTotals[virtualFloor.winningOutcomeIndex].amountTimesBeta_e18;
             uint256 profit = amountTimesBeta.mul0(virtualFloor.winnerProfits).divToUint256(aggregateAmountTimesBeta);
             uint256 payout = amount + profit;
             require(payout > 0, "ZERO_BALANCE");
@@ -555,10 +555,10 @@ contract DoubleDice is
         return virtualFloor.nonzeroOutcomeCount >= 2;
     }
 
-    function getVirtualFloorAggregateCommitments(uint256 virtualFloorId, uint8 outcomeIndex)
-        external view returns (AggregateCommitment memory)
+    function getVirtualFloorOutcomeTotals(uint256 virtualFloorId, uint8 outcomeIndex)
+        external view returns (OutcomeTotals memory)
     {
-        return _virtualFloors[virtualFloorId].aggregateCommitments[outcomeIndex];
+        return _virtualFloors[virtualFloorId].outcomeTotals[outcomeIndex];
     }
 
     function TIMESLOT_DURATION() external pure returns (uint256) {

@@ -205,15 +205,15 @@ describe('DoubleDice', function () {
     // const virtualFloor = await contract._virtualFloors(virtualFloorId)
     // console.log(virtualFloor)
 
-    interface AggregateCommitment {
+    interface OutcomeTotals {
       amount: BigNumber;
       amountTimesBeta_e18: BigNumber;
     }
 
-    const aggregateCommitments: AggregateCommitment[] = await Promise.all([
-      contract.getVirtualFloorAggregateCommitments(virtualFloorId, 0),
-      contract.getVirtualFloorAggregateCommitments(virtualFloorId, 1),
-      contract.getVirtualFloorAggregateCommitments(virtualFloorId, 2),
+    const outcomeTotals: OutcomeTotals[] = await Promise.all([
+      contract.getVirtualFloorOutcomeTotals(virtualFloorId, 0),
+      contract.getVirtualFloorOutcomeTotals(virtualFloorId, 1),
+      contract.getVirtualFloorOutcomeTotals(virtualFloorId, 2),
     ]);
 
     const betaAt = (datetime: string) => {
@@ -225,29 +225,29 @@ describe('DoubleDice', function () {
       return betaClose.add(db);
     };
 
-    expect(aggregateCommitments[0].amount).to.eq(sumOf(
+    expect(outcomeTotals[0].amount).to.eq(sumOf(
       $(10)
     ));
-    expect(aggregateCommitments[0].amountTimesBeta_e18).to.eq(sumOf(
+    expect(outcomeTotals[0].amountTimesBeta_e18).to.eq(sumOf(
       $(10).mul(betaAt('2032-01-01T01:00:00'))
     ));
 
-    expect(aggregateCommitments[1].amount).to.eq(sumOf(
+    expect(outcomeTotals[1].amount).to.eq(sumOf(
       $(10),
       $(10),
       $(10),
     ));
-    expect(aggregateCommitments[1].amountTimesBeta_e18).to.eq(sumOf(
+    expect(outcomeTotals[1].amountTimesBeta_e18).to.eq(sumOf(
       $(10).mul(betaAt('2032-01-01T02:00:00')),
       $(10).mul(betaAt('2032-01-01T02:00:00')),
       $(10).mul(betaAt('2032-01-01T06:00:00')),
     ));
 
-    expect(aggregateCommitments[2].amount).to.eq(sumOf(
+    expect(outcomeTotals[2].amount).to.eq(sumOf(
       $(10),
       $(10),
     ));
-    expect(aggregateCommitments[2].amountTimesBeta_e18).to.eq(sumOf(
+    expect(outcomeTotals[2].amountTimesBeta_e18).to.eq(sumOf(
       $(10).mul(betaAt('2032-01-01T06:00:00')),
       $(10).mul(betaAt('2032-01-01T10:00:00')),
     ));
@@ -271,10 +271,10 @@ describe('DoubleDice', function () {
       const { events } = await (await contract.resolve(virtualFloorId, 1)).wait();
       const { winnerProfits, platformFeeAmount, ownerFeeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
 
-      const tcf = sumOf(...aggregateCommitments.map(({ amount }) => amount));
+      const tcf = sumOf(...outcomeTotals.map(({ amount }) => amount));
 
       let i = 0;
-      for (const { amount } of aggregateCommitments) {
+      for (const { amount } of outcomeTotals) {
         console.log(`amount[${i++}] = ${formatUsdc(amount)}`);
       }
 
@@ -322,7 +322,7 @@ describe('DoubleDice', function () {
 
       console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
 
-      // const asdf = sumOf(...aggregateCommitments.map(({ weightedAmount }) => weightedAmount))
+      // const asdf = sumOf(...outcomeTotals.map(({ weightedAmount }) => weightedAmount))
     }
 
   });

@@ -424,19 +424,22 @@ abstract contract BaseDoubleDice is
 
         vf.winningOutcomeIndex = winningOutcomeIndex;
 
-        uint256 totalVirtualFloorCommittedAmount = 0;
-        for (uint256 i = 0; i < vf.nOutcomes; i++) {
-            totalVirtualFloorCommittedAmount += vf.outcomeTotals[i].amount;
-        }
+        uint256 totalCommitmentsToAllOutcomes = vf.totalCommitmentsToAllOutcomes();
+        uint256 totalCommitmentsToWinningOutcome = vf.outcomeTotals[winningOutcomeIndex].amount;
 
-        uint256 totalWinnerCommitments = vf.outcomeTotals[winningOutcomeIndex].amount;
+        // This used to be handled on this contract as a VirtualFloorResolution of type AllWinners,
+        // but it can no longer happen, because if all commitments are to a single outcome,
+        // transaction would have already been reverted because of
+        // the condition nonzeroOutcomeCount == 1, which is < 2.
+        // We retain this assertion as a form of documentation.
+        assert(totalCommitmentsToWinningOutcome != totalCommitmentsToAllOutcomes);
 
         VirtualFloorResolutionType resolutionType;
         uint256 platformFeeAmount;
         uint256 creatorFeeAmount;
-        uint256 winnerProfits;
+        uint256 totalWinnerProfits;
 
-        if (totalWinnerCommitments == 0) {
+        if (totalCommitmentsToWinningOutcome == 0) {
             // This could happen if e.g. there are commitments to outcome #0 and outcome #1,
             // but not to outcome #2, and #2 is the winner.
             // In this case, the current ERC-1155 commitment-type token owner becomes eligible
@@ -447,35 +450,30 @@ abstract contract BaseDoubleDice is
             resolutionType = VirtualFloorResolutionType.CancelledNoWinners;
             platformFeeAmount = 0;
             creatorFeeAmount = 0;
-            winnerProfits = 0;
-        } else if (totalWinnerCommitments == totalVirtualFloorCommittedAmount) {
-            // This used to be handled on this contract as a VirtualFloorResolution of type AllWinners,
-            // but it can no longer happen, because if all commitments are to a single outcome,
-            // transaction would have already been reverted because of
-            // the condition nonzeroOutcomeCount == 1, which is < 2.
-            // We retain this assertion as a form of documentation.
-            assert(false);
+            totalWinnerProfits = 0;
         } else {
             vf.internalState = VirtualFloorInternalState.ResolvedWinners;
             resolutionType = VirtualFloorResolutionType.Winners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
-            uint256 maxCreationFeeAmount = vf.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
+            uint256 maxTotalFeeAmount = vf.creationFeeRate.toUFixed256x18().mul0(totalCommitmentsToAllOutcomes).floorToUint256();
 
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
-            uint256 creationFeePlusWinnerProfits = totalVirtualFloorCommittedAmount - totalWinnerCommitments;
+            uint256 totalFeePlusTotalWinnerProfits = totalCommitmentsToAllOutcomes - totalCommitmentsToWinningOutcome;
 
             // ToDo: Replace Math.min with `a < b ? a : b` and check gas usage
-            uint256 creationFeeAmount = MathUpgradeable.min(maxCreationFeeAmount, creationFeePlusWinnerProfits);
+            uint256 totalFeeAmount = MathUpgradeable.min(maxTotalFeeAmount, totalFeePlusTotalWinnerProfits);
 
-            winnerProfits = creationFeePlusWinnerProfits - creationFeeAmount;
-            vf.winnerProfits = winnerProfits.toUint192();
+            unchecked { // because b - min(a, b) >= 0
+                totalWinnerProfits = totalFeePlusTotalWinnerProfits - totalFeeAmount;
+            }
+            vf.winnerProfits = totalWinnerProfits.toUint192();
 
-            platformFeeAmount = vf.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
+            platformFeeAmount = vf.platformFeeRate.toUFixed256x18().mul0(totalFeeAmount).floorToUint256();
             _paymentTokenOf(vf).safeTransfer(_platformFeeBeneficiary, platformFeeAmount);
 
-            unchecked {
-                creatorFeeAmount = creationFeeAmount - platformFeeAmount;
+            unchecked { // because platformFeeRate <= 1.0
+                creatorFeeAmount = totalFeeAmount - platformFeeAmount;
             }
             // _msgSender() owns the virtual-floor
             _paymentTokenOf(vf).safeTransfer(_msgSender(), creatorFeeAmount);
@@ -485,7 +483,7 @@ abstract contract BaseDoubleDice is
             virtualFloorId: vfId,
             winningOutcomeIndex: winningOutcomeIndex,
             resolutionType: resolutionType,
-            winnerProfits: winnerProfits,
+            winnerProfits: totalWinnerProfits,
             platformFeeAmount: platformFeeAmount,
             creatorFeeAmount: creatorFeeAmount
         });
@@ -587,6 +585,13 @@ library VirtualFloors {
     function betaOf(VirtualFloor storage vf, uint256 t) internal view returns (UFixed256x18) {
         UFixed256x18 betaOpenMinusBetaClose = vf.betaOpenMinusBetaClose.toUFixed256x18();
         return _BETA_CLOSE.add(betaOpenMinusBetaClose.mul0(vf.tClose - t).div0(vf.tClose - vf.tOpen));
+    }
+
+    function totalCommitmentsToAllOutcomes(VirtualFloor storage vf) internal view returns (uint256 total) {
+        total = 0;
+        for (uint256 i = 0; i < vf.nOutcomes; i++) {
+            total += vf.outcomeTotals[i].amount;
+        }
     }
 
 }

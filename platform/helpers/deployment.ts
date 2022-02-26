@@ -41,11 +41,11 @@ const mimicHardhatUpgradesDeployProxy = async (
   const proxy = await new TransparentUpgradeableProxy__factory(ownerSigner).deploy(
     impl.address,
     proxyAdmin.address,
-    impl.interface.encodeFunctionData('initialize', [
+    impl.interface.encodeFunctionData('initialize', [{
       tokenMetadataUriTemplate,
       platformFeeRate_e18,
       platformFeeBeneficiary,
-    ])
+    }])
   );
 
   process.stdout.write(`Deploying DoubleDice proxy to: ${proxy.address}...\n`);

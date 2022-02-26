@@ -84,7 +84,7 @@ library Utils {
     }
 }
 
-contract DoubleDice is
+abstract contract BaseDoubleDice is
     IDoubleDiceAdmin,
     ERC1155Upgradeable,
     AccessControlUpgradeable
@@ -103,29 +103,30 @@ contract DoubleDice is
 
     // ---------- Storage ----------
 
-    address public platformFeeBeneficiary;
+    address private _platformFeeBeneficiary;
 
-    UFixed16x4 internal platformFeeRate;
+    UFixed16x4 private _platformFeeRate;
 
-    mapping(uint256 => VirtualFloor) public _vfs;
+    mapping(uint256 => VirtualFloor) private _vfs;
 
-    AddressWhitelist internal _paymentTokenWhitelist;
+    AddressWhitelist private _paymentTokenWhitelist;
 
 
     // ---------- Setup & config ----------
 
-    function initialize(
-        string memory tokenMetadataUriTemplate,
-        UFixed256x18 platformFeeRate_e18_,
-        address platformFeeBeneficiary_
-    ) external initializer {
-        __ERC1155_init(tokenMetadataUriTemplate);
-        __AccessControl_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setPlatformFeeRate_e18(platformFeeRate_e18_);
-        _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
+    struct BaseDoubleDiceInitParams {
+        string tokenMetadataUriTemplate;
+        UFixed256x18 platformFeeRate_e18;
+        address platformFeeBeneficiary;
     }
 
+    function __DoubleDice_init(BaseDoubleDiceInitParams calldata params) internal onlyInitializing {
+        __ERC1155_init(params.tokenMetadataUriTemplate);
+        __AccessControl_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setPlatformFeeRate_e18(params.platformFeeRate_e18);
+        _setPlatformFeeBeneficiary(params.platformFeeBeneficiary);
+    }
 
     function setTokenMetadataUriTemplate(string calldata template)
         external
@@ -140,7 +141,7 @@ contract DoubleDice is
     }
 
     function _setPlatformFeeBeneficiary(address platformFeeBeneficiary_) internal {
-        platformFeeBeneficiary = platformFeeBeneficiary_;
+        _platformFeeBeneficiary = platformFeeBeneficiary_;
         emit PlatformFeeBeneficiaryUpdate(platformFeeBeneficiary_);
     }
 
@@ -149,7 +150,7 @@ contract DoubleDice is
     /// on virtualfloor resolution.
     /// E.g. 1.25% would be returned as 0.0125e18
     function platformFeeRate_e18() external view returns (UFixed256x18) {
-        return platformFeeRate.toUFixed256x18();
+        return _platformFeeRate.toUFixed256x18();
     }
 
     function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -158,7 +159,7 @@ contract DoubleDice is
 
     function _setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) internal {
         require(platformFeeRate_e18_.lte(UFIXED256X18_ONE), "Error: platformFeeRate > 1.0");
-        platformFeeRate = platformFeeRate_e18_.toUFixed16x4();
+        _platformFeeRate = platformFeeRate_e18_.toUFixed16x4();
         emit PlatformFeeRateUpdate(platformFeeRate_e18_);
     }
 
@@ -180,6 +181,10 @@ contract DoubleDice is
     // ---------- Public getters ----------
 
     uint256 constant public TIMESLOT_DURATION = 60 seconds;
+
+    function platformFeeBeneficiary() external view returns (address) {
+        return _platformFeeBeneficiary;
+    }
 
     function getVirtualFloorState(
         uint256 vfId
@@ -249,7 +254,7 @@ contract DoubleDice is
         vf.creationFeeRate = creationFeeRate.toUFixed16x4();
 
         // freeze platformFeeRate value as it is right now
-        vf.platformFeeRate = platformFeeRate;
+        vf.platformFeeRate = _platformFeeRate;
 
         // Allow creation to happen up to 10% into the Open period,
         // to be a bit tolerant to mining delays.
@@ -276,7 +281,7 @@ contract DoubleDice is
             creator: _msgSender(),
             betaOpen_e18: betaOpen,
             creationFeeRate_e18: creationFeeRate,
-            platformFeeRate_e18: platformFeeRate.toUFixed256x18(),
+            platformFeeRate_e18: _platformFeeRate.toUFixed256x18(),
             tOpen: tOpen,
             tClose: tClose,
             tResolve: tResolve,
@@ -482,7 +487,7 @@ contract DoubleDice is
             vf.winnerProfits = winnerProfits.toUint192();
 
             platformFeeAmount = vf.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
-            _paymentTokenOf(vf).safeTransfer(platformFeeBeneficiary, platformFeeAmount);
+            _paymentTokenOf(vf).safeTransfer(_platformFeeBeneficiary, platformFeeAmount);
 
             unchecked {
                 creatorFeeAmount = creationFeeAmount - platformFeeAmount;
@@ -542,6 +547,14 @@ contract DoubleDice is
         returns (bool)
     {
         return ERC1155Upgradeable.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
+    }
+
+}
+
+contract DoubleDice is BaseDoubleDice {
+
+    function initialize(BaseDoubleDiceInitParams calldata params) external initializer {
+        __DoubleDice_init(params);
     }
 
 }

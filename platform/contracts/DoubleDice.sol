@@ -47,17 +47,9 @@ enum VirtualFloorInternalState {
     CancelledFlagged
 }
 
-/// @dev These params are extracted into a struct only to work around a Solidity
-/// limitation whereby exceeding a certain threshold of struct member variables
-/// fails compilation with:
-/// "CompilerError: Stack too deep when compiling inline assembly:
-/// Variable value0 is 1 slot(s) too deep inside the stack."
-/// Once it was necessary to seek this workaround, the selected members were
-/// tailored to fit into a single 32-byte slot, and were chosen to be
-/// parameters that are set once in VF-creation and never touched again,
-/// so that from VF-creation onwards, this storage slot becomes "read-only",
-/// thus being gas-efficient.
-struct StoredVirtualFloorCreationParams {
+struct VirtualFloor {
+
+    // Storage slot 0: Written to during createVirtualFloor, only read from thereafter
     uint8 nOutcomes;                    // +  1 byte
     uint32 tOpen;                       // +  4 bytes
     uint32 tClose;                      // +  4 bytes 
@@ -67,19 +59,12 @@ struct StoredVirtualFloorCreationParams {
     UFixed16x4 platformFeeRate;         // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
     AddressWhitelistKey paymentTokenId; // + 10 bytes
                                         // = 31 bytes => packed into 1 32-byte slot
-}
-
-struct VirtualFloor {
-
-    // Storage slot 0: Written to during createVirtualFloor, only read from thereafter
-    StoredVirtualFloorCreationParams creationParams;
 
     // Storage slot 1: Slot written to during createVirtualFloor, and updated throughout VF lifecycle
-    address creator;             //   20 bytes
-    bytes10 reserved2;         // + 10 bytes
-    VirtualFloorInternalState internalState;   // +  1 byte
-    uint8 nonzeroOutcomeCount; // +  1 byte  ; number of outcomes having aggregate commitments > 0
-                               // = 32 bytes => packed into 1 32-byte slot
+    address creator;                         //   20 bytes
+    VirtualFloorInternalState internalState; // +  1 byte
+    uint8 nonzeroOutcomeCount;               // +  1 byte  ; number of outcomes having aggregate commitments > 0
+                                             // = 22 bytes => packed into 1 32-byte slot
 
     // Storage slot 2: Not written to, but used in calculation of outcome-specific slots
     // Note: A fixed-length array is used to not an entire 32-byte slot to write array-length,
@@ -179,7 +164,7 @@ contract DoubleDice is
 
 
     function _paymentTokenOf(VirtualFloor storage vf) internal view returns (IERC20Upgradeable) {
-        return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(vf.creationParams.paymentTokenId));
+        return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(vf.paymentTokenId));
     }
 
     function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -217,13 +202,13 @@ contract DoubleDice is
     {
         VirtualFloor storage vf = _vfs[vfId];
         return VirtualFloorParams({
-            betaOpen_e18: vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
-            creationFeeRate_e18: vf.creationParams.creationFeeRate.toUFixed256x18(),
-            platformFeeRate_e18: vf.creationParams.platformFeeRate.toUFixed256x18(),
-            tOpen: vf.creationParams.tOpen,
-            tClose: vf.creationParams.tClose,
-            tResolve: vf.creationParams.tResolve,
-            nOutcomes: vf.creationParams.nOutcomes,
+            betaOpen_e18: vf.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
+            creationFeeRate_e18: vf.creationFeeRate.toUFixed256x18(),
+            platformFeeRate_e18: vf.platformFeeRate.toUFixed256x18(),
+            tOpen: vf.tOpen,
+            tClose: vf.tClose,
+            tResolve: vf.tResolve,
+            nOutcomes: vf.nOutcomes,
             paymentToken: _paymentTokenOf(vf),
             creator: vf.creator
         });
@@ -258,13 +243,13 @@ contract DoubleDice is
         require(vf.internalState == VirtualFloorInternalState.None, "MARKET_DUPLICATE");
 
         require(betaOpen.gte(_BETA_CLOSE), "Error: betaOpen < 1.0");
-        vf.creationParams.betaOpenMinusBetaClose = betaOpen.sub(_BETA_CLOSE).toUFixed32x6();
+        vf.betaOpenMinusBetaClose = betaOpen.sub(_BETA_CLOSE).toUFixed32x6();
 
         require(creationFeeRate.lte(UFIXED256X18_ONE), "Error: creationFeeRate > 1.0");
-        vf.creationParams.creationFeeRate = creationFeeRate.toUFixed16x4();
+        vf.creationFeeRate = creationFeeRate.toUFixed16x4();
 
         // freeze platformFeeRate value as it is right now
-        vf.creationParams.platformFeeRate = platformFeeRate;
+        vf.platformFeeRate = platformFeeRate;
 
         // Allow creation to happen up to 10% into the Open period,
         // to be a bit tolerant to mining delays.
@@ -278,13 +263,13 @@ contract DoubleDice is
         _requireValidMetadata(nOutcomes, metadata);
 
         require(_paymentTokenWhitelist.isWhitelisted(address(paymentToken)), "Error: Payment token is not whitelisted");
-        vf.creationParams.paymentTokenId = toAddressWhitelistKey(address(paymentToken));
+        vf.paymentTokenId = toAddressWhitelistKey(address(paymentToken));
 
         vf.internalState = VirtualFloorInternalState.RunningOrClosed;
-        vf.creationParams.tOpen = tOpen;
-        vf.creationParams.tClose = tClose;
-        vf.creationParams.tResolve = tResolve;
-        vf.creationParams.nOutcomes = nOutcomes;
+        vf.tOpen = tOpen;
+        vf.tClose = tClose;
+        vf.tResolve = tResolve;
+        vf.nOutcomes = nOutcomes;
 
         emit VirtualFloorCreation({
             virtualFloorId: vfId,
@@ -315,7 +300,7 @@ contract DoubleDice is
 
         require(vf.state() == VirtualFloorState.Running, "MARKET_NOT_FOUND|MARKET_CLOSED");
 
-        require(outcomeIndex < vf.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+        require(outcomeIndex < vf.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
         // Note: By enforcing this requirement, we can later assume that 0 committed value = 0 commitments
         // If we allowed 0-value commitments, it would no longer be possible to make this deduction.
@@ -337,7 +322,7 @@ contract DoubleDice is
         // will be minted as balances on the the same ERC-1155 tokenId, which means that
         // these balances will be exchangeable/tradeable/fungible between themselves,
         // but they will not be fungible with commitments to the same outcome that arrive later.
-        timeslot = MathUpgradeable.max(vf.creationParams.tOpen, timeslot);
+        timeslot = MathUpgradeable.max(vf.tOpen, timeslot);
 
         UFixed256x18 beta_e18 = vf.betaOf(timeslot);
         OutcomeTotals storage outcomeTotals = vf.outcomeTotals[outcomeIndex];
@@ -445,12 +430,12 @@ contract DoubleDice is
 
         require(_msgSender() == vf.creator, "NOT_VIRTUALFLOOR_OWNER");
 
-        require(winningOutcomeIndex < vf.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+        require(winningOutcomeIndex < vf.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
         vf.winningOutcomeIndex = winningOutcomeIndex;
 
         uint256 totalVirtualFloorCommittedAmount = 0;
-        for (uint256 i = 0; i < vf.creationParams.nOutcomes; i++) {
+        for (uint256 i = 0; i < vf.nOutcomes; i++) {
             totalVirtualFloorCommittedAmount += vf.outcomeTotals[i].amount;
         }
 
@@ -485,7 +470,7 @@ contract DoubleDice is
             resolutionType = VirtualFloorResolutionType.Winners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
-            uint256 maxCreationFeeAmount = vf.creationParams.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
+            uint256 maxCreationFeeAmount = vf.creationFeeRate.toUFixed256x18().mul0(totalVirtualFloorCommittedAmount).floorToUint256();
 
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
             uint256 creationFeePlusWinnerProfits = totalVirtualFloorCommittedAmount - totalWinnerCommitments;
@@ -496,7 +481,7 @@ contract DoubleDice is
             winnerProfits = creationFeePlusWinnerProfits - creationFeeAmount;
             vf.winnerProfits = winnerProfits.toUint192();
 
-            platformFeeAmount = vf.creationParams.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
+            platformFeeAmount = vf.platformFeeRate.toUFixed256x18().mul0(creationFeeAmount).floorToUint256();
             _paymentTokenOf(vf).safeTransfer(platformFeeBeneficiary, platformFeeAmount);
 
             unchecked {
@@ -572,11 +557,11 @@ library VirtualFloors {
         if (internalState == VirtualFloorInternalState.None) {
             return VirtualFloorState.None;
         } else if (internalState == VirtualFloorInternalState.RunningOrClosed) {
-            if (block.timestamp < vf.creationParams.tClose) {
+            if (block.timestamp < vf.tClose) {
                 return VirtualFloorState.Running;
             } else {
                 if (vf.nonzeroOutcomeCount >= 2) {
-                    if (block.timestamp < vf.creationParams.tResolve) {
+                    if (block.timestamp < vf.tResolve) {
                         return VirtualFloorState.ClosedPreResolvable;
                     } else {
                         return VirtualFloorState.ClosedResolvable;
@@ -603,8 +588,8 @@ library VirtualFloors {
     /// have a uint256 representation.
     /// Therefore we sacrifice some (miniscule) rounding error to gain computation reproducibility.
     function betaOf(VirtualFloor storage vf, uint256 t) internal view returns (UFixed256x18) {
-        UFixed256x18 betaOpenMinusBetaClose = vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18();
-        return _BETA_CLOSE.add(betaOpenMinusBetaClose.mul0(vf.creationParams.tClose - t).div0(vf.creationParams.tClose - vf.creationParams.tOpen));
+        UFixed256x18 betaOpenMinusBetaClose = vf.betaOpenMinusBetaClose.toUFixed256x18();
+        return _BETA_CLOSE.add(betaOpenMinusBetaClose.mul0(vf.tClose - t).div0(vf.tClose - vf.tOpen));
     }
 
 }

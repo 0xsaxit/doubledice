@@ -13,8 +13,6 @@ import "./ERC1155TokenIds.sol";
 import "./FixedPointTypes.sol";
 import "./IDoubleDiceAdmin.sol";
 
-uint256 constant _TIMESLOT_DURATION = 60 seconds;
-
 /// @dev 255 not 256, because we store nOutcomes in a uint8
 uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 255;
 
@@ -196,9 +194,7 @@ contract DoubleDice is
 
     // ---------- Public getters ----------
 
-    function TIMESLOT_DURATION() external pure returns (uint256) {
-        return _TIMESLOT_DURATION;
-    }
+    uint256 constant public TIMESLOT_DURATION = 60 seconds;
 
     function getVirtualFloorState(
         uint256 vfId
@@ -270,12 +266,6 @@ contract DoubleDice is
         // freeze platformFeeRate value as it is right now
         vf.creationParams.platformFeeRate = platformFeeRate;
 
-        // Require all timestamps to be exact multiples of the timeslot-duration.
-        // This makes everything simpler to reason about.
-        require(tOpen % _TIMESLOT_DURATION == 0, "Error: tOpen % _TIMESLOT_DURATION != 0");
-        require(tClose % _TIMESLOT_DURATION == 0, "Error: tClose % _TIMESLOT_DURATION != 0");
-        require(tResolve % _TIMESLOT_DURATION == 0, "Error: tResolve % _TIMESLOT_DURATION != 0");
-
         // Allow creation to happen up to 10% into the Open period,
         // to be a bit tolerant to mining delays.
         require(block.timestamp < tOpen + (tClose - tOpen) / 10, "Error: t >= 10% into open period");
@@ -338,7 +328,7 @@ contract DoubleDice is
         // If `_TIMESLOT_DURATION` is set to 1 minute, then the following line converts
         // all 2022-01-11T15:47:XX to 2022-01-11T15:47:00,
         // and this rounded-down timestamp is used as the "timeslot identifier".
-        uint256 timeslot = block.timestamp - (block.timestamp % _TIMESLOT_DURATION);
+        uint256 timeslot = block.timestamp - (block.timestamp % TIMESLOT_DURATION);
 
         // Commitments made at t < tOpen will all be accumulated into the same timeslot == tOpen,
         // and will therefore be assigned the same beta == betaOpen.
@@ -385,7 +375,6 @@ contract DoubleDice is
             data: hex""
         });
     }
-
 
     /// @dev Hook into transfer process to block transfers of
     /// commitment-type token balances that are tied to virtual-floors

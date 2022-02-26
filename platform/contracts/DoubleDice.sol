@@ -290,6 +290,8 @@ abstract contract BaseDoubleDice is
         // Later we might bring back this VF being a NFT, as this would
         // allow ownership transfer, integration with Etherscan, wallets, etc.
         vf.creator = _msgSender();
+
+        _onVirtualFloorCreation(params);
     }
 
     function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount) public {
@@ -404,6 +406,7 @@ abstract contract BaseDoubleDice is
         require(vf.state() == VirtualFloorState.ClosedUnresolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY|Error: VF only unresolvable if commitments to less than 2 outcomes");
         vf.internalState = VirtualFloorInternalState.CancelledUnresolvable;
         emit VirtualFloorCancellationUnresolvable(vfId);
+        _onVirtualFloorConclusion(vfId);
     }
 
     function cancelVirtualFloorFlagged(uint256 vfId, string calldata reason) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -411,6 +414,7 @@ abstract contract BaseDoubleDice is
         require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
         vf.internalState = VirtualFloorInternalState.CancelledFlagged;
         emit VirtualFloorCancellationFlagged(vfId, reason);
+        _onVirtualFloorConclusion(vfId);
     }
 
     function _resolve(uint256 vfId, uint8 winningOutcomeIndex, address creatorFeeBeneficiary) internal {
@@ -485,6 +489,8 @@ abstract contract BaseDoubleDice is
             platformFeeAmount: platformFeeAmount,
             creatorFeeAmount: creatorFeeAmount
         });
+
+        _onVirtualFloorConclusion(vfId);
     }
 
     function claim(VirtualFloorOutcomeTimeslot calldata context) public {
@@ -527,6 +533,15 @@ abstract contract BaseDoubleDice is
         returns (bool)
     {
         return ERC1155Upgradeable.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
+    }
+
+
+    // ---------- Lifecycle hooks ----------
+
+    function _onVirtualFloorCreation(VirtualFloorCreationParams calldata params) internal virtual {
+    }
+
+    function _onVirtualFloorConclusion(uint256 vfId) internal virtual {        
     }
 
 }

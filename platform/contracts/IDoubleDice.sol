@@ -119,8 +119,6 @@ interface IDoubleDice is
 
     function cancelVirtualFloorUnresolvable(uint256 virtualFloorId) external;
 
-    function resolve(uint256 virtualFloorId, uint8 outcomeIndex) external;
-
     function claim(VirtualFloorOutcomeTimeslot calldata context) external;
 
     /// @notice The timeline is split into a number of non-overlapping consecutive timeslots of this duration.

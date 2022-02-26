@@ -413,12 +413,10 @@ abstract contract BaseDoubleDice is
         emit VirtualFloorCancellationFlagged(vfId, reason);
     }
 
-    function resolve(uint256 vfId, uint8 winningOutcomeIndex) public {
+    function _resolve(uint256 vfId, uint8 winningOutcomeIndex, address creatorFeeBeneficiary) internal {
         VirtualFloor storage vf = _vfs[vfId];
 
         require(vf.state() == VirtualFloorState.ClosedResolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY_TO_RESOLVE|Error: Cannot resolve VF with commitments to less than 2 outcomes");
-
-        require(_msgSender() == vf.creator, "NOT_VIRTUALFLOOR_OWNER");
 
         require(winningOutcomeIndex < vf.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
@@ -476,7 +474,7 @@ abstract contract BaseDoubleDice is
                 creatorFeeAmount = totalFeeAmount - platformFeeAmount;
             }
             // _msgSender() owns the virtual-floor
-            _paymentTokenOf(vf).safeTransfer(_msgSender(), creatorFeeAmount);
+            _paymentTokenOf(vf).safeTransfer(creatorFeeBeneficiary, creatorFeeAmount);
         }
 
         emit VirtualFloorResolution({
@@ -537,6 +535,12 @@ contract DoubleDice is BaseDoubleDice {
 
     function initialize(BaseDoubleDiceInitParams calldata params) external initializer {
         __DoubleDice_init(params);
+    }
+
+    function resolve(uint256 vfId, uint8 winningOutcomeIndex) external {
+        address creator = getVirtualFloorCreator(vfId);
+        require(_msgSender() == creator, "NOT_VIRTUALFLOOR_OWNER");
+        _resolve(vfId, winningOutcomeIndex, creator);
     }
 
 }

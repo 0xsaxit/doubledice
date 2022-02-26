@@ -367,7 +367,7 @@ abstract contract BaseDoubleDice is
     )
         internal
         override
-        virtual
+        // non-virtual, to prevent extending contracts from altering core behaviour
     {
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
 

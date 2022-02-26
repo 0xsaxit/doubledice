@@ -117,6 +117,33 @@ contract DoubleDice is
     using Utils for uint256;
     using VirtualFloors for VirtualFloor;
 
+
+    // ---------- Storage ----------
+
+    address public platformFeeBeneficiary;
+
+    UFixed16x4 internal platformFeeRate;
+
+    mapping(uint256 => VirtualFloor) public _vfs;
+
+    AddressWhitelist internal _paymentTokenWhitelist;
+
+
+    // ---------- Setup & config ----------
+
+    function initialize(
+        string memory tokenMetadataUriTemplate,
+        UFixed256x18 platformFeeRate_e18_,
+        address platformFeeBeneficiary_
+    ) external initializer {
+        __ERC1155_init(tokenMetadataUriTemplate);
+        __AccessControl_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setPlatformFeeRate_e18(platformFeeRate_e18_);
+        _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
+    }
+
+
     function setTokenMetadataUriTemplate(string calldata template)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -124,8 +151,6 @@ contract DoubleDice is
         _setURI(template);
     }
 
-
-    address public platformFeeBeneficiary;
 
     function setPlatformFeeBeneficiary(address platformFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
@@ -136,8 +161,6 @@ contract DoubleDice is
         emit PlatformFeeBeneficiaryUpdate(platformFeeBeneficiary_);
     }
 
-
-    UFixed16x4 internal platformFeeRate;
 
     /// @notice The current platform-fee rate as a proportion of the creator-fee taken
     /// on virtualfloor resolution.
@@ -156,22 +179,6 @@ contract DoubleDice is
         emit PlatformFeeRateUpdate(platformFeeRate_e18_);
     }
 
-    function initialize(
-        string memory tokenMetadataUriTemplate,
-        UFixed256x18 platformFeeRate_e18_,
-        address platformFeeBeneficiary_
-    ) external initializer {
-        __ERC1155_init(tokenMetadataUriTemplate);
-        __AccessControl_init();
-        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setPlatformFeeRate_e18(platformFeeRate_e18_);
-        _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
-    }
-
-    mapping(uint256 => VirtualFloor) public _vfs;
-
-
-    AddressWhitelist internal _paymentTokenWhitelist;
 
     function _paymentTokenOf(VirtualFloor storage vf) internal view returns (IERC20Upgradeable) {
         return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(vf.creationParams.paymentTokenId));
@@ -186,6 +193,54 @@ contract DoubleDice is
         return _paymentTokenWhitelist.isWhitelisted(address(token));
     }
 
+
+    // ---------- Public getters ----------
+
+    function TIMESLOT_DURATION() external pure returns (uint256) {
+        return _TIMESLOT_DURATION;
+    }
+
+    function getVirtualFloorState(
+        uint256 vfId
+    )
+        public
+        view
+        returns (VirtualFloorState)
+    {
+        return _vfs[vfId].state();
+    }
+
+    function getVirtualFloorCreator(uint256 vfId) external view returns (address) {
+        VirtualFloor storage vf = _vfs[vfId];
+        require(vf.internalState != VirtualFloorInternalState.None, "VIRTUAL_FLOOR_NOT_FOUND");
+        return vf.creator;
+    }
+
+    function getVirtualFloorParams(uint256 vfId)
+        external view returns (VirtualFloorParams memory)
+    {
+        VirtualFloor storage vf = _vfs[vfId];
+        return VirtualFloorParams({
+            betaOpen_e18: vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
+            creationFeeRate_e18: vf.creationParams.creationFeeRate.toUFixed256x18(),
+            platformFeeRate_e18: vf.creationParams.platformFeeRate.toUFixed256x18(),
+            tOpen: vf.creationParams.tOpen,
+            tClose: vf.creationParams.tClose,
+            tResolve: vf.creationParams.tResolve,
+            nOutcomes: vf.creationParams.nOutcomes,
+            paymentToken: _paymentTokenOf(vf),
+            creator: vf.creator
+        });
+    }
+
+    function getVirtualFloorOutcomeTotals(uint256 vfId, uint8 outcomeIndex)
+        external view returns (OutcomeTotals memory)
+    {
+        return _vfs[vfId].outcomeTotals[outcomeIndex];
+    }
+
+
+    // ---------- Virtual-floor lifecycle ----------
 
     function createVirtualFloor(VirtualFloorCreationParams calldata params) external {
 
@@ -513,51 +568,6 @@ contract DoubleDice is
         returns (bool)
     {
         return ERC1155Upgradeable.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
-    }
-
-    // ***** INFORMATIONAL *****
-
-    function getVirtualFloorCreator(uint256 vfId) external view returns (address) {
-        VirtualFloor storage vf = _vfs[vfId];
-        require(vf.internalState != VirtualFloorInternalState.None, "VIRTUAL_FLOOR_NOT_FOUND");
-        return vf.creator;
-    }
-
-    function getVirtualFloorOutcomeTotals(uint256 vfId, uint8 outcomeIndex)
-        external view returns (OutcomeTotals memory)
-    {
-        return _vfs[vfId].outcomeTotals[outcomeIndex];
-    }
-
-    function TIMESLOT_DURATION() external pure returns (uint256) {
-        return _TIMESLOT_DURATION;
-    }
-
-    function getVirtualFloorParams(uint256 vfId)
-        external view returns (VirtualFloorParams memory)
-    {
-        VirtualFloor storage vf = _vfs[vfId];
-        return VirtualFloorParams({
-            betaOpen_e18: vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
-            creationFeeRate_e18: vf.creationParams.creationFeeRate.toUFixed256x18(),
-            platformFeeRate_e18: vf.creationParams.platformFeeRate.toUFixed256x18(),
-            tOpen: vf.creationParams.tOpen,
-            tClose: vf.creationParams.tClose,
-            tResolve: vf.creationParams.tResolve,
-            nOutcomes: vf.creationParams.nOutcomes,
-            paymentToken: _paymentTokenOf(vf),
-            creator: vf.creator
-        });
-    }
-
-    function getVirtualFloorState(
-        uint256 vfId
-    )
-        public
-        view
-        returns (VirtualFloorState)
-    {
-        return _vfs[vfId].state();
     }
 
 }

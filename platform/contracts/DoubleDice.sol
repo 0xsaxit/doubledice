@@ -124,57 +124,51 @@ abstract contract BaseDoubleDice is
         __ERC1155_init(params.tokenMetadataUriTemplate);
         __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setPlatformFeeRate_e18(params.platformFeeRate_e18);
+        _setPlatformFeeRate(params.platformFeeRate_e18);
         _setPlatformFeeBeneficiary(params.platformFeeBeneficiary);
     }
 
-    function setTokenMetadataUriTemplate(string calldata template)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+
+    // ---------- External setters, exclusive to ADMIN ----------
+
+    function setTokenMetadataUriTemplate(string calldata template) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setURI(template);
     }
-
 
     function setPlatformFeeBeneficiary(address platformFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
     }
+
+    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setPlatformFeeRate(platformFeeRate_e18_);
+    }
+
+    function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _updatePaymentTokenWhitelist(token, isWhitelisted);
+    }
+
+
+    // ---------- Internal setters ----------
 
     function _setPlatformFeeBeneficiary(address platformFeeBeneficiary_) internal {
         _platformFeeBeneficiary = platformFeeBeneficiary_;
         emit PlatformFeeBeneficiaryUpdate(platformFeeBeneficiary_);
     }
 
-
-    /// @notice The current platform-fee rate as a proportion of the creator-fee taken
-    /// on virtualfloor resolution.
-    /// E.g. 1.25% would be returned as 0.0125e18
-    function platformFeeRate_e18() external view returns (UFixed256x18) {
-        return _platformFeeRate.toUFixed256x18();
+    function _setPlatformFeeRate(UFixed256x18 platformFeeRate) internal {
+        require(platformFeeRate.lte(UFIXED256X18_ONE), "Error: platformFeeRate > 1.0");
+        _platformFeeRate = platformFeeRate.toUFixed16x4();
+        emit PlatformFeeRateUpdate(platformFeeRate);
     }
 
-    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setPlatformFeeRate_e18(platformFeeRate_e18_);
-    }
-
-    function _setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) internal {
-        require(platformFeeRate_e18_.lte(UFIXED256X18_ONE), "Error: platformFeeRate > 1.0");
-        _platformFeeRate = platformFeeRate_e18_.toUFixed16x4();
-        emit PlatformFeeRateUpdate(platformFeeRate_e18_);
+    function _updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) internal {
+        _paymentTokenWhitelist.setWhitelistStatus(address(token), isWhitelisted);
+        emit PaymentTokenWhitelistUpdate(token, isWhitelisted);
     }
 
 
     function _paymentTokenOf(VirtualFloor storage vf) internal view returns (IERC20Upgradeable) {
         return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(vf.paymentTokenId));
-    }
-
-    function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _paymentTokenWhitelist.setWhitelistStatus(address(token), isWhitelisted);
-        emit PaymentTokenWhitelistUpdate(token, isWhitelisted);
-    }
-
-    function isPaymentTokenWhitelisted(IERC20Upgradeable token) public view returns (bool) {
-        return _paymentTokenWhitelist.isWhitelisted(address(token));
     }
 
 
@@ -184,6 +178,17 @@ abstract contract BaseDoubleDice is
 
     function platformFeeBeneficiary() public view returns (address) {
         return _platformFeeBeneficiary;
+    }
+
+    /// @notice The current platform-fee rate as a proportion of the creator-fee taken
+    /// on virtualfloor resolution.
+    /// E.g. 1.25% would be returned as 0.0125e18
+    function platformFeeRate_e18() external view returns (UFixed256x18) {
+        return _platformFeeRate.toUFixed256x18();
+    }
+
+    function isPaymentTokenWhitelisted(IERC20Upgradeable token) public view returns (bool) {
+        return _paymentTokenWhitelist.isWhitelisted(address(token));
     }
 
     function getVirtualFloorState(uint256 vfId) public view returns (VirtualFloorState) {

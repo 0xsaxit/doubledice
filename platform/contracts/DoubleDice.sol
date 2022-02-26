@@ -168,12 +168,12 @@ abstract contract BaseDoubleDice is
         return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(vf.paymentTokenId));
     }
 
-    function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _paymentTokenWhitelist.setWhitelistStatus(address(token), isWhitelisted);
         emit PaymentTokenWhitelistUpdate(token, isWhitelisted);
     }
 
-    function isPaymentTokenWhitelisted(IERC20Upgradeable token) external view returns (bool) {
+    function isPaymentTokenWhitelisted(IERC20Upgradeable token) public view returns (bool) {
         return _paymentTokenWhitelist.isWhitelisted(address(token));
     }
 
@@ -182,29 +182,21 @@ abstract contract BaseDoubleDice is
 
     uint256 constant public TIMESLOT_DURATION = 60 seconds;
 
-    function platformFeeBeneficiary() external view returns (address) {
+    function platformFeeBeneficiary() public view returns (address) {
         return _platformFeeBeneficiary;
     }
 
-    function getVirtualFloorState(
-        uint256 vfId
-    )
-        public
-        view
-        returns (VirtualFloorState)
-    {
+    function getVirtualFloorState(uint256 vfId) public view returns (VirtualFloorState) {
         return _vfs[vfId].state();
     }
 
-    function getVirtualFloorCreator(uint256 vfId) external view returns (address) {
+    function getVirtualFloorCreator(uint256 vfId) public view returns (address) {
         VirtualFloor storage vf = _vfs[vfId];
         require(vf.internalState != VirtualFloorInternalState.None, "VIRTUAL_FLOOR_NOT_FOUND");
         return vf.creator;
     }
 
-    function getVirtualFloorParams(uint256 vfId)
-        external view returns (VirtualFloorParams memory)
-    {
+    function getVirtualFloorParams(uint256 vfId) public view returns (VirtualFloorParams memory) {
         VirtualFloor storage vf = _vfs[vfId];
         return VirtualFloorParams({
             betaOpen_e18: vf.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
@@ -219,16 +211,14 @@ abstract contract BaseDoubleDice is
         });
     }
 
-    function getVirtualFloorOutcomeTotals(uint256 vfId, uint8 outcomeIndex)
-        external view returns (OutcomeTotals memory)
-    {
+    function getVirtualFloorOutcomeTotals(uint256 vfId, uint8 outcomeIndex) public view returns (OutcomeTotals memory) {
         return _vfs[vfId].outcomeTotals[outcomeIndex];
     }
 
 
     // ---------- Virtual-floor lifecycle ----------
 
-    function createVirtualFloor(VirtualFloorCreationParams calldata params) external {
+    function createVirtualFloor(VirtualFloorCreationParams calldata params) public {
 
         // ~3000 gas cheaper than using qualified fields param.* throughout.
         // Also slightly cheaper than a multiple field assignment
@@ -298,9 +288,7 @@ abstract contract BaseDoubleDice is
         vf.creator = _msgSender();
     }
 
-    function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount)
-        external
-    {
+    function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount) public {
         VirtualFloor storage vf = _vfs[vfId];
 
         require(vf.state() == VirtualFloorState.Running, "MARKET_NOT_FOUND|MARKET_CLOSED");
@@ -407,28 +395,21 @@ abstract contract BaseDoubleDice is
     /// 1. The only possible action for this virtual-floor is to cancel it via this function,
     ///    which may be invoked by anyone without restriction.
     /// 2. Any ERC-1155 commitment-type token balance associated with this virtual-floor is untransferable
-    function cancelVirtualFloorUnresolvable(uint256 vfId)
-        external
-    {
+    function cancelVirtualFloorUnresolvable(uint256 vfId) public {
         VirtualFloor storage vf = _vfs[vfId];
         require(vf.state() == VirtualFloorState.ClosedUnresolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY|Error: VF only unresolvable if commitments to less than 2 outcomes");
         vf.internalState = VirtualFloorInternalState.CancelledUnresolvable;
         emit VirtualFloorCancellationUnresolvable(vfId);
     }
 
-    function cancelVirtualFloorFlagged(uint256 vfId, string calldata reason)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function cancelVirtualFloorFlagged(uint256 vfId, string calldata reason) public onlyRole(DEFAULT_ADMIN_ROLE) {
         VirtualFloor storage vf = _vfs[vfId];
         require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
         vf.internalState = VirtualFloorInternalState.CancelledFlagged;
         emit VirtualFloorCancellationFlagged(vfId, reason);
     }
 
-    function resolve(uint256 vfId, uint8 winningOutcomeIndex)
-        external
-    {
+    function resolve(uint256 vfId, uint8 winningOutcomeIndex) public {
         VirtualFloor storage vf = _vfs[vfId];
 
         require(vf.state() == VirtualFloorState.ClosedResolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY_TO_RESOLVE|Error: Cannot resolve VF with commitments to less than 2 outcomes");
@@ -506,9 +487,7 @@ abstract contract BaseDoubleDice is
         });
     }
 
-    function claim(VirtualFloorOutcomeTimeslot calldata context)
-        external
-    {
+    function claim(VirtualFloorOutcomeTimeslot calldata context) public {
         VirtualFloor storage vf = _vfs[context.virtualFloorId];
         if (vf.internalState == VirtualFloorInternalState.ResolvedWinners) {
 

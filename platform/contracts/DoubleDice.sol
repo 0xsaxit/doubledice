@@ -117,19 +117,6 @@ contract DoubleDice is
     using Utils for uint256;
     using VirtualFloors for VirtualFloor;
 
-    /// @dev Compare:
-    /// 1. (((tClose - t) * (betaOpen - 1)) / (tClose - tOpen)) * amount
-    /// 2. (((tClose - t) * (betaOpen - 1) * amount) / (tClose - tOpen))
-    /// (2) has less rounding error than (1), but then the *precise* effective beta used in the computation might not
-    /// have a uint256 representation.
-    /// Therefore we sacrifice some (miniscule) rounding error to gain computation reproducibility.
-    function _calcBeta(VirtualFloor storage vf, uint256 t) internal view returns (UFixed256x18 beta_e18) {
-        uint256 betaOpenMinusBetaClose_e18 = UFixed256x18.unwrap(vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18());
-        uint256 betaClose_e18 = UFixed256x18.unwrap(_BETA_CLOSE);
-        beta_e18 = UFixed256x18.wrap(betaClose_e18 + ((vf.creationParams.tClose - t) * betaOpenMinusBetaClose_e18) / (uint256(vf.creationParams.tClose) - uint256(vf.creationParams.tOpen)));
-    }
-
-
     function setTokenMetadataUriTemplate(string calldata template)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
@@ -307,7 +294,7 @@ contract DoubleDice is
         // but they will not be fungible with commitments to the same outcome that arrive later.
         timeslot = MathUpgradeable.max(vf.creationParams.tOpen, timeslot);
 
-        UFixed256x18 beta_e18 = _calcBeta(vf, timeslot);
+        UFixed256x18 beta_e18 = vf.betaOf(timeslot);
         OutcomeTotals storage outcomeTotals = vf.outcomeTotals[outcomeIndex];
 
         // Only increment this counter the first time an outcome is committed to.
@@ -496,7 +483,7 @@ contract DoubleDice is
 
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
-            UFixed256x18 beta = _calcBeta(vf, context.timeslot);
+            UFixed256x18 beta = vf.betaOf(context.timeslot);
             UFixed256x18 amountTimesBeta = beta.mul0(amount);
             UFixed256x18 aggregateAmountTimesBeta = vf.outcomeTotals[vf.winningOutcomeIndex].amountTimesBeta_e18;
             uint256 profit = amountTimesBeta.mul0(vf.winnerProfits).divToUint256(aggregateAmountTimesBeta);
@@ -577,6 +564,7 @@ contract DoubleDice is
 
 library VirtualFloors {
 
+    using FixedPointTypes for UFixed32x6;
     using VirtualFloors for VirtualFloor;
 
     function state(VirtualFloor storage vf) internal view returns (VirtualFloorState) {
@@ -606,6 +594,18 @@ library VirtualFloors {
         } else /* if (internalState == VirtualFloorInternalState.CancelledFlagged) */ {
             return VirtualFloorState.CancelledFlagged;
         }
+    }
+
+    /// @dev Compare:
+    /// 1. (((tClose - t) * (betaOpen - 1)) / (tClose - tOpen)) * amount
+    /// 2. (((tClose - t) * (betaOpen - 1) * amount) / (tClose - tOpen))
+    /// (2) has less rounding error than (1), but then the *precise* effective beta used in the computation might not
+    /// have a uint256 representation.
+    /// Therefore we sacrifice some (miniscule) rounding error to gain computation reproducibility.
+    function betaOf(VirtualFloor storage vf, uint256 t) internal view returns (UFixed256x18 beta_e18) {
+        uint256 betaOpenMinusBetaClose_e18 = UFixed256x18.unwrap(vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18());
+        uint256 betaClose_e18 = UFixed256x18.unwrap(_BETA_CLOSE);
+        beta_e18 = UFixed256x18.wrap(betaClose_e18 + ((vf.creationParams.tClose - t) * betaOpenMinusBetaClose_e18) / (uint256(vf.creationParams.tClose) - uint256(vf.creationParams.tOpen)));
     }
 
 }

@@ -2,8 +2,6 @@ import { expect } from 'chai';
 import { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import {
-  CommitmentBalanceTransferRejectionCause,
-  CommitmentBalanceTransferRejectionCauseWrapper__factory,
   VirtualFloorResolutionType,
   VirtualFloorResolutionTypeWrapper__factory,
   VirtualFloorState,
@@ -37,14 +35,6 @@ describe('Check manual Solidity-enum-type TypeScript analogs against actual valu
     await lib.deployed();
     expect(VirtualFloorResolutionType.CancelledNoWinners).to.eq(await lib.CancelledNoWinners());
     expect(VirtualFloorResolutionType.Winners).to.eq(await lib.Winners());
-  });
-
-  it('CommitmentBalanceTransferRejectionCause', async () => {
-    const lib = await new CommitmentBalanceTransferRejectionCauseWrapper__factory(signer).deploy();
-    await lib.deployed();
-    expect(CommitmentBalanceTransferRejectionCause.WrongState).to.eq(await lib.WrongState());
-    expect(CommitmentBalanceTransferRejectionCause.TooLate).to.eq(await lib.TooLate());
-    expect(CommitmentBalanceTransferRejectionCause.VirtualFloorUnresolvable).to.eq(await lib.VirtualFloorUnresolvable());
   });
 
 });

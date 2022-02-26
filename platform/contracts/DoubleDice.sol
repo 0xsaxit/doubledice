@@ -115,6 +115,7 @@ contract DoubleDice is
     using SafeCastUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using Utils for uint256;
+    using VirtualFloors for VirtualFloor;
 
     /// @dev Compare:
     /// 1. (((tClose - t) * (betaOpen - 1)) / (tClose - tOpen)) * amount
@@ -279,9 +280,9 @@ contract DoubleDice is
         external
     {
         VirtualFloor storage vf = _vfs[vfId];
-        require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_NOT_FOUND");
 
-        require(block.timestamp < vf.creationParams.tClose, "MARKET_CLOSED");
+        require(vf.state() == VirtualFloorState.Running, "MARKET_NOT_FOUND|MARKET_CLOSED");
+
         require(outcomeIndex < vf.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
         // Note: By enforcing this requirement, we can later assume that 0 committed value = 0 commitments
@@ -370,16 +371,9 @@ contract DoubleDice is
             uint256 id = ids[i];
             uint256 vfId = ERC1155TokenIds.extractVirtualFloorId(id);
             VirtualFloor storage vf = _vfs[vfId];
-
-            // ToDo: Does combining these requires into 1 require result in significant gas decrease?
-            if(!(vf.internalState == VirtualFloorInternalState.RunningOrClosed)) {
-                revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.WrongState);
-            }
-            if(!(block.timestamp < vf.creationParams.tResolve)) {
-                revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.TooLate);
-            }
-            if(!_hasCommitmentsToEnoughOutcomes(vf)) {
-                revert CommitmentBalanceTransferRejection(id, CommitmentBalanceTransferRejectionCause.VirtualFloorUnresolvable);
+            VirtualFloorState state = vf.state();
+            if (state != VirtualFloorState.ClosedPreResolvable) {
+                revert CommitmentBalanceTransferRejection(id, state);
             }
         }
     }
@@ -396,9 +390,7 @@ contract DoubleDice is
         external
     {
         VirtualFloor storage vf = _vfs[vfId];
-        require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
-        require(block.timestamp >= vf.creationParams.tClose, "TOO_EARLY");
-        require(!_hasCommitmentsToEnoughOutcomes(vf), "Error: VF only unresolvable if commitments to less than 2 outcomes");
+        require(vf.state() == VirtualFloorState.ClosedUnresolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY|Error: VF only unresolvable if commitments to less than 2 outcomes");
         vf.internalState = VirtualFloorInternalState.CancelledUnresolvable;
         emit VirtualFloorCancellationUnresolvable(vfId);
     }
@@ -417,16 +409,11 @@ contract DoubleDice is
         external
     {
         VirtualFloor storage vf = _vfs[vfId];
-        require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
 
-        // We do this check inline instead of using a special `onlyVirtualFloorCreator` modifier, so that
-        // (1) we do not break the pattern by which we always check state first
-        // (2) we avoid "hiding away" code in modifiers
+        require(vf.state() == VirtualFloorState.ClosedResolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY_TO_RESOLVE|Error: Cannot resolve VF with commitments to less than 2 outcomes");
+
         require(_msgSender() == vf.creator, "NOT_VIRTUALFLOOR_OWNER");
 
-        require(_hasCommitmentsToEnoughOutcomes(vf), "Error: Cannot resolve VF with commitments to less than 2 outcomes");
-
-        require(block.timestamp >= vf.creationParams.tResolve, "TOO_EARLY_TO_RESOLVE");
         require(winningOutcomeIndex < vf.creationParams.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
         vf.winningOutcomeIndex = winningOutcomeIndex;
@@ -549,12 +536,6 @@ contract DoubleDice is
         return vf.creator;
     }
 
-    // If less than 2 outcomes have commitments, then this VF is unresolvable,
-    // and resolution is aborted. Instead the VF should be cancelled.
-    function _hasCommitmentsToEnoughOutcomes(VirtualFloor storage vf) internal view returns (bool) {
-        return vf.nonzeroOutcomeCount >= 2;
-    }
-
     function getVirtualFloorOutcomeTotals(uint256 vfId, uint8 outcomeIndex)
         external view returns (OutcomeTotals memory)
     {
@@ -589,7 +570,16 @@ contract DoubleDice is
         view
         returns (VirtualFloorState)
     {
-        VirtualFloor storage vf = _vfs[vfId];
+        return _vfs[vfId].state();
+    }
+
+}
+
+library VirtualFloors {
+
+    using VirtualFloors for VirtualFloor;
+
+    function state(VirtualFloor storage vf) internal view returns (VirtualFloorState) {
         VirtualFloorInternalState internalState = vf.internalState;
         if (internalState == VirtualFloorInternalState.None) {
             return VirtualFloorState.None;
@@ -597,7 +587,7 @@ contract DoubleDice is
             if (block.timestamp < vf.creationParams.tClose) {
                 return VirtualFloorState.Running;
             } else {
-                if (_hasCommitmentsToEnoughOutcomes(vf)) {
+                if (vf.nonzeroOutcomeCount >= 2) {
                     if (block.timestamp < vf.creationParams.tResolve) {
                         return VirtualFloorState.ClosedPreResolvable;
                     } else {

@@ -14,9 +14,3 @@ export enum VirtualFloorState {
   CancelledUnresolvable,
   CancelledFlagged
 }
-
-export enum CommitmentBalanceTransferRejectionCause {
-  WrongState,
-  TooLate,
-  VirtualFloorUnresolvable
-}

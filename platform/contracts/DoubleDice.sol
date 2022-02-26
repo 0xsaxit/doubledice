@@ -12,6 +12,7 @@ import "./AddressWhitelists.sol";
 import "./ERC1155TokenIds.sol";
 import "./FixedPointTypes.sol";
 import "./IDoubleDiceAdmin.sol";
+import "./VirtualFloorCreationParamsUtils.sol";
 
 /// @dev 255 not 256, because we store nOutcomes in a uint8
 uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 255;
@@ -98,8 +99,8 @@ abstract contract BaseDoubleDice is
     using SafeCastUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using Utils for uint256;
+    using VirtualFloorCreationParamsUtils for VirtualFloorCreationParams;
     using VirtualFloors for VirtualFloor;
-
 
     // ---------- Storage ----------
 
@@ -224,19 +225,17 @@ abstract contract BaseDoubleDice is
     // ---------- Virtual-floor lifecycle ----------
 
     function createVirtualFloor(VirtualFloorCreationParams calldata params) public {
-
-        // ~3000 gas cheaper than using qualified fields param.* throughout.
-        // Also slightly cheaper than a multiple field assignment
-        // (vfId, ...) = (params.virtualFloorId, ...)
-        uint256 vfId = params.virtualFloorId;
-        UFixed256x18 betaOpen = params.betaOpen_e18;
-        UFixed256x18 creationFeeRate = params.creationFeeRate_e18;
-        uint32 tOpen = params.tOpen;
-        uint32 tClose = params.tClose;
-        uint32 tResolve = params.tResolve;
-        uint8 nOutcomes = params.nOutcomes;
-        IERC20Upgradeable paymentToken = params.paymentToken;
-        VirtualFloorMetadata calldata metadata = params.metadata;
+        (
+            uint256 vfId,
+            UFixed256x18 betaOpen,
+            UFixed256x18 creationFeeRate,
+            uint32 tOpen,
+            uint32 tClose,
+            uint32 tResolve,
+            uint8 nOutcomes,
+            IERC20Upgradeable paymentToken,
+            VirtualFloorMetadata calldata metadata
+        ) = params.destructure();
 
         VirtualFloor storage vf = _vfs[vfId];
 

@@ -564,6 +564,7 @@ contract DoubleDice is
 
 library VirtualFloors {
 
+    using FixedPointTypes for UFixed256x18;
     using FixedPointTypes for UFixed32x6;
     using VirtualFloors for VirtualFloor;
 
@@ -602,10 +603,9 @@ library VirtualFloors {
     /// (2) has less rounding error than (1), but then the *precise* effective beta used in the computation might not
     /// have a uint256 representation.
     /// Therefore we sacrifice some (miniscule) rounding error to gain computation reproducibility.
-    function betaOf(VirtualFloor storage vf, uint256 t) internal view returns (UFixed256x18 beta_e18) {
-        uint256 betaOpenMinusBetaClose_e18 = UFixed256x18.unwrap(vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18());
-        uint256 betaClose_e18 = UFixed256x18.unwrap(_BETA_CLOSE);
-        beta_e18 = UFixed256x18.wrap(betaClose_e18 + ((vf.creationParams.tClose - t) * betaOpenMinusBetaClose_e18) / (uint256(vf.creationParams.tClose) - uint256(vf.creationParams.tOpen)));
+    function betaOf(VirtualFloor storage vf, uint256 t) internal view returns (UFixed256x18) {
+        UFixed256x18 betaOpenMinusBetaClose = vf.creationParams.betaOpenMinusBetaClose.toUFixed256x18();
+        return _BETA_CLOSE.add(betaOpenMinusBetaClose.mul0(vf.creationParams.tClose - t).div0(vf.creationParams.tClose - vf.creationParams.tOpen));
     }
 
 }

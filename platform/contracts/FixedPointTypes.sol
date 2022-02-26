@@ -36,6 +36,9 @@ library FixedPointTypes {
         return UFixed256x18.wrap(UFixed256x18.unwrap(a) * b);
     }
 
+    function div0(UFixed256x18 a, uint256 b) internal pure returns (UFixed256x18) {
+        return UFixed256x18.wrap(UFixed256x18.unwrap(a) / b);
+    }
 
     /// @dev More efficient implementation of (hypothetical) `value.div(b).toUint256()`
     /// e.g. 200.000000_000000_000000 / 3.000000_000000_000000 = 33

@@ -8,11 +8,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
-import "./AddressWhitelists.sol";
-import "./ERC1155TokenIds.sol";
-import "./FixedPointTypes.sol";
-import "./IDoubleDiceAdmin.sol";
-import "./VirtualFloorCreationParamsUtils.sol";
+import "./interface/IDoubleDiceAdmin.sol";
+import "./library/AddressWhitelists.sol";
+import "./library/ERC1155TokenIds.sol";
+import "./library/FixedPointTypes.sol";
+import "./library/Utils.sol";
+import "./library/VirtualFloorCreationParamsUtils.sol";
+import "./library/VirtualFloors.sol";
 
 /// @dev 255 not 256, because we store nOutcomes in a uint8
 uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 255;
@@ -76,13 +78,6 @@ struct VirtualFloor {
     uint8 winningOutcomeIndex; // +  1 byte
     uint192 winnerProfits;     // + 24 bytes ; fits with 18-decimal-place precision all values up to ~1.5e30 (and with less decimals, more)
                                // = 25 bytes => packed into 1 32-byte slot
-}
-
-library Utils {
-    function toUint192(uint256 value) internal pure returns (uint192) {
-        require(value <= type(uint192).max, "SafeCast: value doesn't fit in 192 bits");
-        return uint192(value);
-    }
 }
 
 abstract contract BaseDoubleDice is
@@ -540,61 +535,6 @@ abstract contract BaseDoubleDice is
     }
 
     function _onVirtualFloorConclusion(uint256 vfId) internal virtual {        
-    }
-
-}
-
-library VirtualFloors {
-
-    using FixedPointTypes for UFixed256x18;
-    using FixedPointTypes for UFixed32x6;
-    using VirtualFloors for VirtualFloor;
-
-    function state(VirtualFloor storage vf) internal view returns (VirtualFloorState) {
-        VirtualFloorInternalState internalState = vf.internalState;
-        if (internalState == VirtualFloorInternalState.None) {
-            return VirtualFloorState.None;
-        } else if (internalState == VirtualFloorInternalState.RunningOrClosed) {
-            if (block.timestamp < vf.tClose) {
-                return VirtualFloorState.Running;
-            } else {
-                if (vf.nonzeroOutcomeCount >= 2) {
-                    if (block.timestamp < vf.tResolve) {
-                        return VirtualFloorState.ClosedPreResolvable;
-                    } else {
-                        return VirtualFloorState.ClosedResolvable;
-                    }
-                } else {
-                    return VirtualFloorState.ClosedUnresolvable;
-                }
-            }
-        } else if (internalState == VirtualFloorInternalState.ResolvedWinners) {
-            return VirtualFloorState.ResolvedWinners;
-        } else if (internalState == VirtualFloorInternalState.CancelledUnresolvable) {
-            return VirtualFloorState.CancelledResolvedNoWinners;
-        } else if (internalState == VirtualFloorInternalState.CancelledResolvedNoWinners) {
-            return VirtualFloorState.CancelledUnresolvable;
-        } else /* if (internalState == VirtualFloorInternalState.CancelledFlagged) */ {
-            return VirtualFloorState.CancelledFlagged;
-        }
-    }
-
-    /// @dev Compare:
-    /// 1. (((tClose - t) * (betaOpen - 1)) / (tClose - tOpen)) * amount
-    /// 2. (((tClose - t) * (betaOpen - 1) * amount) / (tClose - tOpen))
-    /// (2) has less rounding error than (1), but then the *precise* effective beta used in the computation might not
-    /// have a uint256 representation.
-    /// Therefore we sacrifice some (miniscule) rounding error to gain computation reproducibility.
-    function betaOf(VirtualFloor storage vf, uint256 t) internal view returns (UFixed256x18) {
-        UFixed256x18 betaOpenMinusBetaClose = vf.betaOpenMinusBetaClose.toUFixed256x18();
-        return _BETA_CLOSE.add(betaOpenMinusBetaClose.mul0(vf.tClose - t).div0(vf.tClose - vf.tOpen));
-    }
-
-    function totalCommitmentsToAllOutcomes(VirtualFloor storage vf) internal view returns (uint256 total) {
-        total = 0;
-        for (uint256 i = 0; i < vf.nOutcomes; i++) {
-            total += vf.outcomeTotals[i].amount;
-        }
     }
 
 }

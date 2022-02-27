@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.12;
 
-import "../../IDoubleDice.sol";
+import "../../interface/IDoubleDice.sol";
 
 contract VirtualFloorResolutionTypeWrapper {
     VirtualFloorResolutionType constant public CancelledNoWinners = VirtualFloorResolutionType.CancelledNoWinners;

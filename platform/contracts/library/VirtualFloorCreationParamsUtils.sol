@@ -2,8 +2,8 @@
 
 pragma solidity 0.8.12;
 
+import "../interface/IDoubleDice.sol";
 import "./FixedPointTypes.sol";
-import "./IDoubleDice.sol";
 
 library VirtualFloorCreationParamsUtils {
 

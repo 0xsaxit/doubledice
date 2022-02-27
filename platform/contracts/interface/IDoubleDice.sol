@@ -5,8 +5,8 @@ import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/IERC1155MetadataURIUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
-import "./FixedPointTypes.sol";
-import "./VirtualFloorMetadata.sol";
+import "../library/FixedPointTypes.sol";
+import "../VirtualFloorMetadata.sol";
 
 struct VirtualFloorOutcomeTimeslot {
     uint256 virtualFloorId;

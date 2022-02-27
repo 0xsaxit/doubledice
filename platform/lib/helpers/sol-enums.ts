@@ -1,12 +1,3 @@
-export enum VirtualFloorInternalState {
-  None,
-  RunningOrClosed,
-  ResolvedWinners,
-  CancelledUnresolvable,
-  CancelledResolvedNoWinners,
-  CancelledFlagged
-}
-
 export enum VirtualFloorResolutionType {
   CancelledNoWinners,
   Winners

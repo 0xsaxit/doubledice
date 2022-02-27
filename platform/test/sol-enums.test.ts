@@ -4,12 +4,10 @@ import { ethers } from 'hardhat';
 import {
   CommitmentBalanceTransferRejectionCause,
   CommitmentBalanceTransferRejectionCauseWrapper__factory,
-  VirtualFloorState,
-  VirtualFloorStateWrapper__factory,
   VirtualFloorResolutionType,
   VirtualFloorResolutionTypeWrapper__factory,
-  VirtualFloorInternalState,
-  VirtualFloorInternalStateWrapper__factory
+  VirtualFloorState,
+  VirtualFloorStateWrapper__factory
 } from '../lib/contracts';
 
 describe('Check manual Solidity-enum-type TypeScript analogs against actual values', () => {
@@ -18,17 +16,6 @@ describe('Check manual Solidity-enum-type TypeScript analogs against actual valu
 
   before(async () => {
     [signer] = await ethers.getSigners();
-  });
-
-  it('VirtualFloorInternalState', async () => {
-    const lib = await new VirtualFloorInternalStateWrapper__factory(signer).deploy();
-    await lib.deployed();
-    expect(VirtualFloorInternalState.None).to.eq(await lib.None());
-    expect(VirtualFloorInternalState.RunningOrClosed).to.eq(await lib.RunningOrClosed());
-    expect(VirtualFloorInternalState.ResolvedWinners).to.eq(await lib.ResolvedWinners());
-    expect(VirtualFloorInternalState.CancelledUnresolvable).to.eq(await lib.CancelledUnresolvable());
-    expect(VirtualFloorInternalState.CancelledResolvedNoWinners).to.eq(await lib.CancelledResolvedNoWinners());
-    expect(VirtualFloorInternalState.CancelledFlagged).to.eq(await lib.CancelledFlagged());
   });
 
   it('VirtualFloorState', async () => {

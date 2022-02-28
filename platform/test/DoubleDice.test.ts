@@ -7,7 +7,8 @@ import {
 } from 'ethers';
 import { ethers } from 'hardhat';
 import {
-  deployAndInitialize,
+  deployDummiesAndSetUp,
+  deployProxy,
   DUMMY_METADATA,
   findContractEventArgs,
   findUserCommitmentEventArgs,
@@ -18,6 +19,7 @@ import {
 } from '../helpers';
 import {
   DoubleDice,
+  DoubleDice__factory,
   DummyUSDCoin,
   DummyUSDCoin__factory,
   DummyWrappedBTC
@@ -67,11 +69,17 @@ describe('DoubleDice', function () {
     token = await new DummyUSDCoin__factory(ownerSigner).deploy();
     await token.deployed();
 
-    contract = await deployAndInitialize(ownerSigner, {
+    const impl = await new DoubleDice__factory(ownerSigner).deploy();
+    await impl.deployed();
+    const encodedInitializerData = impl.interface.encodeFunctionData('initialize', [{
       tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
       platformFeeRate_e18: toFp18(0.2500),
-      platformFeeBeneficiary: feeBeneficiarySigner.address,
-    });
+      platformFeeBeneficiary: feeBeneficiarySigner.address
+    }]);
+
+    const contractAddress = await deployProxy(ownerSigner, impl.address, encodedInitializerData);
+    contract = DoubleDice__factory.connect(contractAddress, ownerSigner);
+    await deployDummiesAndSetUp(ownerSigner, contract);
 
     expect(await contract.platformFeeBeneficiary()).to.eq(feeBeneficiarySigner.address);
 

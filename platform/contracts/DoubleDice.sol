@@ -18,6 +18,7 @@ contract DoubleDice is
     )
         external
         initializer
+        multipleInheritanceLeafInitializer
     {
         __ChallengeableCreatorOracle_init(params, bondUsdErc20Token_);
         __VirtualFloorMetadataValidator_init(params);

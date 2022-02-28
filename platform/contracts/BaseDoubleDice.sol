@@ -15,6 +15,7 @@ import "./library/FixedPointTypes.sol";
 import "./library/Utils.sol";
 import "./library/VirtualFloorCreationParamsUtils.sol";
 import "./library/VirtualFloors.sol";
+import "./MultipleInheritanceOptimization.sol";
 
 /// @dev 255 not 256, because we store nOutcomes in a uint8
 uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 255;
@@ -83,7 +84,8 @@ struct VirtualFloor {
 abstract contract BaseDoubleDice is
     IDoubleDiceAdmin,
     ERC1155Upgradeable,
-    AccessControlUpgradeable
+    AccessControlUpgradeable,
+    MultipleInheritanceOptimization
 {
     using AddressWhitelists for address;
     using AddressWhitelists for AddressWhitelist;
@@ -116,7 +118,11 @@ abstract contract BaseDoubleDice is
         address platformFeeBeneficiary;
     }
 
-    function __BaseDoubleDice_init(BaseDoubleDiceInitParams calldata params) internal onlyInitializing {
+    function __BaseDoubleDice_init(BaseDoubleDiceInitParams calldata params)
+        internal
+        onlyInitializing
+        multipleInheritanceRootInitializer
+    {
         __ERC1155_init(params.tokenMetadataUriTemplate);
         __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());

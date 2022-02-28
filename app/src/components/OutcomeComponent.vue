@@ -56,7 +56,8 @@ import { Options, Vue } from 'vue-class-component'
     contract: Object as PropType<DoubleDiceContract>,
     virtualFloor: Object as PropType<VirtualFloorEntity>,
     outcome: Object as PropType<OutcomeEntity>,
-    nextBlockTimestamp: Number
+    nextBlockTimestamp: Number,
+    isVirtualFloorUnresolvable: Boolean
   },
   emits: {
     balanceChange: String // null?
@@ -67,6 +68,7 @@ export default class OutcomeComponent extends Vue {
   virtualFloor!: VirtualFloorEntity
   outcome!: OutcomeEntity
   nextBlockTimestamp!: number
+  isVirtualFloorUnresolvable!: boolean
 
   get outcomeTotalSupply(): BigDecimal {
     return new BigDecimal(this.outcome.totalSupply)
@@ -124,7 +126,8 @@ export default class OutcomeComponent extends Vue {
 
   get canResolve(): boolean {
     return this.virtualFloor.state === VirtualFloorState.RunningOrClosed &&
-      this.nextBlockTimestamp >= Number(this.virtualFloor.tResolve)
+      this.nextBlockTimestamp >= Number(this.virtualFloor.tResolve) &&
+      !this.isVirtualFloorUnresolvable
   }
 
   async resolve(): Promise<void> {
@@ -153,12 +156,10 @@ export default class OutcomeComponent extends Vue {
 
   get winningText(): string {
     switch (this.virtualFloor.state) {
-      case VirtualFloorState.Completed:
+      case VirtualFloorState.ResolvedWinners:
         return '🏆'
-      case VirtualFloorState.CancelledBecauseNoWinners:
-        return '😭'
-      case VirtualFloorState.CancelledBecauseAllWinners:
-        return '🧐'
+      case VirtualFloorState.CancelledBecauseResolvedNoWinners:
+        return '🤷'
       default:
         return '?'
     }

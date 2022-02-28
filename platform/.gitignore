@@ -5,3 +5,9 @@ typechain-types/
 generated/
 build/
 .env
+
+abi/DoubleDice.no-custom-errors.json
+
+#solidity coverage outputs
+coverage
+coverage.json

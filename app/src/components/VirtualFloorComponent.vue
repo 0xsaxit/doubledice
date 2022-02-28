@@ -1,7 +1,7 @@
 <template>
   <tbody class="virtual-floor">
-    <tr>
-      <td :colspan="7 + maxOutcomes">
+    <tr :id="`virtual-floor-${virtualFloor.id}`">
+      <td :colspan="9 + maxOutcomes">
         <Timeline
           :min="minVirtualFloorTimestamp"
           :start="Number(virtualFloor.tCreated)"
@@ -16,11 +16,48 @@
           <h2>
             {{ virtualFloor.title }}
             <span style="float: right">
-              <span class="label">{{ virtualFloor.category }}</span>
-              <span class="label">{{ virtualFloor.subcategory }}</span>
+              <span class="label">{{ virtualFloor.subcategory.category.slug }}</span>
+              <span class="label">{{ virtualFloor.subcategory.slug }}</span>
+              <span class="label">
+                <span title="visibility: public" v-if="virtualFloor.isListed">👁️</span>
+                <span title="visibility: unlisted" v-else>🙈</span>
+              </span>
             </span>
           </h2>
           <p>{{ virtualFloor.description }}</p>
+          <p>
+            <span>Result sources:&nbsp;</span>
+            <span
+              v-for="(resultSource, index) in virtualFloor.resultSources"
+              :key="resultSource.id"
+            >
+              <span v-if="index > 0">,&nbsp;</span>
+              <a :href="resultSource.url">{{ resultSource.title }}</a>
+            </span>
+            <span>.</span>
+          </p>
+          <div>
+            <template v-for="(opponent, index) in virtualFloor.opponents" :key="opponent.id">
+              <div
+                style="display: inline-block; font-size: xx-large; font-style: italic; padding: 30px"
+                v-if="index > 0"
+              >
+                <span>VS</span>
+              </div>
+              <div style="display: inline-block">
+                <div>
+                  <img style="height: 64px" :src="opponent.image" :title="opponent.title" />
+                </div>
+                <div>{{ opponent.title }}</div>
+              </div>
+            </template>
+          </div>
+        </div>
+        <div style="text-align: right">
+          <button
+            :disabled="!isCancellableBecauseUnresolvable"
+            @click="cancelVirtualFloorUnresolvable"
+          >Cancel VF because unresolvable</button>
         </div>
       </td>
     </tr>
@@ -30,7 +67,8 @@
           <pre style="font-size: xx-small">{{ JSON.stringify(virtualFloor, null, 2) }}</pre>
         </td>
       -->
-      <td>{{ virtualFloor.id.slice(0, 10) }}</td>
+      <td :title="virtualFloor.id">{{ virtualFloor.id.slice(0, 10) }}</td>
+      <td>{{ virtualFloor.state }}</td>
       <td>
         <table>
           <tr :title="`tCreated = ${virtualFloor.tCreated}`">
@@ -51,7 +89,8 @@
           </tr>
         </table>
       </td>
-      <td>{{ virtualFloor.state }}</td>
+      <td>{{ `${Number(virtualFloor.creationFeeRate) * 100}%` }}</td>
+      <td>{{ `${Number(virtualFloor.platformFeeRate) * 100}%` }}</td>
       <td>{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
       <td>{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
       <td>{{ beta.toFixed(6) }}</td>
@@ -62,6 +101,7 @@
           :virtualFloor="virtualFloor"
           :outcome="outcome"
           :nextBlockTimestamp="nextBlockTimestamp"
+          :isVirtualFloorUnresolvable="isUnresolvable"
           @balanceChange="$emit('balanceChange')"
         />
       </template>
@@ -71,10 +111,14 @@
 
 <script lang="ts">
 import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
-import { VirtualFloor as VirtualFloorEntity } from '@doubledice/platform/lib/graph'
+import {
+  VirtualFloor as VirtualFloorEntity,
+  VirtualFloorState as VirtualFloorEntityState
+} from '@doubledice/platform/lib/graph'
+import BigDecimal from 'bignumber.js'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
-import { formatTimestamp } from '../utils'
+import { formatTimestamp, sumNumbers, tryCatch } from '../utils'
 import Outcome from './OutcomeComponent.vue'
 import Timeline from './Timeline.vue'
 
@@ -131,6 +175,40 @@ export default class VirtualFloorComponent extends Vue {
   get beta(): number {
     const t = Math.max(this.tOpen, Math.min(this.nextBlockTimestamp, this.tClose))
     return 1 + ((this.tClose - t) * (Number(this.virtualFloor.betaOpen) - 1)) / (this.tClose - this.tOpen)
+  }
+
+  get isRunning(): boolean {
+    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosed && this.nextBlockTimestamp < this.tClose
+  }
+
+  get isClosed(): boolean {
+    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosed && this.nextBlockTimestamp >= this.tClose
+  }
+
+  get isUnresolvable(): boolean {
+    const nonzeroOutcomeCount = sumNumbers(
+      this.virtualFloor.outcomes.map(({ totalSupply }) =>
+        Number(new BigDecimal(totalSupply).gt(0))
+      )
+    )
+    return (this.isClosed && nonzeroOutcomeCount < 2) ||
+      this.virtualFloor.state === VirtualFloorEntityState.CancelledBecauseUnresolvable
+  }
+
+  get isCancellableBecauseUnresolvable(): boolean {
+    return this.isUnresolvable && this.virtualFloor.state !== VirtualFloorEntityState.CancelledBecauseUnresolvable
+  }
+
+  async cancelVirtualFloorUnresolvable(): Promise<void> {
+    // eslint-disable-next-line space-before-function-paren
+    await tryCatch(async () => {
+      const tx = await this.contract.cancelVirtualFloorUnresolvable(this.virtualFloor.id)
+      const { hash } = tx
+      const txUrl = `https://polygonscan.com/tx/${hash}`
+      console.log(`Sent ${txUrl}`)
+      await tx.wait()
+      console.log(`⛏ Mined ${txUrl}`)
+    })
   }
 
   formatTimestamp(timestamp: string | number): string {

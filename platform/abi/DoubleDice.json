@@ -2,18 +2,18 @@
   {
     "inputs": [
       {
-        "internalType": "string",
-        "name": "uri_",
-        "type": "string"
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
       },
       {
-        "internalType": "address",
-        "name": "feeBeneficiary_",
-        "type": "address"
+        "internalType": "enum CommitmentBalanceTransferRejectionCause",
+        "name": "cause",
+        "type": "uint8"
       }
     ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
+    "name": "CommitmentBalanceTransferRejection",
+    "type": "error"
   },
   {
     "anonymous": false,
@@ -45,18 +45,31 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "contract IERC20",
+        "internalType": "contract IERC20Upgradeable",
         "name": "token",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "bool",
-        "name": "enabled",
+        "name": "whitelisted",
         "type": "bool"
       }
     ],
     "name": "PaymentTokenWhitelistUpdate",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "UFixed256x18",
+        "name": "platformFeeRate_e18",
+        "type": "uint256"
+      }
+    ],
+    "name": "PlatformFeeRateUpdate",
     "type": "event"
   },
   {
@@ -262,7 +275,7 @@
       },
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "UFixed256x18",
         "name": "beta_e18",
         "type": "uint256"
       },
@@ -286,6 +299,38 @@
         "type": "uint256"
       },
       {
+        "indexed": false,
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
+      }
+    ],
+    "name": "VirtualFloorCancellationFlagged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "VirtualFloorCancellationUnresolvable",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      },
+      {
         "indexed": true,
         "internalType": "address",
         "name": "creator",
@@ -293,8 +338,20 @@
       },
       {
         "indexed": false,
-        "internalType": "uint256",
+        "internalType": "UFixed256x18",
         "name": "betaOpen_e18",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "UFixed256x18",
+        "name": "creationFeeRate_e18",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "UFixed256x18",
+        "name": "platformFeeRate_e18",
         "type": "uint256"
       },
       {
@@ -323,15 +380,88 @@
       },
       {
         "indexed": false,
-        "internalType": "contract IERC20",
+        "internalType": "contract IERC20Upgradeable",
         "name": "paymentToken",
         "type": "address"
       },
       {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "subcategory",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "internalType": "bool",
+            "name": "isListed",
+            "type": "bool"
+          },
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "image",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct VirtualFloorMetadataOpponent[]",
+            "name": "opponents",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct VirtualFloorMetadataOutcome[]",
+            "name": "outcomes",
+            "type": "tuple[]"
+          },
+          {
+            "components": [
+              {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "url",
+                "type": "string"
+              }
+            ],
+            "internalType": "struct VirtualFloorMetadataResultSource[]",
+            "name": "resultSources",
+            "type": "tuple[]"
+          }
+        ],
         "indexed": false,
-        "internalType": "bytes32",
-        "name": "metadataHash",
-        "type": "bytes32"
+        "internalType": "struct VirtualFloorMetadata",
+        "name": "metadata",
+        "type": "tuple"
       }
     ],
     "name": "VirtualFloorCreation",
@@ -367,7 +497,13 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "feeAmount",
+        "name": "platformFeeAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "ownerFeeAmount",
         "type": "uint256"
       }
     ],
@@ -377,32 +513,6 @@
   {
     "inputs": [],
     "name": "DEFAULT_ADMIN_ROLE",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "FEE_RATE_E18",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "PAYMENT_TOKEN_WHITELISTER_ROLE",
     "outputs": [
       {
         "internalType": "bytes32",
@@ -429,25 +539,6 @@
   {
     "inputs": [
       {
-        "internalType": "bytes10",
-        "name": "id",
-        "type": "bytes10"
-      }
-    ],
-    "name": "_idToPaymentToken",
-    "outputs": [
-      {
-        "internalType": "contract IERC20",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
@@ -456,39 +547,71 @@
     "name": "_virtualFloors",
     "outputs": [
       {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "nOutcomes",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tOpen",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tClose",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tResolve",
+            "type": "uint32"
+          },
+          {
+            "internalType": "UFixed32x6",
+            "name": "betaOpenMinusBetaClose",
+            "type": "uint32"
+          },
+          {
+            "internalType": "UFixed16x4",
+            "name": "creationFeeRate",
+            "type": "uint16"
+          },
+          {
+            "internalType": "UFixed16x4",
+            "name": "platformFeeRate",
+            "type": "uint16"
+          },
+          {
+            "internalType": "AddressWhitelistKey",
+            "name": "paymentTokenId",
+            "type": "bytes10"
+          }
+        ],
+        "internalType": "struct StoredVirtualFloorCreationParams",
+        "name": "creationParams",
+        "type": "tuple"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes10",
+        "name": "reserved2",
+        "type": "bytes10"
+      },
+      {
         "internalType": "enum VirtualFloorState",
         "name": "state",
         "type": "uint8"
       },
       {
         "internalType": "uint8",
-        "name": "nOutcomes",
+        "name": "nonzeroOutcomeCount",
         "type": "uint8"
-      },
-      {
-        "internalType": "uint32",
-        "name": "tOpen",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "tClose",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "tResolve",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint32",
-        "name": "betaOpenMinusBetaClose_e6",
-        "type": "uint32"
-      },
-      {
-        "internalType": "bytes10",
-        "name": "paymentTokenId",
-        "type": "bytes10"
       },
       {
         "internalType": "uint8",
@@ -550,6 +673,37 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "reason",
+        "type": "string"
+      }
+    ],
+    "name": "cancelVirtualFloorFlagged",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "cancelVirtualFloorUnresolvable",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -645,8 +799,13 @@
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
+            "internalType": "UFixed256x18",
             "name": "betaOpen_e18",
+            "type": "uint256"
+          },
+          {
+            "internalType": "UFixed256x18",
+            "name": "creationFeeRate_e18",
             "type": "uint256"
           },
           {
@@ -670,17 +829,90 @@
             "type": "uint8"
           },
           {
-            "internalType": "contract IERC20",
+            "internalType": "contract IERC20Upgradeable",
             "name": "paymentToken",
             "type": "address"
           },
           {
-            "internalType": "bytes32",
-            "name": "metadataHash",
-            "type": "bytes32"
+            "components": [
+              {
+                "internalType": "string",
+                "name": "category",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "subcategory",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "description",
+                "type": "string"
+              },
+              {
+                "internalType": "bool",
+                "name": "isListed",
+                "type": "bool"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "string",
+                    "name": "title",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "image",
+                    "type": "string"
+                  }
+                ],
+                "internalType": "struct VirtualFloorMetadataOpponent[]",
+                "name": "opponents",
+                "type": "tuple[]"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "string",
+                    "name": "title",
+                    "type": "string"
+                  }
+                ],
+                "internalType": "struct VirtualFloorMetadataOutcome[]",
+                "name": "outcomes",
+                "type": "tuple[]"
+              },
+              {
+                "components": [
+                  {
+                    "internalType": "string",
+                    "name": "title",
+                    "type": "string"
+                  },
+                  {
+                    "internalType": "string",
+                    "name": "url",
+                    "type": "string"
+                  }
+                ],
+                "internalType": "struct VirtualFloorMetadataResultSource[]",
+                "name": "resultSources",
+                "type": "tuple[]"
+              }
+            ],
+            "internalType": "struct VirtualFloorMetadata",
+            "name": "metadata",
+            "type": "tuple"
           }
         ],
-        "internalType": "struct IDoubleDice.VirtualFloorCreationParams",
+        "internalType": "struct VirtualFloorCreationParams",
         "name": "params",
         "type": "tuple"
       }
@@ -688,19 +920,6 @@
     "name": "createVirtualFloor",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "feeBeneficiary",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -745,12 +964,116 @@
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
+            "internalType": "UFixed256x18",
             "name": "amountTimesBeta_e18",
             "type": "uint256"
           }
         ],
         "internalType": "struct AggregateCommitment",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getVirtualFloorComputedState",
+    "outputs": [
+      {
+        "internalType": "enum VirtualFloorComputedState",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getVirtualFloorOwner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "virtualFloorId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getVirtualFloorParams",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "UFixed256x18",
+            "name": "betaOpen_e18",
+            "type": "uint256"
+          },
+          {
+            "internalType": "UFixed256x18",
+            "name": "creationFeeRate_e18",
+            "type": "uint256"
+          },
+          {
+            "internalType": "UFixed256x18",
+            "name": "platformFeeRate_e18",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tOpen",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tClose",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "tResolve",
+            "type": "uint32"
+          },
+          {
+            "internalType": "uint8",
+            "name": "nOutcomes",
+            "type": "uint8"
+          },
+          {
+            "internalType": "contract IERC20Upgradeable",
+            "name": "paymentToken",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "owner",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct VirtualFloorParams",
         "name": "",
         "type": "tuple"
       }
@@ -803,6 +1126,24 @@
   {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "uri_",
+        "type": "string"
+      },
+      {
+        "internalType": "address",
+        "name": "platformFeeBeneficiary_",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "account",
         "type": "address"
@@ -827,7 +1168,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract IERC20",
+        "internalType": "contract IERC20Upgradeable",
         "name": "token",
         "type": "address"
       }
@@ -838,6 +1179,32 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "platformFeeBeneficiary",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "platformFeeRate_e18",
+    "outputs": [
+      {
+        "internalType": "UFixed256x18",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -984,6 +1351,19 @@
   {
     "inputs": [
       {
+        "internalType": "UFixed256x18",
+        "name": "platformFeeRate_e18_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setPlatformFeeRate_e18",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "string",
         "name": "newuri",
         "type": "string"
@@ -1016,7 +1396,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract IERC20",
+        "internalType": "contract IERC20Upgradeable",
         "name": "token",
         "type": "address"
       },

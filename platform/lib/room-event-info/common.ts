@@ -1,17 +1,6 @@
 import Ajv, { JSONSchemaType } from 'ajv';
 import addFormats from 'ajv-formats';
-
-export interface RoomEventInfo {
-  category: string;
-  subcategory: string;
-  title: string;
-  description: string;
-  isListed: boolean;
-  opponents: { title: string; image: string }[];
-  outcomes: { index: number; title: string }[];
-  resultSources: { title: string; url: string }[];
-}
-
+import { RoomEventInfo } from '../contracts';
 
 const ajv = new Ajv();
 addFormats(ajv);
@@ -45,16 +34,15 @@ const schema: JSONSchemaType<RoomEventInfo> = {
         },
         additionalProperties: false,
       },
-      minItems: 2,
+      minItems: 1,
       uniqueItems: true,
     },
     outcomes: {
       type: 'array',
       items: {
         type: 'object',
-        required: ['index', 'title'],
+        required: ['title'],
         properties: {
-          index: { type: 'integer', minimum: 0, maximum: 255 },
           title: { type: 'string', minLength: 1 },
         },
         additionalProperties: false,

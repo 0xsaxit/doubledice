@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: Unlicensed
 pragma solidity 0.8.11;
 
-import "@openzeppelin/contracts/access/IAccessControl.sol";
-import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+
+import "./FixedPointTypes.sol";
+import "./VirtualFloorMetadata.sol";
 
 struct VirtualFloorOutcomeTimeslot {
     uint256 virtualFloorId;
@@ -11,22 +14,77 @@ struct VirtualFloorOutcomeTimeslot {
     uint256 timeslot;
 }
 
-enum VirtualFloorResolutionType { NoWinners, SomeWinners, AllWinners }
+struct VirtualFloorCreationParams {
+    uint256 virtualFloorId;
+    UFixed256x18 betaOpen_e18;
+
+    /// @dev Purposely called "creation-fee" not "creator-fee",
+    /// as the "creation-fee" will be split between "creator" and "platform".
+    UFixed256x18 creationFeeRate_e18;
+
+    uint32 tOpen;
+    uint32 tClose;
+    uint32 tResolve;
+    uint8 nOutcomes;
+    IERC20Upgradeable paymentToken;
+    VirtualFloorMetadata metadata;
+}
+
+struct VirtualFloorParams {
+    UFixed256x18 betaOpen_e18;
+    UFixed256x18 creationFeeRate_e18;
+    UFixed256x18 platformFeeRate_e18;
+    uint32 tOpen;
+    uint32 tClose;
+    uint32 tResolve;
+    uint8 nOutcomes;
+    IERC20Upgradeable paymentToken;
+    address owner;
+}
+
+enum VirtualFloorComputedState {
+    None,
+    Running,
+    ClosedUnresolvable,
+    ClosedPreResolvable,
+    ClosedResolvable,
+    ResolvedWinners,
+    CancelledResolvedNoWinners,
+    CancelledUnresolvable,
+    CancelledFlagged
+}
+
+enum VirtualFloorResolutionType { CancelledNoWinners, Winners }
+
+enum CommitmentBalanceTransferRejectionCause {
+    /// @dev Prevent commitment-balance transfers if parent VF is not RunningOrClosed
+    WrongState,
+    /// @dev Prevent commitment-balance transfers from tResolve onwards,
+    /// as we foresee no legitimate reason for such transfers.
+    TooLate,
+    /// @dev Once a VF has >= 2 outcomes, it is certain that come tClose,
+    /// this VF will not have to be cancelled for being unresolvable.
+    /// So we allow transfers from the moment the VF has >= 2 outcomes onwards,
+    /// even prior to tClose.
+    VirtualFloorUnresolvable
+}
 
 interface IDoubleDice is
-    IAccessControl,
-    IERC1155
+    IAccessControlUpgradeable,
+    IERC1155Upgradeable
 {
     event VirtualFloorCreation(
         uint256 indexed virtualFloorId,
         address indexed creator,
-        uint256 betaOpen_e18,
+        UFixed256x18 betaOpen_e18,
+        UFixed256x18 creationFeeRate_e18,
+        UFixed256x18 platformFeeRate_e18,
         uint32 tOpen,
         uint32 tClose,
         uint32 tResolve,
         uint8 nOutcomes,
-        IERC20 paymentToken,
-        bytes32 metadataHash
+        IERC20Upgradeable paymentToken,
+        VirtualFloorMetadata metadata
     );
 
     event UserCommitment(
@@ -35,8 +93,17 @@ interface IDoubleDice is
         uint8 outcomeIndex,
         uint256 timeslot,
         uint256 amount,
-        uint256 beta_e18,
+        UFixed256x18 beta_e18,
         uint256 tokenId
+    );
+
+    event VirtualFloorCancellationUnresolvable(
+        uint256 indexed virtualFloorId
+    );
+
+    event VirtualFloorCancellationFlagged(
+        uint256 indexed virtualFloorId,
+        string reason
     );
 
     event VirtualFloorResolution(
@@ -44,19 +111,9 @@ interface IDoubleDice is
         uint8 winningOutcomeIndex,
         VirtualFloorResolutionType resolutionType,
         uint256 winnerProfits,
-        uint256 feeAmount
+        uint256 platformFeeAmount,
+        uint256 ownerFeeAmount
     );
-
-    struct VirtualFloorCreationParams {
-        uint256 virtualFloorId;
-        uint256 betaOpen_e18;
-        uint32 tOpen;
-        uint32 tClose;
-        uint32 tResolve;
-        uint8 nOutcomes;
-        IERC20 paymentToken;
-        bytes32 metadataHash;
-    }
 
     /// @notice Create a new virtual-floor.
     /// @dev `virtualFloorId` must start 0x00 (1)
@@ -69,6 +126,11 @@ interface IDoubleDice is
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
 
+    error CommitmentBalanceTransferRejection(uint256 id, CommitmentBalanceTransferRejectionCause cause);
+
+    function cancelVirtualFloorUnresolvable(uint256 virtualFloorId) external;
+    function cancelVirtualFloorFlagged(uint256 virtualFloorId, string calldata reason) external;
+
     function resolve(uint256 virtualFloorId, uint8 outcomeIndex) external;
 
     function claim(VirtualFloorOutcomeTimeslot calldata context) external;
@@ -80,7 +142,18 @@ interface IDoubleDice is
     /// are only fungible between themselves.
     function TIMESLOT_DURATION() external view returns (uint256);
 
-    function FEE_RATE_E18() external view returns (uint256);
 
-    function feeBeneficiary() external view returns (address);
+    event PlatformFeeRateUpdate(UFixed256x18 platformFeeRate_e18);
+
+    function platformFeeRate_e18() external view returns (UFixed256x18);
+
+    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18) external;
+
+    function platformFeeBeneficiary() external view returns (address);
+
+    function getVirtualFloorOwner(uint256 virtualFloorId) external view returns (address);
+
+    function getVirtualFloorParams(uint256 virtualFloorId) external view returns (VirtualFloorParams memory);
+
+    function getVirtualFloorComputedState(uint256 virtualFloorId) external view returns (VirtualFloorComputedState);
 }

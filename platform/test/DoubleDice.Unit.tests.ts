@@ -1,33 +1,37 @@
-import chai, {expect} from 'chai';
+import chai, { expect } from 'chai';
 import chaiSubset from 'chai-subset';
-import {BigNumber, BigNumberish} from 'ethers';
-import {ethers} from 'hardhat';
+import { BigNumber, BigNumberish } from 'ethers';
+import { ethers } from 'hardhat';
 import {
-  DoubleDice,
-  DoubleDice__factory,
-  DummyERC20,
-  DummyUSDCoin__factory,
-} from '../lib/contracts';
-import {
-  DUMMY_METADATA_HASH,
+  deployAndInitialize,
+  DoubleDicePlatformHelper,
+  DUMMY_METADATA,
   EvmCheckpoint,
   findContractEventArgs,
   findUserCommitmentEventArgs,
-  SignerWithAddress, sleep,
-  UserCommitment, VirtualFloorResolution,
-} from './helpers';
-import {DoubleDicePlatformHelper} from './helpers/utils';
-import exp from 'constants';
+  generateRandomVirtualFloorId,
+  SignerWithAddress,
+  timestampMinuteCeil,
+  UserCommitment,
+  VirtualFloorResolution
+} from '../helpers';
+import {
+  DoubleDice,
+  DummyUSDCoin,
+  DummyUSDCoin__factory,
+  DummyWrappedBTC,
+  VirtualFloorCreationParamsStruct,
+  VirtualFloorState
+} from '../lib/contracts';
 
 chai.use(chaiSubset);
 
 const toTimestamp = (datetime: string | number): BigNumber =>
   BigNumber.from(Math.trunc(new Date(datetime).getTime() / 1000));
 
-const setNextBlockTimestamp = async (datetime: string | number) => {
-  await ethers.provider.send('evm_setNextBlockTimestamp', [
-    toTimestamp(datetime).toNumber(),
-  ]);
+const setNextBlockTimestamp = async (timestampOrDatetime: string | number) => {
+  const timestamp = typeof timestampOrDatetime === 'string' ? toTimestamp(timestampOrDatetime).toNumber() : timestampOrDatetime;
+  await ethers.provider.send('evm_setNextBlockTimestamp', [timestamp]);
 };
 
 function tokenIdOf({
@@ -35,9 +39,9 @@ function tokenIdOf({
   outcomeIndex,
   datetime,
 }: {
-    virtualFloorId: string;
-    outcomeIndex: number;
-    datetime: string;
+  virtualFloorId: string;
+  outcomeIndex: number;
+  datetime: string;
 }): BigNumber {
   return BigNumber.from(
     ethers.utils.solidityKeccak256(
@@ -52,95 +56,66 @@ const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber =>
     .mul(dollars)
     .add(millionths);
 
-enum VirtualFloorState {
-    None = 0,
-    RunningOrClosed = 1,
-    Completed = 2,
-    Cancelled = 3,
-}
-
 let helper: DoubleDicePlatformHelper;
+
+const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
 describe('DoubleDice', function () {
   let ownerSigner: SignerWithAddress;
-  let paymentTokenWhitelister: SignerWithAddress;
-  let feeBeneficiarySigner: SignerWithAddress;
+  let platformFeeBeneficiarySigner: SignerWithAddress;
   let user1Signer: SignerWithAddress;
   let user2Signer: SignerWithAddress;
   let user3Signer: SignerWithAddress;
   let user4Signer: SignerWithAddress;
-  let user5Signer: SignerWithAddress;
   let contract: DoubleDice;
-  let token: DummyERC20;
-  let paymentToken;
+  let token: DummyUSDCoin | DummyWrappedBTC;
+  let paymentTokenAddress: string;
 
   before(async function () {
     [
       ownerSigner,
-      paymentTokenWhitelister,
-      feeBeneficiarySigner,
+      platformFeeBeneficiarySigner,
       user1Signer,
       user2Signer,
       user3Signer,
       user4Signer,
-      user5Signer,
     ] = await ethers.getSigners();
 
     // Deploy USDC Token
     token = await new DummyUSDCoin__factory(ownerSigner).deploy();
     await token.deployed();
-    contract = await new DoubleDice__factory(ownerSigner).deploy(
-      'http://localhost:8080/token/{id}',
-      feeBeneficiarySigner.address
-    );
-    await contract.deployed();
+
+    contract = await deployAndInitialize(ownerSigner, {
+      FEE_BENEFICIARY_ADDRESS: platformFeeBeneficiarySigner.address,
+      platformFeeRate_e18: 500000_000000_000000n, // 50%
+    });
+
+    expect(await contract.platformFeeRate_e18()).to.eq(500000_000000_000000n);
 
     helper = new DoubleDicePlatformHelper(contract);
 
     // Assert fee beneficiary
-    expect(await contract.feeBeneficiary()).to.eq(feeBeneficiarySigner.address);
+    expect(await contract.platformFeeBeneficiary()).to.eq(platformFeeBeneficiarySigner.address);
 
     {
-      const PAYMENT_TOKEN_WHITELISTER_ROLE = await contract.PAYMENT_TOKEN_WHITELISTER_ROLE();
-
-      await expect(
-        contract
-          .connect(paymentTokenWhitelister)
-          .updatePaymentTokenWhitelist(token.address, true)
-      ).to.be.reverted;
-
-      await (
-        await contract
-          .connect(ownerSigner)
-          .grantRole(
-            PAYMENT_TOKEN_WHITELISTER_ROLE,
-            paymentTokenWhitelister.address
-          )
-      ).wait();
-      expect(
-        await contract.hasRole(
-          PAYMENT_TOKEN_WHITELISTER_ROLE,
-          paymentTokenWhitelister.address
-        )
-      ).to.be.true;
       expect(
         await contract.isPaymentTokenWhitelisted(token.address)
       ).to.be.false;
       await (
         await contract
-          .connect(paymentTokenWhitelister)
+          .connect(ownerSigner)
           .updatePaymentTokenWhitelist(token.address, true)
       ).wait();
       expect(
         await contract.isPaymentTokenWhitelisted(token.address)
       ).to.be.true;
-      paymentToken = token.address;
+      paymentTokenAddress = token.address;
     }
   });
 
-  describe('Create Virtual Floor ', function () {
+  describe('Create Virtual Floor', function () {
     const virtualFloorId =
-            '0x0000000000000000000000000000000000000000000000000000000000012345';
+      '0x0000000000000000000000000000000000000000000000000123450000000000';
     const tOpen = toTimestamp('2022-06-01T12:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
@@ -156,12 +131,13 @@ describe('DoubleDice', function () {
         contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen: pastTOpenTime,
           tClose: pastClosureTime,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).to.be.reverted;
     });
@@ -172,12 +148,13 @@ describe('DoubleDice', function () {
         contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18: betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve: pastResolveTime,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).to.be.reverted;
     });
@@ -188,12 +165,13 @@ describe('DoubleDice', function () {
         contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose: greaterThanResolveTime,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).to.be.reverted;
     });
@@ -203,12 +181,13 @@ describe('DoubleDice', function () {
         contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes: 1,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: nOutcomes < 2');
     });
@@ -216,22 +195,21 @@ describe('DoubleDice', function () {
     it('Should revert if betaOpen is greater than 1e18', async function () {
       const betaOpenGreaterThan1e18 = BigNumber.from(1).pow(19);
 
-      const _virtualFloorId = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-        1000 + Math.random() * 9000
-      )}`;
+      const _virtualFloorId = generateRandomVirtualFloorId();
 
       await expect(
         contract.createVirtualFloor({
           virtualFloorId: _virtualFloorId,
           betaOpen_e18: betaOpenGreaterThan1e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
-      ).to.be.revertedWith('Error: betaOpen < 1e18');
+      ).to.be.revertedWith('Error: betaOpen < 1.0');
     });
 
     it('Should revert when beta is equal to 1e18', async function () {
@@ -240,14 +218,15 @@ describe('DoubleDice', function () {
         contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18: betaOpenGreaterThan1e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
-      ).to.be.revertedWith('Error: betaOpen < 1e18');
+      ).to.be.revertedWith('Error: betaOpen < 1.0');
     });
 
     it('Assert tOpen tClose & tResolve are multiples of time slot-duration', async function () {
@@ -255,12 +234,13 @@ describe('DoubleDice', function () {
         contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose: tClose.add(1),
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: tClose % _TIMESLOT_DURATION != 0');
 
@@ -268,12 +248,13 @@ describe('DoubleDice', function () {
         contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen: tOpen.add(1),
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: tOpen % _TIMESLOT_DURATION != 0');
 
@@ -281,12 +262,13 @@ describe('DoubleDice', function () {
         contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve: tResolve.add(1),
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: tResolve % _TIMESLOT_DURATION != 0');
     });
@@ -300,27 +282,29 @@ describe('DoubleDice', function () {
         contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen: _tOpen,
           tClose: _tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).to.be.revertedWith('Error: t >= 10% into open period');
     });
 
-    it('Should mint 1 virtual Id based token to owner', async function () {
-      const {events} = await (
+    it.skip('Should mint 1 virtual Id based token to owner', async function () {
+      const { events } = await (
         await contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
 
@@ -332,20 +316,19 @@ describe('DoubleDice', function () {
     });
 
     it('Should create VF if right arguments passed', async function () {
-      const _virtualFloorId = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-        1000 + Math.random() * 9000
-      )}`;
+      const _virtualFloorId = generateRandomVirtualFloorId();
 
-      const {events} = await (
+      const { events } = await (
         await contract.createVirtualFloor({
           virtualFloorId: _virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
 
@@ -359,24 +342,25 @@ describe('DoubleDice', function () {
     });
 
     it('Should revert if VF with same id created before', async function () {
-      await expect(
-        contract.createVirtualFloor({
-          virtualFloorId,
-          betaOpen_e18,
-          tOpen,
-          tClose,
-          tResolve,
-          nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
-        })
-      ).to.be.revertedWith('MARKET_DUPLICATE');
+      const params: VirtualFloorCreationParamsStruct = {
+        virtualFloorId,
+        betaOpen_e18,
+        creationFeeRate_e18,
+        tOpen,
+        tClose,
+        tResolve,
+        nOutcomes,
+        paymentToken: paymentTokenAddress,
+        metadata: DUMMY_METADATA,
+      };
+      await (await contract.createVirtualFloor(params)).wait();
+      await expect(contract.createVirtualFloor(params)).to.be.revertedWith('MARKET_DUPLICATE');
     });
   });
 
-  describe('Commit To Virtual Floor ', function () {
+  describe('Commit To Virtual Floor', function () {
     // Random virtual floor for each test case
-    let virtualFloorId;
+    let virtualFloorId: BigNumberish;
     const tOpen = toTimestamp('2022-06-01T12:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
@@ -420,27 +404,25 @@ describe('DoubleDice', function () {
         await token.connect(user3Signer).approve(contract.address, $(100))
       ).wait();
 
-      virtualFloorId = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-        1000 + Math.random() * 9000
-      )}`;
+      virtualFloorId = generateRandomVirtualFloorId();
 
       await (
         await contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
     });
 
-    it('Should revert if virtualFloorId doesn’t exist ', async function () {
-      const randomVirtualFloorId =
-                '0x000000000000000000000000000000000000000000000000000000000000dead';
+    it('Should revert if virtualFloorId doesn’t exist', async function () {
+      const randomVirtualFloorId = '0x00000000000000000000000000000000000000000000000000dead0000000000';
       const outcomeIndex = 0;
       const amount = $(10);
 
@@ -472,7 +454,7 @@ describe('DoubleDice', function () {
       ).to.be.revertedWith('OUTCOME_INDEX_OUT_OF_RANGE');
     });
 
-    it('Should revert if amount is zero or less ', async function () {
+    it('Should revert if amount is zero or less', async function () {
       const wrongAmount = $(0);
       await expect(
         contract
@@ -491,11 +473,11 @@ describe('DoubleDice', function () {
             outcomeIndex,
             amountBiggerThanAllowance
           )
-      ).to.be.revertedWith('ERC20: transfer amount exceeds allowance');
+      ).to.be.revertedWith('ERC20: insufficient allowance');
     });
 
     it('Should commit successfully if right parameters passed and as well emit right event with right parameters', async function () {
-      const {events} = await (
+      const { events } = await (
         await contract
           .connect(user1Signer)
           .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
@@ -525,7 +507,7 @@ describe('DoubleDice', function () {
       ).to.be.eq(amount);
     });
 
-    it('Should increase the VF aggregate commitment by the amount ', async function () {
+    it('Should increase the VF aggregate commitment by the amount', async function () {
       const aggregateBalanceBeforeCommit = await contract.getVirtualFloorAggregateCommitments(
         virtualFloorId,
         outcomeIndex
@@ -547,8 +529,11 @@ describe('DoubleDice', function () {
     });
 
     it('Should generate same token ID if the commitment is before open time', async function () {
-      const checkpoint = await EvmCheckpoint.create();
-      const {events: commitment1Events} = await (
+      const localCheckpoint = await EvmCheckpoint.create();
+
+      await setNextBlockTimestamp(tOpen.toNumber() - 10 * 60);
+
+      const { events: commitment1Events } = await (
         await contract
           .connect(user1Signer)
           .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
@@ -557,11 +542,9 @@ describe('DoubleDice', function () {
         commitment1Events
       );
 
-      await setNextBlockTimestamp(
-        new Date().setMinutes(new Date().getMinutes() + 3)
-      );
+      await setNextBlockTimestamp(tOpen.toNumber() - 5 * 60);
 
-      const {events: commitment2Events} = await (
+      const { events: commitment2Events } = await (
         await contract
           .connect(user1Signer)
           .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
@@ -573,57 +556,68 @@ describe('DoubleDice', function () {
       expect(commitment2EventArgs.tokenId).to.be.eq(
         commitment1EventArgs.tokenId
       );
-      await checkpoint.revertTo();
+
+      await localCheckpoint.revertTo();
     });
 
     it('Should generate unique token id for the granularity level of time slot duration after open time', async function () {
-      const virtualFloorId1 = (virtualFloorId = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-        1000 + Math.random() * 9000
-      )}`);
+      const virtualFloorId1 = generateRandomVirtualFloorId();
 
-      const _tOpen = toTimestamp(new Date().setSeconds(0));
+      const { timestamp } = await ethers.provider.getBlock('latest');
+
+      const _tOpen = timestampMinuteCeil(timestamp + 60);
+      const tCommitment1 = timestampMinuteCeil(_tOpen + 3 * 60);
+      const tCommitment2 = timestampMinuteCeil(_tOpen + 6 * 60);
 
       await (
         await contract.createVirtualFloor({
           virtualFloorId: virtualFloorId1,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen: _tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
 
-      const {events: commitment1Events} = await (
+
+      await setNextBlockTimestamp(tCommitment1);
+
+      const { events: commitment1Events, blockHash: blockHash1 } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
+          .commitToVirtualFloor(virtualFloorId1, outcomeIndex, amount)
       ).wait();
       const commitment1EventArgs = findUserCommitmentEventArgs(
         commitment1Events
       );
 
-      await setNextBlockTimestamp(
-        new Date().setMinutes(new Date().getMinutes() + 3)
-      );
+      expect((await ethers.provider.getBlock(blockHash1)).timestamp).to.eq(tCommitment1);
 
-      const {events: commitment2Events} = await (
+
+      await setNextBlockTimestamp(tCommitment2);
+
+      const { events: commitment2Events, blockHash: blockHash2 } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
+          .commitToVirtualFloor(virtualFloorId1, outcomeIndex, amount)
       ).wait();
       const commitment2EventArgs = findUserCommitmentEventArgs(
         commitment2Events
       );
+
+      expect((await ethers.provider.getBlock(blockHash2)).timestamp).to.eq(tCommitment2);
+
 
       expect(commitment2EventArgs.tokenId).to.be.not.eq(
         commitment1EventArgs.tokenId
       );
     });
 
-    it('Should revert if the amount passed is more than the limit uint256 ', async function () {
+    it('Should revert if the amount passed is more than the limit uint256', async function () {
       const amountExceedUint256Limit = 2n ** 256n + 1n;
 
       await expect(
@@ -652,7 +646,7 @@ describe('DoubleDice', function () {
     });
 
     it('Should mint token commitment for the user', async function () {
-      const {events} = await (
+      const { events } = await (
         await contract
           .connect(user1Signer)
           .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
@@ -667,17 +661,11 @@ describe('DoubleDice', function () {
     });
   });
 
-  describe('Resolve Virtual Floor ', function () {
+  describe('Resolve Virtual Floor', function () {
     // Random virtual floor for each test case
-    const virtualFloorId = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-      1000 + Math.random() * 9000
-    )}`;
-    const virtualFloorId2 = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-      1000 + Math.random() * 9000
-    )}`;
-    const allWinnersVf = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-      1000 + Math.random() * 9000
-    )}`;
+    const virtualFloorId = generateRandomVirtualFloorId();
+    const virtualFloorId2 = generateRandomVirtualFloorId();
+    const allWinnersVf = generateRandomVirtualFloorId();
     const tOpen = toTimestamp('2022-06-01T12:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
@@ -717,36 +705,39 @@ describe('DoubleDice', function () {
         await contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
           virtualFloorId: virtualFloorId2,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
           virtualFloorId: allWinnersVf,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
 
@@ -759,15 +750,21 @@ describe('DoubleDice', function () {
       await helper.commitToVirtualFloor(allWinnersVf, 1, user3Signer, $(10));
     });
 
-    it('Should revert if VF / market does not exist ', async function () {
+    it('Should revert if VF / market does not exist', async function () {
       const wrongVirtualFloorId =
-                '0x000000000000000000000000000000000000000000000000000000000000dead';
+        '0x00000000000000000000000000000000000000000000000000dead0000000000';
       await expect(contract.resolve(wrongVirtualFloorId, 1)).to.be.revertedWith(
-        'NOT_VIRTUALFLOOR_OWNER'
+        'MARKET_INEXISTENT_OR_IN_WRONG_STATE'
       );
     });
 
     it('Should revert if resolve time has not reached', async function () {
+
+      // Commit to 2 outcomes so that VF resolution fails because too early,
+      // and not because it is unresolvable.
+      await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId2, 0, 1)).wait();
+      await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId2, 1, 1)).wait();
+
       await expect(contract.resolve(virtualFloorId2, 1)).to.be.revertedWith(
         'TOO_EARLY_TO_RESOLVE'
       );
@@ -807,11 +804,11 @@ describe('DoubleDice', function () {
 
       const virtualFloor = await contract._virtualFloors(virtualFloorId);
 
-      expect(virtualFloor.state).to.be.eq(VirtualFloorState.Cancelled);
+      expect(virtualFloor.state).to.be.eq(VirtualFloorState.CancelledResolvedNoWinners);
       await checkpoint.revertTo();
     });
 
-    it('Should cancel VF and set resolution type to All Winners when total commits of the VF is equal to winner commitments. ', async function () {
+    it('Should cancel VF and set resolution type to All Winners when total commits of the VF is equal to winner commitments', async function () {
       const checkpoint = await EvmCheckpoint.create();
       const vfAggregateCommitments = await contract.getVirtualFloorAggregateCommitments(
         allWinnersVf,
@@ -820,42 +817,45 @@ describe('DoubleDice', function () {
       expect(vfAggregateCommitments.amount).to.be.eq($(10).mul(3));
 
       await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
-      await (await contract.resolve(allWinnersVf, 1)).wait();
+
+      await expect(contract.resolve(allWinnersVf, 1)).to.be.revertedWith('Error: Cannot resolve VF with commitments to less than 2 outcomes');
+
+      await (await contract.cancelVirtualFloorUnresolvable(allWinnersVf)).wait();
 
       const virtualFloor = await contract._virtualFloors(allWinnersVf);
-
-      expect(virtualFloor.state).to.be.eq(VirtualFloorState.Cancelled);
+      expect(virtualFloor.state).to.be.eq(VirtualFloorState.CancelledUnresolvable);
       await checkpoint.revertTo();
     });
 
-    it('Should set VF state to completed as well resolution type to some winners and set winnerProfits also transfer to the feeBeneficary the fee amount. ', async function () {
+    it('Should set VF state to completed as well resolution type to some winners and set winnerProfits also transfer to the feeBeneficary the fee amount', async function () {
       const checkpoint = await EvmCheckpoint.create();
       const balanceOfFeeBeneficaryBefore = await token.balanceOf(
-        feeBeneficiarySigner.address
+        platformFeeBeneficiarySigner.address
       );
 
       await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
       await (await contract.resolve(virtualFloorId, 1)).wait();
 
       const balanceOfFeeBeneficaryAfter = await token.balanceOf(
-        feeBeneficiarySigner.address
+        platformFeeBeneficiarySigner.address
       );
 
       const virtualFloor = await contract._virtualFloors(virtualFloorId);
-      expect(virtualFloor.state).to.be.eq(VirtualFloorState.Completed);
+      expect(virtualFloor.state).to.be.eq(VirtualFloorState.ResolvedWinners);
+
       expect(balanceOfFeeBeneficaryAfter.toNumber()).to.be.gt(
         balanceOfFeeBeneficaryBefore.toNumber()
       );
       await checkpoint.revertTo();
     });
 
-    it('Should calculate beta right (WIP)  ', async () => {
+    it.skip('Should calculate beta right (WIP)', async () => {
       const checkpoint = await EvmCheckpoint.create();
       await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
       await (await contract.resolve(virtualFloorId, 1)).wait();
 
       const virtualFloor = await contract._virtualFloors(virtualFloorId);
-      expect(virtualFloor.state).to.be.eq(VirtualFloorState.Completed);
+      expect(virtualFloor.state).to.be.eq(VirtualFloorState.ResolvedWinners);
 
       // console.log("user1CommitmentEvent", virtualFloor);
 
@@ -872,17 +872,11 @@ describe('DoubleDice', function () {
     });
   });
 
-  describe('Claim Virtual Floor ', function () {
+  describe('Claim Virtual Floor', function () {
     // Random virtual floor for each test case
-    const virtualFloorId = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-      1000 + Math.random() * 9000
-    )}`;
-    const virtualFloorId2 = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-      1000 + Math.random() * 9000
-    )}`;
-    const allWinnersVf = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-      1000 + Math.random() * 9000
-    )}`;
+    const virtualFloorId = generateRandomVirtualFloorId();
+    const virtualFloorId2 = generateRandomVirtualFloorId();
+    const allWinnersVf = generateRandomVirtualFloorId();
     const betaOpen_e18 = BigNumber.from(10)
       .pow(18)
       .mul(13); // 1 unit per hour
@@ -928,40 +922,43 @@ describe('DoubleDice', function () {
         await contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
           virtualFloorId: virtualFloorId2,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
           virtualFloorId: allWinnersVf,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
 
-      const {events: user1CommittedEvents} = await (
+      const { events: user1CommittedEvents } = await (
         await contract
           .connect(user1Signer)
           .commitToVirtualFloor(virtualFloorId, 0, $(10))
@@ -969,7 +966,7 @@ describe('DoubleDice', function () {
       user1CommitmentEventArgs = findUserCommitmentEventArgs(
         user1CommittedEvents
       );
-      const {events: user2CommittedEvents} = await (
+      const { events: user2CommittedEvents } = await (
         await contract
           .connect(user2Signer)
           .commitToVirtualFloor(virtualFloorId, 1, $(10))
@@ -977,7 +974,7 @@ describe('DoubleDice', function () {
       user2CommitmentEventArgs = findUserCommitmentEventArgs(
         user2CommittedEvents
       );
-      const {events: user3CommittedEvents} = await (
+      const { events: user3CommittedEvents } = await (
         await contract
           .connect(user3Signer)
           .commitToVirtualFloor(virtualFloorId, 1, $(10))
@@ -986,7 +983,7 @@ describe('DoubleDice', function () {
         user3CommittedEvents
       );
 
-      const {events: user1AllWinCommittedEvents} = await (
+      const { events: user1AllWinCommittedEvents } = await (
         await contract
           .connect(user1Signer)
           .commitToVirtualFloor(allWinnersVf, 1, $(10))
@@ -1006,9 +1003,9 @@ describe('DoubleDice', function () {
       ).wait();
     });
 
-    it('Should revert if VF does not exist ', async function () {
+    it('Should revert if VF does not exist', async function () {
       const wrongVirtualFloorId =
-                '0x000000000000000000000000000000000000000000000000000000000000dead';
+        '0x00000000000000000000000000000000000000000000000000dead0000000000';
       await expect(
         contract.claim({
           virtualFloorId: wrongVirtualFloorId,
@@ -1042,8 +1039,11 @@ describe('DoubleDice', function () {
       await checkpoint.revertTo();
     });
 
-    it('Should be able to claim original committed amount if the ' +
-            'VF got cancelled and also transfer the amount to the user and burn the minted tokens', async function () {
+    // ToDo: This will no longer work with an all-winners VF,
+    // because such VFs can no longer be resolved.
+    // Instead, this same test should be run against a VF that get resolved
+    // but cancelled because there are *no* winners.
+    it.skip('Should be able to claim original committed amount if the VF got cancelled and also transfer the amount to the user and burn the minted tokens', async function () {
       const checkpoint = await EvmCheckpoint.create();
       await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
       await (await contract.resolve(allWinnersVf, 1)).wait();
@@ -1066,7 +1066,11 @@ describe('DoubleDice', function () {
       await checkpoint.revertTo();
     });
 
-    it('Should not be able to claim a transferred commitment', async () => {
+    // ToDo: This will no longer work with an all-winners VF,
+    // because such VFs can no longer be resolved.
+    // Instead, this same test should be run against a VF that get resolved
+    // but cancelled because there are *no* winners.
+    it.skip('Should not be able to claim a transferred commitment', async () => {
       const checkpoint = await EvmCheckpoint.create();
       await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
       await (await contract.resolve(allWinnersVf, 1)).wait();
@@ -1093,7 +1097,11 @@ describe('DoubleDice', function () {
       await checkpoint.revertTo();
     });
 
-    it('Should be able to claim a transferred cancelled commitment same amount as the committed amount ', async function () {
+    // ToDo: This will no longer work with an all-winners VF,
+    // because such VFs can no longer be resolved.
+    // Instead, this same test should be run against a VF that get resolved
+    // but cancelled because there are *no* winners.
+    it.skip('Should be able to claim a transferred cancelled commitment same amount as the committed amount', async function () {
       const checkpoint = await EvmCheckpoint.create();
       await setNextBlockTimestamp(tResolve.toNumber() * 10e3);
       await (await contract.resolve(allWinnersVf, 1)).wait();
@@ -1128,14 +1136,11 @@ describe('DoubleDice', function () {
   });
 
   describe('PaymentTokenRegistry & URI test', function () {
-
+    //
   });
 
   describe('Fee related tests', function () {
-    // Random virtual floor for each test case
-    const virtualFloorId = `0x000000000000000000000000000000000000000000000000000000000000${Math.floor(
-      1000 + Math.random() * 9000
-    )}`;
+    let virtualFloorId: BigNumberish;
     const betaOpen_e18 = BigNumber.from(10)
       .pow(18)
       .mul(13); // 1 unit per hour
@@ -1145,21 +1150,24 @@ describe('DoubleDice', function () {
     const nOutcomes = 3;
 
     beforeEach(async () => {
+      // Random virtual floor for each test case
+      virtualFloorId = generateRandomVirtualFloorId();
       await (
         await contract.createVirtualFloor({
           virtualFloorId,
           betaOpen_e18,
+          creationFeeRate_e18,
           tOpen,
           tClose,
           tResolve,
           nOutcomes,
-          paymentToken,
-          metadataHash: DUMMY_METADATA_HASH,
+          paymentToken: paymentTokenAddress,
+          metadata: DUMMY_METADATA,
         })
       ).wait();
     });
 
-    it(' Users of equal commitment should get equal share   ', async () => {
+    it('Users of equal commitment should get equal share', async () => {
       const checkpoint = await EvmCheckpoint.create();
       const amountToCommit = $(100);
 
@@ -1193,15 +1201,19 @@ describe('DoubleDice', function () {
       const user1BalanceAfterClaim = await token.balanceOf(user1Signer.address);
       const user2BalanceAfterClaim = await token.balanceOf(user1Signer.address);
 
-      const collectedFee = await token.balanceOf(await contract.feeBeneficiary());
+      const collectedFee = await token.balanceOf(await contract.platformFeeBeneficiary());
 
       const user1Profit = user1BalanceAfterClaim.sub(user1BalanceBeforeClaim);
       const user2Profit = user2BalanceAfterClaim.sub(user2BalanceBeforeClaim);
 
-      expect(collectedFee).to.be.eq(resolutionEvent.feeAmount);
+      expect(collectedFee).to.be.eq(resolutionEvent.platformFeeAmount);
 
       // Assert loser commitment is equal to winners profit + fee
-      expect(amountToCommit).to.be.eq(resolutionEvent.winnerProfits.add(resolutionEvent.feeAmount));
+      expect(amountToCommit).to.be.eq(
+        resolutionEvent.winnerProfits
+          .add(resolutionEvent.platformFeeAmount)
+          .add(resolutionEvent.ownerFeeAmount)
+      );
 
       expect(user1Profit).to.be.gt(0);
       expect(user1Profit).to.be.eq(user2Profit);
@@ -1209,7 +1221,7 @@ describe('DoubleDice', function () {
     });
 
 
-    it.only('Time span should affect only same amount after vf open time', async () => {
+    it('Time span should affect only same amount after vf open time', async () => {
       const amountToCommit = $(100000000000);
 
       await helper.mintTokenAndGiveAllowanceToContract({
@@ -1259,17 +1271,21 @@ describe('DoubleDice', function () {
       const user1BalanceAfterClaim = await token.balanceOf(user1Signer.address);
       const user2BalanceAfterClaim = await token.balanceOf(user1Signer.address);
 
-      const collectedFee = await token.balanceOf(await contract.feeBeneficiary());
+      const collectedFee = await token.balanceOf(await contract.platformFeeBeneficiary());
 
       const user1Profit = user1BalanceAfterClaim.sub(user1BalanceBeforeClaim);
       console.log('user1Profit', user1Profit);
       const user2Profit = user2BalanceAfterClaim.sub(user2BalanceBeforeClaim);
       console.log('user2Profit', user2Profit);
 
-      expect(collectedFee).to.be.eq(resolutionEvent.feeAmount);
+      expect(collectedFee).to.be.eq(resolutionEvent.platformFeeAmount);
 
       // Assert loser commitment is equal to winners profit + fee
-      expect(amountToCommit).to.be.eq(resolutionEvent.winnerProfits.add(resolutionEvent.feeAmount));
+      expect(amountToCommit).to.be.eq(
+        resolutionEvent.winnerProfits
+          .add(resolutionEvent.platformFeeAmount)
+          .add(resolutionEvent.ownerFeeAmount)
+      );
 
       expect(user1Profit).to.be.gt(0);
       expect(user1Profit).to.be.eq(user2Profit);

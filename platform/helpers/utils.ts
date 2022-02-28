@@ -1,11 +1,13 @@
 import assert from 'assert';
-import { BigNumber, BigNumberish, ContractReceipt } from 'ethers';
-import { ethers } from 'hardhat';
+import { BigNumber, BigNumberish, ContractReceipt, ethers } from 'ethers';
+import { RoomEventInfo } from '../lib/contracts';
 
 export type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 
-export const sleep = t => new Promise(s => setTimeout(s, t));
+export const sleep = (t: number) => new Promise(s => setTimeout(s, t));
 
+export const generateRandomVirtualFloorId = () =>
+  BigNumber.from(ethers.utils.hexlify(ethers.utils.randomBytes(8))).shl(5 * 8);
 
 export const toFp18 = (value: number): BigNumber => {
   const sign = Math.sign(value);
@@ -61,7 +63,8 @@ export interface VirtualFloorResolution {
   winningOutcomeIndex: BigNumber;
   resolutionType: VirtualFloorResolutionType;
   winnerProfits: BigNumber;
-  feeAmount: BigNumber;
+  platformFeeAmount: BigNumber;
+  ownerFeeAmount: BigNumber;
 }
 
 export const findUserCommitmentEventArgs = (events: ContractReceipt['events']): UserCommitment => {
@@ -72,28 +75,25 @@ export const findVFResolutionEventArgs = (events: ContractReceipt['events']): Vi
   return findContractEventArgs(events, 'VirtualFloorResolution');
 };
 
-export const DUMMY_METADATA_HASH = '0x0000000000000000000000000000000000000000000000000000000000000000';
+export const DUMMY_METADATA: RoomEventInfo = {
+  category: 'sports',
+  subcategory: 'football',
+  title: 'Finland vs. Argentina',
+  description: 'Finland vs. Argentina FIFA 2022 world cup final',
+  isListed: false,
+  opponents: [
+    { title: 'Finland', image: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Huuhkajat_logo.svg' },
+    { title: 'Argentina', image: 'https://upload.wikimedia.org/wikipedia/en/c/c1/Argentina_national_football_team_logo.svg' }
+  ],
+  outcomes: [
+    { title: 'Finland win' },
+    { title: 'Argentina win' },
+    { title: 'Tie' }
+  ],
+  resultSources: [
+    { title: 'Official FIFA result page', url: 'http://fifa.com/argentina-vs-finland' }
+  ]
+};
 
-export class EvmCheckpoint {
-  private snapshot: string;
-
-  private constructor(initSnapshot: string) {
-    this.snapshot = initSnapshot;
-  }
-
-  static async create(log = false): Promise<EvmCheckpoint> {
-    const snapshot = await ethers.provider.send('evm_snapshot', []);
-    if (log) console.log(`Captured EVM snapshot ${snapshot}`);
-    return new EvmCheckpoint(snapshot);
-  }
-
-  async revertTo(log = false) {
-    const ok = await ethers.provider.send('evm_revert', [this.snapshot]);
-    if (!ok) {
-      throw new Error(`Error reverting to EVM snapshot ${this.snapshot}`);
-    }
-    if (log) console.log(`Reverted to EVM snapshot ${this.snapshot}`);
-    this.snapshot = await ethers.provider.send('evm_snapshot', []);
-    if (log) console.log(`Captured EVM snapshot ${this.snapshot}`);
-  }
-}
+// export const timestampMinuteCeil = (timestamp: BigNumberish) => BigNumber.from(timestamp).add(59).div(60).mul(60);
+export const timestampMinuteCeil = (timestamp: number) => Math.ceil(timestamp / 60) * 60;

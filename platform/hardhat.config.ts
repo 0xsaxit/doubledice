@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import 'hardhat-abi-exporter';
 import 'hardhat-gas-reporter';
 import { HardhatUserConfig } from 'hardhat/types';
+import 'solidity-coverage';
 
 const dotenvResult = dotenv.config();
 if (dotenvResult.error) {
@@ -32,7 +33,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: 31337,
+      chainId: 1337,
     },
     ganache: {
       chainId: 1337,
@@ -54,8 +55,17 @@ const config: HardhatUserConfig = {
     },
   },
   typechain: {
+    externalArtifacts: [
+      'node_modules/@openzeppelin/contracts/build/contracts/ProxyAdmin.json',
+      'node_modules/@openzeppelin/contracts/build/contracts/TransparentUpgradeableProxy.json',
+    ],
     outDir: 'lib/generated/typechain-types'
-  }
+  },
+  gasReporter: {
+    outputFile: 'gas-report.txt',
+    noColors: true,
+    excludeContracts: ['mock/'],
+  },
 };
 
 export default config;

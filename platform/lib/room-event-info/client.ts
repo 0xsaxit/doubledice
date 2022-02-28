@@ -1,6 +1,6 @@
-import assert from 'assert';
 import axios from 'axios';
-import { RoomEventInfo, validateRoomEventInfo } from './common';
+import { RoomEventInfo } from '../contracts';
+import { validateRoomEventInfo } from './common';
 
 export class RoomEventInfoClient {
 
@@ -9,7 +9,9 @@ export class RoomEventInfoClient {
 
   async submitRoomEventInfo(roomEventInfo: RoomEventInfo): Promise<string> {
 
-    assert(validateRoomEventInfo(roomEventInfo));
+    if (!validateRoomEventInfo(roomEventInfo)) {
+      throw new Error(JSON.stringify(validateRoomEventInfo.errors));
+    }
 
     const rsp = await axios.post(`${this.origin}/api/room-event-info?action=submit`, roomEventInfo);
 
@@ -25,8 +27,4 @@ export class RoomEventInfoClient {
 
 }
 
-
 export { validateRoomEventInfo };
-export type { RoomEventInfo };
-
-

@@ -5,19 +5,14 @@ import {
   Address,
   BigDecimal,
   BigInt,
-  ByteArray,
-  Bytes,
-  ipfs,
-  json,
-  JSONValue,
-  log,
-  TypedMap
+  log
 } from '@graphprotocol/graph-ts';
-import { concat } from '@graphprotocol/graph-ts/helper-functions';
 import {
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
   TransferSingle as TransferSingleEvent,
   UserCommitment as UserCommitmentEvent,
+  VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
+  VirtualFloorCancellationUnresolvable as VirtualFloorCancellationUnresolvableEvent,
   VirtualFloorCreation as VirtualFloorCreationEvent,
   VirtualFloorResolution as VirtualFloorResolutionEvent
 } from '../generated/DoubleDice/DoubleDice';
@@ -25,10 +20,14 @@ import {
   IERC20Metadata
 } from '../generated/DoubleDice/IERC20Metadata';
 import {
+  Category,
+  Opponent,
   Outcome,
   OutcomeTimeslot,
   OutcomeTimeslotTransfer,
   PaymentToken,
+  ResultSource,
+  Subcategory,
   Timeslot,
   User,
   UserOutcome,
@@ -79,20 +78,6 @@ function loadOrCreateEntity<T extends Entity>(load: LoadEntity<T>, id: string): 
   return entity;
 }
 
-function getNonNullProperty(map: TypedMap<string, JSONValue>, key: string): JSONValue {
-  return changetype<JSONValue>(assert(map.get(key), key + ' is null'));
-}
-
-function getBase16CidV1Hash(sha256Hash: Bytes): string {
-  //             "e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864"
-  // => "f01551220e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864"
-  // Final .slice(3) removes "0x0"
-  // and leaves "f01551220e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864"
-  // See https://cid.ipfs.io/#f01551220e610a0063e2bb5b8c0528ec84396a90700405742fa2d4a0c9dc26508e3863864
-  return concat(ByteArray.fromHexString('0x0f01551220'), sha256Hash).toHex().slice(3);
-}
-
-
 /**
  * It doesn't matter whether this token is being enabled or disabled, we are only using it to discover
  * new ERC-20 payment tokens that might later be used in virtual-floors.
@@ -113,24 +98,38 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
 }
 
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
-  let outcomeValues: JSONValue[];
-  let roomEventInfoMap: TypedMap<string, JSONValue>;
-  {
-    const cid = getBase16CidV1Hash(event.params.metadataHash);
-    const dataBytes = changetype<Bytes>(assert(ipfs.cat(cid), 'dataBytes == null'));
-    const roomEventInfoValue = json.fromBytes(dataBytes);
-    roomEventInfoMap = roomEventInfoValue.toObject();
-  }
+  const metadata = event.params.metadata;
 
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
+    const category = metadata.category;
+    const subcategory = metadata.subcategory;
+
+    const categoryId = category;
+    {
+      const categoryEntity = loadOrCreateEntity<Category>(Category.load, categoryId);
+      /* if (isNew) */ {
+        categoryEntity.slug = category;
+        categoryEntity.save();
+      }
+    }
+
+    const subcategoryId = `${category}-${subcategory}`;
+    {
+      const subcategoryEntity = loadOrCreateEntity<Subcategory>(Subcategory.load, subcategoryId);
+      /* if (isNew) */ {
+        subcategoryEntity.category = categoryId;
+        subcategoryEntity.slug = subcategory;
+        subcategoryEntity.save();
+      }
+    }
+
     const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
 
-    $.category = getNonNullProperty(roomEventInfoMap, 'category').toString();
-    $.subcategory = getNonNullProperty(roomEventInfoMap, 'subcategory').toString();
-    $.title = getNonNullProperty(roomEventInfoMap, 'title').toString();
-    $.description = getNonNullProperty(roomEventInfoMap, 'description').toString();
-    $.isListed = getNonNullProperty(roomEventInfoMap, 'isListed').toBool();
+    $.subcategory = subcategoryId;
+    $.title = metadata.title;
+    $.description = metadata.description;
+    $.isListed = metadata.isListed;
 
     const userId = event.params.creator.toHex();
     {
@@ -144,6 +143,8 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.paymentToken = event.params.paymentToken.toHex();
 
     $.betaOpen = toDecimal(event.params.betaOpen_e18);
+    $.creationFeeRate = toDecimal(event.params.creationFeeRate_e18);
+    $.platformFeeRate = toDecimal(event.params.platformFeeRate_e18);
     $.tCreated = event.block.timestamp;
     $.tOpen = event.params.tOpen;
     $.tClose = event.params.tClose;
@@ -154,18 +155,49 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   }
 
   {
-    outcomeValues = getNonNullProperty(roomEventInfoMap, 'outcomes').toArray();
+    const opponents = metadata.opponents;
+    for (let opponentIndex = 0; opponentIndex < opponents.length; opponentIndex++) {
+      const opponent = opponents[opponentIndex];
+      const title = opponent.title;
+      const image = opponent.image;
+      const opponentId = `${virtualFloorId}-${opponentIndex}`;
+      {
+        const $ = createNewEntity<Opponent>(Opponent.load, opponentId);
+        $.virtualFloor = virtualFloorId;
+        $.title = title;
+        $.image = image;
+        $.save();
+      }
+    }
+  }
+
+  {
+    const resultSources = metadata.resultSources;
+    for (let resultSourceIndex = 0; resultSourceIndex < resultSources.length; resultSourceIndex++) {
+      const resultSource = resultSources[resultSourceIndex];
+      const title = resultSource.title;
+      const url = resultSource.url;
+      const resultSourceId = `${virtualFloorId}-${resultSourceIndex}`;
+      {
+        const $ = createNewEntity<ResultSource>(ResultSource.load, resultSourceId);
+        $.virtualFloor = virtualFloorId;
+        $.title = title;
+        $.url = url;
+        $.save();
+      }
+    }
+  }
+
+  {
+    const outcomes = metadata.outcomes;
     assert(
-      outcomeValues.length == event.params.nOutcomes,
-      'outcomeValues.length = ' + outcomeValues.length.toString()
+      outcomes.length == event.params.nOutcomes,
+      'outcomeValues.length = ' + outcomes.length.toString()
       + ' != event.params.nOutcomes = ' + event.params.nOutcomes.toString());
 
     for (let outcomeIndex = 0; outcomeIndex < event.params.nOutcomes; outcomeIndex++) {
-      const outcomeMap = outcomeValues[outcomeIndex].toObject();
-      const jsonIndex = getNonNullProperty(outcomeMap, 'index').toU64();
-      assert(jsonIndex == outcomeIndex, 'jsonIndex == ' + jsonIndex.toString() + ' != outcomeIndex == ' + outcomeIndex.toString());
-      const title = getNonNullProperty(outcomeMap, 'title').toString();
-
+      const outcome = outcomes[outcomeIndex];
+      const title = outcome.title;
       const outcomeId = `${virtualFloorId}-${outcomeIndex}`;
       {
         const $ = createNewEntity<Outcome>(Outcome.load, outcomeId);
@@ -288,14 +320,20 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
 }
 
 export function handleTransferSingle(event: TransferSingleEvent): void {
-  // Skip virtualFloor-type tokens for now
-  const tokenType = event.params.id.rightShift(248).toI32();
-  if (tokenType != 1) {
-    log.warning('Ignoring TransferSingle(id={}}) because token is of type {} != 1', [event.params.id.toHex(), tokenType.toString()]);
+
+  if (event.params.id.bitAnd(BigInt.fromU64(0xffffffffff)).equals(BigInt.zero())) {
+    log.warning(
+      'Ignoring TransferSingle(id={}) because token is tracking virtual-floor ownership, and transfers of this token-type are not yet handled',
+      [event.params.id.toHex()]
+    );
     return;
   }
 
   if (event.params.from.equals(Address.zero()) || event.params.to.equals(Address.zero())) {
+    log.warning(
+      'Ignoring TransferSingle(id={}, from={}, to={}) because it is mint or burn',
+      [event.params.id.toHex(), event.params.from.toHex(), event.params.to.toHex()]
+    );
     return;
   }
 
@@ -370,6 +408,25 @@ export function handleTransferSingle(event: TransferSingleEvent): void {
 }
 
 
+export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCancellationUnresolvableEvent): void {
+  const virtualFloorId = event.params.virtualFloorId.toHex();
+  {
+    const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
+    $.state = 'CANCELLED_BECAUSE_UNRESOLVABLE';
+    $.save();
+  }
+}
+
+export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancellationFlaggedEvent): void {
+  const virtualFloorId = event.params.virtualFloorId.toHex();
+  {
+    const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
+    $.state = 'CANCELLED_BECAUSE_FLAGGED';
+    $.flaggingReason = event.params.reason;
+    $.save();
+  }
+}
+
 export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent): void {
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
@@ -378,13 +435,10 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
     // Map DoubleDice.sol#VirtualFloorResolutionType => schema.graphql#VirtualFloorState
     switch (event.params.resolutionType) {
       case 0: // VirtualFloorResolutionType.NoWinners
-        $.state = 'CANCELLED_BECAUSE_NO_WINNERS';
+        $.state = 'CANCELLED_BECAUSE_RESOLVED_NO_WINNERS';
         break;
       case 1: // VirtualFloorResolutionType.SomeWinners
-        $.state = 'COMPLETED';
-        break;
-      case 2: // VirtualFloorResolutionType.AllWinners
-        $.state = 'CANCELLED_BECAUSE_ALL_WINNERS';
+        $.state = 'RESOLVED_WINNERS';
         break;
     }
 

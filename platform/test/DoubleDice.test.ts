@@ -7,86 +7,84 @@ import {
 } from 'ethers';
 import { ethers } from 'hardhat';
 import {
-  DoubleDice,
-  DoubleDice__factory,
-  DummyERC20,
-  DummyUSDCoin__factory
-} from '../lib/contracts';
-import {
-  DUMMY_METADATA_HASH,
+  deployAndInitialize,
+  DUMMY_METADATA,
   EvmCheckpoint,
   findContractEventArgs,
   findUserCommitmentEventArgs,
   formatUsdc,
   sumOf,
   UserCommitment
-} from './helpers';
+} from '../helpers';
+import {
+  DoubleDice,
+  DummyUSDCoin,
+  DummyUSDCoin__factory,
+  DummyWrappedBTC
+} from '../lib/contracts';
 
 chai.use(chaiSubset);
 
 const toTimestamp = (datetime: string): BigNumber => BigNumber.from(new Date(datetime).getTime() / 1000);
 
-const setNextBlockTimestamp = async (datetime: string) => {
-  await ethers.provider.send('evm_setNextBlockTimestamp', [toTimestamp(datetime).toNumber()]);
+const setNextBlockTimestamp = async (datetime: string | number | BigNumber) => {
+  let timestamp: BigNumber;
+  if (typeof datetime === 'string') {
+    timestamp = toTimestamp(datetime);
+  } else {
+    timestamp = BigNumber.from(datetime);
+  }
+  await ethers.provider.send('evm_setNextBlockTimestamp', [timestamp.toNumber()]);
 };
 
 function tokenIdOf({ virtualFloorId, outcomeIndex, datetime }: { virtualFloorId: BigNumberish; outcomeIndex: number; datetime: string }): BigNumber {
-  const bytes = ethers.utils.arrayify(ethers.utils.solidityKeccak256(['uint256', 'uint8', 'uint256'], [virtualFloorId, outcomeIndex, toTimestamp(datetime)]));
-  bytes[0] = 0x01; // commitment tokenIds must start 0x01...
-  return BigNumber.from(bytes);
+  const timeslot = toTimestamp(datetime);
+  return BigNumber.from(ethers.utils.solidityPack(
+    ['uint216', 'uint8', 'uint32'],
+    [BigNumber.from(virtualFloorId).shr((1 + 4) * 8), outcomeIndex, timeslot]
+  ));
 }
 
 describe('DoubleDice', function () {
 
   let ownerSigner: SignerWithAddress;
-  let paymentTokenWhitelister: SignerWithAddress;
   let feeBeneficiarySigner: SignerWithAddress;
   let user1Signer: SignerWithAddress;
   let user2Signer: SignerWithAddress;
   let user3Signer: SignerWithAddress;
-  let user4Signer: SignerWithAddress;
   let contract: DoubleDice;
-  let token: DummyERC20;
-
-  let checkpoint;
+  let token: DummyUSDCoin | DummyWrappedBTC;
+  let checkpoint: EvmCheckpoint;
 
   before(async () => {
-    checkpoint = await EvmCheckpoint.create();
+    checkpoint = await EvmCheckpoint.create(ethers.provider);
   });
 
   it('should go through the entire VPF cycle successfully', async function () {
     [
       ownerSigner,
-      paymentTokenWhitelister,
       feeBeneficiarySigner,
       user1Signer,
       user2Signer,
       user3Signer
     ] = await ethers.getSigners();
+
     token = await new DummyUSDCoin__factory(ownerSigner).deploy();
     await token.deployed();
-    contract = await new DoubleDice__factory(ownerSigner).deploy(
-      'http://localhost:8080/token/{id}',
-      feeBeneficiarySigner.address
-    );
-    await contract.deployed();
 
-    expect(await contract.feeBeneficiary()).to.eq(feeBeneficiarySigner.address);
+    contract = await deployAndInitialize(ownerSigner, { FEE_BENEFICIARY_ADDRESS: feeBeneficiarySigner.address });
+
+    expect(await contract.platformFeeBeneficiary()).to.eq(feeBeneficiarySigner.address);
 
     {
-      await expect(contract.connect(ownerSigner).updatePaymentTokenWhitelist(token.address, true)).to.be.reverted;
-      await expect(contract.connect(paymentTokenWhitelister).updatePaymentTokenWhitelist(token.address, true)).to.be.reverted;
-      const PAYMENT_TOKEN_WHITELISTER_ROLE = await contract.PAYMENT_TOKEN_WHITELISTER_ROLE();
-      expect(await contract.hasRole(PAYMENT_TOKEN_WHITELISTER_ROLE, paymentTokenWhitelister.address)).to.be.false;
-      await (await contract.connect(ownerSigner).grantRole(PAYMENT_TOKEN_WHITELISTER_ROLE, paymentTokenWhitelister.address)).wait();
-      expect(await contract.hasRole(PAYMENT_TOKEN_WHITELISTER_ROLE, paymentTokenWhitelister.address)).to.be.true;
       expect(await contract.isPaymentTokenWhitelisted(token.address)).to.be.false;
-      const { events } = await (await contract.connect(paymentTokenWhitelister).updatePaymentTokenWhitelist(token.address, true)).wait();
+      const { events } = await (await contract.connect(ownerSigner).updatePaymentTokenWhitelist(token.address, true)).wait();
       expect(events).to.have.lengthOf(1);
       expect(findContractEventArgs(events, 'PaymentTokenWhitelistUpdate')).to.containSubset({
         token: token.address,
-        enabled: true
+        whitelisted: true
       });
+      expect(await contract.isPaymentTokenWhitelisted(token.address)).to.be.true;
     }
 
     const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber => BigNumber.from(1000000).mul(dollars).add(millionths);
@@ -101,8 +99,9 @@ describe('DoubleDice', function () {
     await (await token.connect(user2Signer).approve(contract.address, $(100))).wait();
     await (await token.connect(user3Signer).approve(contract.address, $(100))).wait();
 
-    const virtualFloorId = 12345;
+    const virtualFloorId = 0x123450000000000n; // lower 5 bytes must be all 00
     const betaOpen = BigNumber.from(10).pow(18).mul(13); // 1 unit per hour
+    const creationFeeRate = BigNumber.from(10).pow(18).mul(15).div(1000); // 1.5%
     const tOpen = toTimestamp('2032-01-01T00:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
@@ -119,12 +118,13 @@ describe('DoubleDice', function () {
       } = await (await contract.createVirtualFloor({
         virtualFloorId,
         betaOpen_e18: betaOpen,
+        creationFeeRate_e18: creationFeeRate,
         tOpen,
         tClose,
         tResolve,
         nOutcomes,
         paymentToken: token.address,
-        metadataHash: DUMMY_METADATA_HASH
+        metadata: DUMMY_METADATA
       })).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
@@ -256,10 +256,21 @@ describe('DoubleDice', function () {
     // await setNextBlockTimestamp('2032-01-01T23:59:59')
     // expect(contract.resolve(virtualFloorId, 1)).to.be.revertedWith('TOO_EARLY_TO_RESOLVE')
 
+    await setNextBlockTimestamp(tClose);
+
+    // user3 gives user2 5$ worth of commitment made at 2032-01-01T02:00:00
+    await (await contract.connect(user3Signer).safeTransferFrom(
+      user3Signer.address,
+      user2Signer.address,
+      tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
+      $(5),
+      '0x'
+    )).wait();
+
     await setNextBlockTimestamp('2032-01-02T00:00:00');
     {
       const { events } = await (await contract.resolve(virtualFloorId, 1)).wait();
-      const { winnerProfits, feeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
+      const { winnerProfits, platformFeeAmount, ownerFeeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
 
       const tcf = sumOf(...aggregateCommitments.map(({ amount }) => amount));
 
@@ -268,21 +279,12 @@ describe('DoubleDice', function () {
         console.log(`amount[${i++}] = ${formatUsdc(amount)}`);
       }
 
-      console.log(`tcf            = ${formatUsdc(tcf)}`);
-      console.log(`winnerProfits  = ${formatUsdc(winnerProfits)}`);
-      console.log(`feeAmount      = ${formatUsdc(feeAmount)}`);
+      console.log(`tcf               = ${formatUsdc(tcf)}`);
+      console.log(`winnerProfits     = ${formatUsdc(winnerProfits)}`);
+      console.log(`platformFeeAmount = ${formatUsdc(platformFeeAmount)}`);
+      console.log(`ownerFeeAmount    = ${formatUsdc(ownerFeeAmount)}`);
 
       // console.log(allUserCommitments)
-
-
-      // user3 gives user2 5$ worth of commitment made at 2032-01-01T02:00:00
-      await (await contract.connect(user3Signer).safeTransferFrom(
-        user3Signer.address,
-        user2Signer.address,
-        tokenIdOf({ virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
-        $(5),
-        '0x'
-      )).wait();
 
       // contract.connect(user3Signer).safeBatchTransferFrom(
       //   user3Signer.address,
@@ -328,6 +330,6 @@ describe('DoubleDice', function () {
 
   after(async () => {
     await checkpoint.revertTo();
-  })
+  });
 
 });

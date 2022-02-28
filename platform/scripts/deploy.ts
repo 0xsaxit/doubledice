@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { ethers } from 'hardhat';
-import { DoubleDice__factory, DummyUSDCoin__factory, DummyWrappedBTC__factory } from '../lib/contracts';
+import { deployAndInitialize } from '../helpers';
 
 const {
   OWNER_ADDRESS,
@@ -19,26 +19,7 @@ async function main() {
 
   const ownerSigner = await ethers.getSigner(OWNER_ADDRESS);
 
-  const tokenContract1 = await new DummyUSDCoin__factory(ownerSigner).deploy({ nonce: 0 });
-  process.stdout.write(`Deploying USDC contract to: ${tokenContract1.address}...\n`);
-  await tokenContract1.deployed();
-
-  const mainContract = await new DoubleDice__factory(ownerSigner).deploy(
-    'http://localhost:8080/token/{id}',
-    FEE_BENEFICIARY_ADDRESS,
-    { nonce: 1 }
-  );
-  process.stdout.write(`Deploying main  contract to: ${mainContract.address}...\n`);
-  await mainContract.deployed();
-
-  const tokenContract2 = await new DummyWrappedBTC__factory(ownerSigner).deploy({ nonce: 2 });
-  process.stdout.write(`Deploying WBTC contract to: ${tokenContract2.address}...\n`);
-  await tokenContract2.deployed();
-
-  const PAYMENT_TOKEN_WHITELISTER_ROLE = await mainContract.PAYMENT_TOKEN_WHITELISTER_ROLE();
-  await (await mainContract.connect(ownerSigner).grantRole(PAYMENT_TOKEN_WHITELISTER_ROLE, ownerSigner.address)).wait();
-  await (await mainContract.connect(ownerSigner).updatePaymentTokenWhitelist(tokenContract1.address, true)).wait();
-  await (await mainContract.connect(ownerSigner).updatePaymentTokenWhitelist(tokenContract2.address, true)).wait();
+  await deployAndInitialize(ownerSigner, { FEE_BENEFICIARY_ADDRESS }, { forceNonce: true });
 }
 
 main()

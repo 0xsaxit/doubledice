@@ -1,18 +1,26 @@
-import { DoubleDice, DummyERC20 } from '../../lib/generated/typechain-types';
-import { BigNumber, BigNumberish, ContractReceipt, Signer } from 'ethers';
 import {
-  DUMMY_METADATA_HASH,
-  findUserCommitmentEventArgs, findVFResolutionEventArgs,
-  SignerWithAddress, UserCommitment, VirtualFloorResolution,
-} from './index';
-import { VirtualFloorCreationParamsStruct } from '../../lib/generated/typechain-types/IDoubleDice';
+  BigNumber,
+  BigNumberish
+} from 'ethers';
+import {
+  findUserCommitmentEventArgs,
+  findVFResolutionEventArgs,
+  SignerWithAddress,
+  UserCommitment,
+  VirtualFloorResolution
+} from '.';
+import {
+  DoubleDice,
+  DummyUSDCoin,
+  DummyWrappedBTC
+} from '../lib/contracts';
 
 type AddressOrSigner = string | SignerWithAddress;
 
 export const toAddress = (addressOrSigner: AddressOrSigner) => typeof addressOrSigner === 'string' ? addressOrSigner : addressOrSigner.address;
 
 export class DoubleDicePlatformHelper {
-  constructor(private contract: DoubleDice ) {}
+  constructor(private contract: DoubleDice) { }
 
   balanceOf(addressOrSigner: string, tokenId: string): Promise<BigNumber> {
     return this.contract.balanceOf(addressOrSigner, tokenId);
@@ -24,7 +32,7 @@ export class DoubleDicePlatformHelper {
     userAddress,
     amount,
   }: {
-    token: DummyERC20;
+    token: DummyUSDCoin | DummyWrappedBTC;
     ownerSigner: SignerWithAddress;
     userAddress: string;
     amount: BigNumber;
@@ -41,7 +49,7 @@ export class DoubleDicePlatformHelper {
     allowanceAmount,
     contractAddress,
   }: {
-    token: DummyERC20;
+    token: DummyUSDCoin | DummyWrappedBTC;
     ownerSigner: SignerWithAddress;
     usersSigner: SignerWithAddress[];
     mintAmount: BigNumber;
@@ -68,7 +76,7 @@ export class DoubleDicePlatformHelper {
   // }
 
   async commitToVirtualFloor(
-    virtualFloorId: string,
+    virtualFloorId: BigNumberish,
     outcomeIndex: number,
     userSigner: SignerWithAddress,
     amount: BigNumberish
@@ -85,7 +93,7 @@ export class DoubleDicePlatformHelper {
   }
 
   async resolveVirtualFloor(
-    virtualFloorId: string,
+    virtualFloorId: BigNumberish,
     outcomeIndex: number,
     ownerSigner: SignerWithAddress
   ): Promise<VirtualFloorResolution> {
@@ -102,7 +110,7 @@ export class DoubleDicePlatformHelper {
 
 
   async claim(
-    virtualFloorId: string,
+    virtualFloorId: BigNumberish,
     outcomeIndex: number,
     userSigner: SignerWithAddress,
     timeslot: BigNumber
@@ -110,7 +118,7 @@ export class DoubleDicePlatformHelper {
     return await (
       await this.contract
         .connect(userSigner)
-        .claim({virtualFloorId, outcomeIndex, timeslot})
+        .claim({ virtualFloorId, outcomeIndex, timeslot })
     ).wait();
   }
 }

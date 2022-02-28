@@ -5,11 +5,35 @@
 # - https://github.com/ensdomains/ens-subgraph
 # - https://github.com/graphprotocol/dharma-subgraph
 
+type Category @entity {
+  id: ID!
+
+  # children
+  subcategories: [Subcategory!]! @derivedFrom(field: "category")
+
+  # properties
+  slug: String!
+}
+
+type Subcategory @entity {
+  id: ID!
+
+  # parents
+  category: Category!
+
+  # children
+  virtualFloors: [VirtualFloor!]! @derivedFrom(field: "subcategory")
+
+  # properties
+  slug: String!
+}
+
 enum VirtualFloorState {
   RUNNING_OR_CLOSED,
-  COMPLETED,
-  CANCELLED_BECAUSE_NO_WINNERS,
-  CANCELLED_BECAUSE_ALL_WINNERS
+  CANCELLED_BECAUSE_UNRESOLVABLE,
+  CANCELLED_BECAUSE_RESOLVED_NO_WINNERS,
+  CANCELLED_BECAUSE_FLAGGED,
+  RESOLVED_WINNERS
 }
 
 type VirtualFloor @entity {
@@ -17,30 +41,56 @@ type VirtualFloor @entity {
 
   # parents
   owner: User!
+  subcategory: Subcategory!
 
   # children
   outcomes: [Outcome!]! @derivedFrom(field: "virtualFloor")
+  opponents: [Opponent!]! @derivedFrom(field: "virtualFloor")
+  resultSources: [ResultSource!]! @derivedFrom(field: "virtualFloor")
   virtualFloorTimeslots: [VirtualFloorTimeslot!]! @derivedFrom(field: "virtualFloor")
 
   # properties (event)
   paymentToken: PaymentToken!
   betaOpen: BigDecimal!
+  creationFeeRate: BigDecimal!
+  platformFeeRate: BigDecimal!
   tCreated: BigInt!
   tOpen: BigInt!
   tClose: BigInt!
   tResolve: BigInt!
   state: VirtualFloorState!
-  winningOutcome: Outcome
+  winningOutcome: Outcome # Optional: Only set if VF is resolved
+  flaggingReason: String  # Optional: Only set if VF is cancelled because it was flagged
 
   # properties (ipfs)
-  category: String!
-  subcategory: String!
   title: String!
   description: String!
   isListed: Boolean!
 
   # aggregates
   totalSupply: BigDecimal!
+}
+
+type Opponent @entity {
+  id: ID!
+
+  # parents
+  virtualFloor: VirtualFloor!
+
+  # properties
+  title: String!
+  image: String!
+}
+
+type ResultSource @entity {
+  id: ID!
+
+  # parents
+  virtualFloor: VirtualFloor!
+
+  # properties
+  title: String!
+  url: String!
 }
 
 type Outcome @entity {

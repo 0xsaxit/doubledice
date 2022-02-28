@@ -33,7 +33,7 @@ export default class Timeline extends Vue {
   close!: number
   resolve!: number
   max!: number
-  now = 0
+  now!: number
   locked = false
 
   get startPercent(): string {

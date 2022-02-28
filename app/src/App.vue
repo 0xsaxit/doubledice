@@ -26,8 +26,8 @@
       <td>{{ owner ? 'yes' : 'no' }}</td>
     </tr>
     <tr>
-      <th>Fee beneficiary</th>
-      <td>{{ feeBeneficiary }}</td>
+      <th>Platform-fee beneficiary</th>
+      <td>{{ platformFeeBeneficiary }}</td>
     </tr>
     <tr>
       <th>Token</th>
@@ -66,7 +66,7 @@
   <table id="virtual-floors" :class="{ expanded }">
     <colgroup>
       <col />
-      <col class="collapsible-column" />
+      <col />
       <col class="collapsible-column" />
       <col class="collapsible-column" />
       <col class="collapsible-column" />
@@ -75,8 +75,10 @@
       <tr>
         <!-- <th>json</th> -->
         <th>id</th>
-        <th>timeline</th>
         <th>state</th>
+        <th>timeline</th>
+        <th>creationFeeRate</th>
+        <th>platformFeeRate</th>
         <th>paymentToken</th>
         <th>owner</th>
         <th>beta</th>
@@ -118,28 +120,34 @@
       target="blank"
     >🦊🩹 Reset MetaMask account after restarting network</a>
   </div>
+
+  <hr />
+
+  <CategoriesComponent />
 </template>
 
 <script lang="ts">
 import { EthereumProvider, EthereumProviderHelper } from '@/mm'
 import { formatTimestamp, getSystemTimestamp } from '@/utils'
+// eslint-disable-next-line camelcase
+import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser, ERC20PresetMinterPauser__factory } from '@doubledice/platform/lib/contracts'
+import {
+  Category as CategoryEntity,
+  PaymentToken as PaymentTokenEntity,
+  VirtualFloor as VirtualFloorEntity
+} from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
 import { ethers, providers } from 'ethers'
 import gql from 'graphql-tag'
 import { Options, Vue } from 'vue-class-component'
-// eslint-disable-next-line camelcase
-import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser, ERC20PresetMinterPauser__factory } from '@doubledice/platform/lib/contracts'
+import CategoriesComponent from './components/CategoriesComponent.vue'
 import NewVirtualFloor from './components/NewVirtualFloor.vue'
 import PaymentTokenComponent from './components/PaymentTokenComponent.vue'
 import VirtualFloorComponent from './components/VirtualFloorComponent.vue'
-import {
-  PaymentToken as PaymentTokenEntity,
-  VirtualFloor as VirtualFloorEntity
-} from '@doubledice/platform/lib/graph'
 
 BigDecimal.config({ DECIMAL_PLACES: 18 })
 
-const MAIN_CONTRACT_ADDRESS = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
+const MAIN_CONTRACT_ADDRESS = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0'
 
 const VIRTUAL_FLOORS_QUERY = gql`query {
   virtualFloors(
@@ -151,8 +159,12 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
 #    }
   ) {
     id
-    category
-    subcategory
+    subcategory {
+      slug
+      category {
+        slug
+      }
+    }
     title
     description
     isListed
@@ -160,6 +172,8 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
       symbol
       decimals
     }
+    creationFeeRate
+    platformFeeRate
     tCreated
     tOpen
     tClose
@@ -173,6 +187,11 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
     betaOpen
     owner {
       id
+    }
+    opponents {
+      id
+      title
+      image
     }
     outcomes {
       index
@@ -195,6 +214,11 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
         }
       }
     }
+    resultSources {
+      id
+      title
+      url
+    }
   }
 }`
 
@@ -209,7 +233,8 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
   components: {
     VirtualFloorComponent,
     NewVirtualFloor,
-    PaymentTokenComponent
+    PaymentTokenComponent,
+    CategoriesComponent
   },
   // watch: {
   //   async latestBlockTimestamp(value: number) {
@@ -252,7 +277,7 @@ export default class App extends Vue {
 
   tokenDescription?: string
 
-  feeBeneficiary?: string
+  platformFeeBeneficiary?: string
 
   beta?: number
 
@@ -364,9 +389,9 @@ export default class App extends Vue {
 
     this.owner = await mainContract.hasRole(await mainContract.DEFAULT_ADMIN_ROLE(), this.accountAddress)
 
-    this.feeBeneficiary = await mainContract.feeBeneficiary()
+    this.platformFeeBeneficiary = await mainContract.platformFeeBeneficiary()
 
-    const tokenAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+    const tokenAddress = '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9'
 
     const tokenContract = ERC20PresetMinterPauser__factory.connect(tokenAddress, signer)
 
@@ -392,19 +417,19 @@ export default class App extends Vue {
 }
 </script>
 
-<!-- <style scoped> -->
 <style>
 h3 {
   margin: 40px 0 0;
 }
-ul {
+
+/* ul {
   list-style-type: none;
   padding: 0;
 }
 li {
   display: inline-block;
   margin: 0 10px;
-}
+} */
 a {
   color: #42b983;
 }

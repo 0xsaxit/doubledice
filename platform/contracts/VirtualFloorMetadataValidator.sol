@@ -3,9 +3,11 @@
 pragma solidity 0.8.12;
 
 import "./BaseDoubleDice.sol";
-import "./VirtualFloorMetadata.sol";
+import "./library/Utils.sol";
 
 contract VirtualFloorMetadataValidator is BaseDoubleDice {
+
+    using Utils for string;
 
     function __VirtualFloorMetadataValidator_init(BaseDoubleDiceInitParams calldata params) internal onlyInitializing {
         __BaseDoubleDice_init(params);
@@ -27,9 +29,9 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
 
         require(metadata.resultSources.length >= 1, "Error: There must be at least 1 result source");
 
-        require(bytes(metadata.title).length > 0, "Error: Title cannot be empty");
+        require(!metadata.title.isEmpty(), "Error: Title cannot be empty");
 
-        require(bytes(metadata.description).length > 0, "Error: Description cannot be empty");
+        require(!metadata.description.isEmpty(), "Error: Description cannot be empty");
 
         // ToDo: Here we should proceed to validate individual array item metadata,
         // but this is going to waste even more gas.

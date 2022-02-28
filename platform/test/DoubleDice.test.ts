@@ -114,6 +114,10 @@ describe('DoubleDice', function () {
     const tResolve = toTimestamp('2032-01-02T00:00:00');
     const nOutcomes = 3;
 
+    {
+      await (await contract.increaseQuotas([{ creator: ownerSigner.address, amount: 1 }])).wait();
+    }
+
     const allUserCommitments: UserCommitment[] = [];
 
     {

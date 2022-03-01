@@ -3,17 +3,23 @@
 pragma solidity 0.8.12;
 
 import "./CreatorQuota.sol";
-import "./SimpleOracle.sol";
+import "./ChallengeableCreatorOracle.sol";
 import "./VirtualFloorMetadataValidator.sol";
 
 contract DoubleDice is
-    SimpleOracle,
+    ChallengeableCreatorOracle,
     VirtualFloorMetadataValidator,
     CreatorQuota
 {
 
-    function initialize(BaseDoubleDiceInitParams calldata params) external initializer {
-        __SimpleOracle_init(params);
+    function initialize(
+        BaseDoubleDiceInitParams calldata params,
+        IERC20MetadataUpgradeable bondUsdErc20Token_
+    )
+        external
+        initializer
+    {
+        __ChallengeableCreatorOracle_init(params, bondUsdErc20Token_);
         __VirtualFloorMetadataValidator_init(params);
         __CreatorQuota_init(params);
     }
@@ -26,8 +32,9 @@ contract DoubleDice is
     }
 
     function _onVirtualFloorConclusion(uint256 vfId)
-        internal override(BaseDoubleDice, CreatorQuota)
+        internal override(BaseDoubleDice, ChallengeableCreatorOracle, CreatorQuota)
     {
+        ChallengeableCreatorOracle._onVirtualFloorConclusion(vfId);
         CreatorQuota._onVirtualFloorConclusion(vfId);
     }
 

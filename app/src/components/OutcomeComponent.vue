@@ -132,7 +132,7 @@ export default class OutcomeComponent extends Vue {
 
   async resolve(): Promise<void> {
     try {
-      const tx = await this.contract.resolve(this.virtualFloor.id, this.outcome.index)
+      const tx = await this.contract.finalizeUnsetResult(this.virtualFloor.id, this.outcome.index)
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`
       console.log(`Sent ${txUrl}`)

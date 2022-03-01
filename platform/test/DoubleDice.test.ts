@@ -22,7 +22,8 @@ import {
   DoubleDice__factory,
   DummyUSDCoin,
   DummyUSDCoin__factory,
-  DummyWrappedBTC
+  DummyWrappedBTC,
+  ResultUpdateAction
 } from '../lib/contracts';
 
 chai.use(chaiSubset);
@@ -71,11 +72,14 @@ describe('DoubleDice', function () {
 
     const impl = await new DoubleDice__factory(ownerSigner).deploy();
     await impl.deployed();
-    const encodedInitializerData = impl.interface.encodeFunctionData('initialize', [{
-      tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
-      platformFeeRate_e18: toFp18(0.2500),
-      platformFeeBeneficiary: feeBeneficiarySigner.address
-    }]);
+    const encodedInitializerData = impl.interface.encodeFunctionData('initialize', [
+      {
+        tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
+        platformFeeRate_e18: toFp18(0.2500),
+        platformFeeBeneficiary: feeBeneficiarySigner.address
+      },
+      token.address,
+    ]);
 
     const contractAddress = await deployProxy(ownerSigner, impl.address, encodedInitializerData);
     contract = DoubleDice__factory.connect(contractAddress, ownerSigner);
@@ -280,62 +284,80 @@ describe('DoubleDice', function () {
 
     await setNextBlockTimestamp('2032-01-02T00:00:00');
     {
-      const { events } = await (await contract.resolve(virtualFloorId, 1)).wait();
-      const { winnerProfits, platformFeeAmount, creatorFeeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
-
-      const tcf = sumOf(...outcomeTotals.map(({ amount }) => amount));
-
-      let i = 0;
-      for (const { amount } of outcomeTotals) {
-        console.log(`amount[${i++}] = ${formatUsdc(amount)}`);
-      }
-
-      console.log(`tcf               = ${formatUsdc(tcf)}`);
-      console.log(`winnerProfits     = ${formatUsdc(winnerProfits)}`);
-      console.log(`platformFeeAmount = ${formatUsdc(platformFeeAmount)}`);
-      console.log(`creatorFeeAmount    = ${formatUsdc(creatorFeeAmount)}`);
-
-      // console.log(allUserCommitments)
-
-      // contract.connect(user3Signer).safeBatchTransferFrom(
-      //   user3Signer.address,
-      //   user4Signer.address,
-      //   [
-      //     tokenIdOf({ vfId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
-      //     tokenIdOf({ vfId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
-      //   ], // ids
-      //   [], // amounts
-      //   '0x'
-      // )
-
-      console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
-
-      const tx1 = await (await contract.connect(user2Signer).claim({
-        virtualFloorId,
-        outcomeIndex: 1,
-        timeslot: toTimestamp('2032-01-01T02:00:00')
-      })).wait();
-
-      console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
-
-      const tx2 = await (await contract.connect(user3Signer).claim({
-        virtualFloorId,
-        outcomeIndex: 1,
-        timeslot: toTimestamp('2032-01-01T02:00:00')
-      })).wait();
-
-      console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
-
-      const tx3 = await (await contract.connect(user3Signer).claim({
-        virtualFloorId,
-        outcomeIndex: 1,
-        timeslot: toTimestamp('2032-01-01T06:00:00')
-      })).wait();
-
-      console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
-
-      // const asdf = sumOf(...outcomeTotals.map(({ weightedAmount }) => weightedAmount))
+      const { events } = await (await contract.setResult(virtualFloorId, 1)).wait();
+      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      expect(vfId).to.eq(virtualFloorId);
+      expect(operator).to.eq(ownerSigner.address);
+      expect(action).to.eq(ResultUpdateAction.CreatorSetResult);
+      expect(outcomeIndex).to.eq(1);
     }
 
+    await setNextBlockTimestamp('2032-01-02T01:30:00');
+    {
+      const { events } = await (await contract.confirmUnchallengedResult(virtualFloorId)).wait();
+      {
+        const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+        expect(vfId).to.eq(virtualFloorId);
+        expect(operator).to.eq(ownerSigner.address);
+        expect(action).to.eq(ResultUpdateAction.SomeoneConfirmedUnchallengedResult);
+        expect(outcomeIndex).to.eq(1);
+      }
+      {
+        const { winnerProfits, platformFeeAmount, creatorFeeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
+
+        const tcf = sumOf(...outcomeTotals.map(({ amount }) => amount));
+
+        let i = 0;
+        for (const { amount } of outcomeTotals) {
+          console.log(`amount[${i++}] = ${formatUsdc(amount)}`);
+        }
+
+        console.log(`tcf               = ${formatUsdc(tcf)}`);
+        console.log(`winnerProfits     = ${formatUsdc(winnerProfits)}`);
+        console.log(`platformFeeAmount = ${formatUsdc(platformFeeAmount)}`);
+        console.log(`creatorFeeAmount    = ${formatUsdc(creatorFeeAmount)}`);
+
+        // console.log(allUserCommitments)
+
+        // contract.connect(user3Signer).safeBatchTransferFrom(
+        //   user3Signer.address,
+        //   user4Signer.address,
+        //   [
+        //     tokenIdOf({ vfId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
+        //     tokenIdOf({ vfId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
+        //   ], // ids
+        //   [], // amounts
+        //   '0x'
+        // )
+
+        console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
+
+        const tx1 = await (await contract.connect(user2Signer).claim({
+          virtualFloorId,
+          outcomeIndex: 1,
+          timeslot: toTimestamp('2032-01-01T02:00:00')
+        })).wait();
+
+        console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
+
+        const tx2 = await (await contract.connect(user3Signer).claim({
+          virtualFloorId,
+          outcomeIndex: 1,
+          timeslot: toTimestamp('2032-01-01T02:00:00')
+        })).wait();
+
+        console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
+
+        const tx3 = await (await contract.connect(user3Signer).claim({
+          virtualFloorId,
+          outcomeIndex: 1,
+          timeslot: toTimestamp('2032-01-01T06:00:00')
+        })).wait();
+
+        console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
+
+        // const asdf = sumOf(...outcomeTotals.map(({ weightedAmount }) => weightedAmount))
+      }
+    }
   });
 });

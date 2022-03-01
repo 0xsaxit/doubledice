@@ -14,3 +14,11 @@ export enum VirtualFloorState {
   CancelledUnresolvable,
   CancelledFlagged
 }
+
+export enum ResultUpdateAction {
+  AdminFinalizedUnsetResult,
+  CreatorSetResult,
+  SomeoneConfirmedUnchallengedResult,
+  SomeoneChallengedSetResult,
+  AdminFinalizedChallenge
+}

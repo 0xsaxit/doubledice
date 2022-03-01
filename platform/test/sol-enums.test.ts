@@ -2,6 +2,8 @@ import { expect } from 'chai';
 import { Signer } from 'ethers';
 import { ethers } from 'hardhat';
 import {
+  ResultUpdateAction,
+  ResultUpdateActionWrapper__factory,
   VirtualFloorResolutionType,
   VirtualFloorResolutionTypeWrapper__factory,
   VirtualFloorState,
@@ -35,6 +37,16 @@ describe('Check manual Solidity-enum-type TypeScript analogs against actual valu
     await lib.deployed();
     expect(VirtualFloorResolutionType.CancelledNoWinners).to.eq(await lib.CancelledNoWinners());
     expect(VirtualFloorResolutionType.Winners).to.eq(await lib.Winners());
+  });
+
+  it('ResultUpdateAction', async () => {
+    const lib = await new ResultUpdateActionWrapper__factory(signer).deploy();
+    await lib.deployed();
+    expect(ResultUpdateAction.AdminFinalizedUnsetResult).to.eq(await lib.AdminFinalizedUnsetResult());
+    expect(ResultUpdateAction.CreatorSetResult).to.eq(await lib.CreatorSetResult());
+    expect(ResultUpdateAction.SomeoneConfirmedUnchallengedResult).to.eq(await lib.SomeoneConfirmedUnchallengedResult());
+    expect(ResultUpdateAction.SomeoneChallengedSetResult).to.eq(await lib.SomeoneChallengedSetResult());
+    expect(ResultUpdateAction.AdminFinalizedChallenge).to.eq(await lib.AdminFinalizedChallenge());
   });
 
 });

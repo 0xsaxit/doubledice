@@ -121,7 +121,7 @@ abstract contract BaseDoubleDice is
         address platformFeeBeneficiary;
     }
 
-    function __DoubleDice_init(BaseDoubleDiceInitParams calldata params) internal onlyInitializing {
+    function __BaseDoubleDice_init(BaseDoubleDiceInitParams calldata params) internal onlyInitializing {
         __ERC1155_init(params.tokenMetadataUriTemplate);
         __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
@@ -258,8 +258,6 @@ abstract contract BaseDoubleDice is
         require(tClose <= tResolve, "Error: tClose > tResolve");
 
         require(nOutcomes >= 2, "Error: nOutcomes < 2");
-
-        _requireValidMetadata(nOutcomes, metadata);
 
         require(_paymentTokenWhitelist.isWhitelisted(address(paymentToken)), "Error: Payment token is not whitelisted");
         vf.paymentTokenId = toAddressWhitelistKey(address(paymentToken));
@@ -542,20 +540,6 @@ abstract contract BaseDoubleDice is
     }
 
     function _onVirtualFloorConclusion(uint256 vfId) internal virtual {        
-    }
-
-}
-
-contract DoubleDice is BaseDoubleDice {
-
-    function initialize(BaseDoubleDiceInitParams calldata params) external initializer {
-        __DoubleDice_init(params);
-    }
-
-    function resolve(uint256 vfId, uint8 winningOutcomeIndex) external {
-        address creator = getVirtualFloorCreator(vfId);
-        require(_msgSender() == creator, "NOT_VIRTUALFLOOR_OWNER");
-        _resolve(vfId, winningOutcomeIndex, creator);
     }
 
 }

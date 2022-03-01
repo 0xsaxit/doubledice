@@ -72,6 +72,7 @@ export async function deployDoubleDice({
   initializeArgs: [Parameters<DoubleDice['initialize']>[0], Parameters<DoubleDice['initialize']>[1]]; // No TypeScript magic can do this for now
 }): Promise<DoubleDice> {
   const impl = await new DoubleDice__factory(deployer).deploy(...deployArgs);
+  console.log(`Deploying DoubleDice impl to: ${impl.address}...`);
   await impl.deployed();
   const encodedInitializerData = impl.interface.encodeFunctionData('initialize', initializeArgs);
   const proxyAddress = await deployProxy(deployer, impl.address, encodedInitializerData);

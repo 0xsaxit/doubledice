@@ -6,6 +6,12 @@ import {
   deployDummyWrappedBTC,
   toFp18
 } from '../helpers';
+import {
+  DummyUSDCoin,
+  DummyUSDCoin__factory,
+  DummyWrappedBTC,
+  DummyWrappedBTC__factory
+} from '../lib/contracts';
 
 const {
   CHAIN_ID,
@@ -13,6 +19,8 @@ const {
   INIT_TOKEN_METADATA_URI_TEMPLATE,
   INIT_PLATFORM_FEE_RATE,
   INIT_PLATFORM_FEE_BENEFICIARY,
+  DEPLOYED_USDC_ADDRESS = null,
+  DEPLOYED_WBTC_ADDRESS = null
 } = process.env;
 
 async function main() {
@@ -28,8 +36,19 @@ async function main() {
 
   const deployer = await ethers.getSigner(OWNER_ADDRESS);
 
-  const tokenUSDC = await deployDummyUSDCoin(deployer);
-  const tokenWBTC = await deployDummyWrappedBTC(deployer);
+  let tokenUSDC: DummyUSDCoin;
+  if (DEPLOYED_USDC_ADDRESS) {
+    tokenUSDC = DummyUSDCoin__factory.connect(DEPLOYED_USDC_ADDRESS, deployer);
+  } else {
+    tokenUSDC = await deployDummyUSDCoin(deployer);
+  }
+
+  let tokenWBTC: DummyWrappedBTC;
+  if (DEPLOYED_WBTC_ADDRESS) {
+    tokenWBTC = DummyWrappedBTC__factory.connect(DEPLOYED_WBTC_ADDRESS, deployer);
+  } else {
+    tokenWBTC = await deployDummyWrappedBTC(deployer);
+  }
 
   const contract = await deployDoubleDice({
     deployer: deployer,
@@ -44,10 +63,10 @@ async function main() {
     ]
   });
 
-  console.log('Whitelisting USDC on DoubleDice contract');
+  console.log(`Whitelisting USDC@${tokenUSDC.address} on DoubleDice contract`);
   await ((await contract.updatePaymentTokenWhitelist(tokenUSDC.address, true)).wait());
 
-  console.log('Whitelisting WBTC on DoubleDice contract');
+  console.log(`Whitelisting WBTC@${tokenWBTC.address} on DoubleDice contract`);
   await ((await contract.updatePaymentTokenWhitelist(tokenWBTC.address, true)).wait());
 
   console.log(`Granting quota of 10 rooms to admin ${deployer.address}`);

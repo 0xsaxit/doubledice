@@ -5,6 +5,7 @@ typechain-types/
 generated/
 build/
 .env
+.env.*
 
 abi/DoubleDice.no-custom-errors.json
 subgraph/subgraph.envsubbed.yaml

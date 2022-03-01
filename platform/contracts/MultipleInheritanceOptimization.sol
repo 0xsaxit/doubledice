@@ -4,7 +4,7 @@ pragma solidity 0.8.12;
 
 contract MultipleInheritanceOptimization {
 
-    bool internal _rootInitialized;
+    bool private _rootInitialized;
 
     modifier multipleInheritanceRootInitializer() {
         if (!_rootInitialized) {

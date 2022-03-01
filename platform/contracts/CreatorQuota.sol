@@ -58,4 +58,7 @@ contract CreatorQuota is BaseDoubleDice {
         }
         emit QuotaDecreases(decreases);
     }
+
+    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    uint256[50] private __gap;
 }

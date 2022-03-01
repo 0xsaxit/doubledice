@@ -18,4 +18,6 @@ contract MultipleInheritanceOptimization {
         _rootInitialized = false;
     }
 
+    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    uint256[50] private __gap;
 }

@@ -8,8 +8,8 @@ import "./VirtualFloorMetadataValidator.sol";
 
 contract DoubleDice is
     ChallengeableCreatorOracle,
-    VirtualFloorMetadataValidator,
-    CreatorQuota
+    CreatorQuota,
+    VirtualFloorMetadataValidator
 {
 
     function initialize(

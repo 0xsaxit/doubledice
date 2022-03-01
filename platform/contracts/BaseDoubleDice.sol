@@ -543,4 +543,6 @@ abstract contract BaseDoubleDice is
     function _onVirtualFloorConclusion(uint256 vfId) internal virtual {        
     }
 
+    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    uint256[50] private __gap;
 }

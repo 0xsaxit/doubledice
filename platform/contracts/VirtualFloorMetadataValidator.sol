@@ -75,4 +75,6 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
         require(!metadata.discordChannelId.isEmpty(), "Error: discordChannelId cannot be empty");
     }
 
+    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    uint256[50] private __gap;
 }

@@ -194,4 +194,6 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         }
     }
 
+    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    uint256[50] private __gap;
 }

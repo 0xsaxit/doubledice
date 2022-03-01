@@ -16,4 +16,6 @@ contract SimpleOracle is BaseDoubleDice {
         _resolve(vfId, winningOutcomeIndex, creator);
     }
 
+    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    uint256[50] private __gap;
 }

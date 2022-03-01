@@ -9,7 +9,7 @@ import { ethers } from 'hardhat';
 import {
   deployDoubleDice,
   deployDummyUSDCoin,
-  DUMMY_METADATA,
+  ENCODED_DUMMY_METADATA,
   findContractEventArgs,
   findUserCommitmentEventArgs,
   formatUsdc,
@@ -131,7 +131,7 @@ describe('DoubleDice', function () {
         tResolve,
         nOutcomes,
         paymentToken: tokenUSDC.address,
-        metadata: DUMMY_METADATA
+        metadata: ENCODED_DUMMY_METADATA
       })).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));

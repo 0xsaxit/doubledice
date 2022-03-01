@@ -1,9 +1,9 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import assert from 'assert';
 import { ethers } from 'hardhat';
-import { DoubleDice__factory, DummyUSDCoin__factory } from '../lib/contracts';
-import { validateRoomEventInfo } from '../lib/metadata';
 import { DUMMY_METADATA } from '../helpers';
+import { DoubleDice__factory, DummyUSDCoin__factory, encodeVirtualFloorMetadata } from '../lib/contracts';
+import { validateRoomEventInfo } from '../lib/metadata';
 
 const TOKEN_CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
 const PLATFORM_CONTRACT_ADDRESS = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9';
@@ -45,7 +45,7 @@ async function main() {
     tResolve,
     nOutcomes: roomEventInfo.outcomes.length,
     paymentToken: TOKEN_CONTRACT_ADDRESS,
-    metadata: roomEventInfo,
+    metadata: encodeVirtualFloorMetadata(DUMMY_METADATA),
   })).wait();
 
   const amt = 100_000000_000000_000000n;

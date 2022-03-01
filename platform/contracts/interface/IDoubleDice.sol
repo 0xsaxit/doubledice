@@ -6,7 +6,16 @@ import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/IERC1155Met
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "../library/FixedPointTypes.sol";
-import "../VirtualFloorMetadata.sol";
+
+/// @notice The version defines how to interpret the data.
+/// In v1 the data could be abi-encoded, in v2 it could be JSON-encoded,
+/// and in v3 the data could be just a sha256 hash of the content.
+/// In v4 it could contain a server-signature.
+/// It doesn't matter.
+struct EncodedVirtualFloorMetadata {
+    bytes32 version;
+    bytes data;
+}
 
 struct VirtualFloorOutcomeTimeslot {
     uint256 virtualFloorId;
@@ -27,7 +36,7 @@ struct VirtualFloorCreationParams {
     uint32 tResolve;
     uint8 nOutcomes;
     IERC20Upgradeable paymentToken;
-    VirtualFloorMetadata metadata;
+    EncodedVirtualFloorMetadata metadata;
 }
 
 struct VirtualFloorParams {
@@ -71,7 +80,7 @@ interface IDoubleDice is
         uint32 tResolve,
         uint8 nOutcomes,
         IERC20Upgradeable paymentToken,
-        VirtualFloorMetadata metadata
+        EncodedVirtualFloorMetadata metadata
     );
 
     event UserCommitment(

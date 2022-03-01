@@ -35,6 +35,7 @@ import {
   VirtualFloor,
   VirtualFloorTimeslot
 } from '../generated/schema';
+import { decodeMetadata } from './metadata';
 
 const toDecimal = (wei: BigInt): BigDecimal => wei.divDecimal(new BigDecimal(BigInt.fromU32(10).pow(18)));
 
@@ -97,8 +98,10 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
   }
 }
 
+
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
-  const metadata = event.params.metadata;
+
+  const metadata = decodeMetadata(event.params.metadata);
 
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
@@ -130,6 +133,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.title = metadata.title;
     $.description = metadata.description;
     $.isListed = metadata.isListed;
+    $.discordChannelId = metadata.discordChannelId;
 
     const userId = event.params.creator.toHex();
     {
@@ -432,7 +436,7 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
 
-    // Map DoubleDice.sol#VirtualFloorResolutionType => schema.graphql#VirtualFloorInternalState
+    // Map DoubleDice.sol#VirtualFloorResolutionType => schema.graphql#VirtualFloorState
     switch (event.params.resolutionType) {
       case 0: // VirtualFloorResolutionType.NoWinners
         $.state = 'CANCELLED_BECAUSE_RESOLVED_NO_WINNERS';

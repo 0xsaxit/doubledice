@@ -66,6 +66,7 @@ type VirtualFloor @entity {
   title: String!
   description: String!
   isListed: Boolean!
+  discordChannelId: String
 
   # aggregates
   totalSupply: BigDecimal!

@@ -125,6 +125,7 @@
 
 import {
   DoubleDice as DoubleDiceContract,
+  encodeVirtualFloorMetadata,
   RoomEventInfo,
   VirtualFloorCreationParamsStruct
 } from '@doubledice/platform/lib/contracts'
@@ -236,7 +237,8 @@ export default class NewVirtualFloor extends Vue {
       subcategory: this.subcategory,
       opponents: this.opponents,
       outcomes: this.outcomes,
-      resultSources: this.resultSources
+      resultSources: this.resultSources,
+      discordChannelId: '12345'
     }
 
     if (!validateRoomEventInfo(metadata)) {
@@ -277,7 +279,7 @@ export default class NewVirtualFloor extends Vue {
       tResolve,
       nOutcomes,
       paymentToken,
-      metadata
+      metadata: encodeVirtualFloorMetadata(metadata)
     }
     // eslint-disable-next-line space-before-function-paren
     await tryCatch(async () => {

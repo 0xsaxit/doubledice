@@ -22,7 +22,7 @@
     "test:local:create-vf": "hardhat run --network ganache ./scripts/create-test-vf.ts",
     "pregraph:generate-ts-bindings": "mkdir -pv ./graphql/generated && cat ./graphql/schema.preamble.graphql ./subgraph/schema.graphql > ./graphql/generated/schema.graphql",
     "graph:generate-ts-bindings": "graphql-codegen --config ./graphql/codegen.yml",
-    "codegen": "hardhat compile && npm run graph:generate-ts-bindings",
+    "codegen": "hardhat compile && npm run graph:codegen && npm run graph:generate-ts-bindings",
     "postinstall": "npm run codegen"
   },
   "main": "./lib/index.ts",

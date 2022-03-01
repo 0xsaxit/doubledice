@@ -20,10 +20,12 @@ dataSources:
           file: ../generated/abi/DoubleDice.no-custom-errors.json
         - name: IERC20Metadata
           file: ../generated/abi/IERC20Metadata.json
+        - name: IMetadataVersionsMock
+          file: ../generated/abi/IVirtualFloorMetadataVersionsMock.json
       eventHandlers:
         - event: PaymentTokenWhitelistUpdate(indexed address,bool)
           handler: handlePaymentTokenWhitelistUpdate
-        - event: VirtualFloorCreation(indexed uint256,indexed address,uint256,uint256,uint256,uint32,uint32,uint32,uint8,address,(string,string,string,string,bool,(string,string)[],(string)[],(string,string)[]))
+        - event: VirtualFloorCreation(indexed uint256,indexed address,uint256,uint256,uint256,uint32,uint32,uint32,uint8,address,(bytes32,bytes))
           handler: handleVirtualFloorCreation
         - event: UserCommitment(indexed uint256,indexed address,uint8,uint256,uint256,uint256,uint256)
           handler: handleUserCommitment

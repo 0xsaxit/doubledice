@@ -1,6 +1,9 @@
 import assert from 'assert';
 import { BigNumber, BigNumberish, ContractReceipt } from 'ethers';
-import { RoomEventInfo } from '../lib/contracts';
+import {
+  encodeVirtualFloorMetadata,
+  RoomEventInfo
+} from '../lib/contracts';
 
 export const toFp18 = (value: number | string): BigNumber => {
   const numericValue = typeof value === 'number' ? value : parseFloat(value);
@@ -65,5 +68,8 @@ export const DUMMY_METADATA: RoomEventInfo = {
   ],
   resultSources: [
     { title: 'Official FIFA result page', url: 'http://fifa.com/argentina-vs-finland' }
-  ]
+  ],
+  discordChannelId: '123456789',
 };
+
+export const ENCODED_DUMMY_METADATA = encodeVirtualFloorMetadata(DUMMY_METADATA);

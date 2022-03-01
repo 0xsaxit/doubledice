@@ -235,7 +235,7 @@ abstract contract BaseDoubleDice is
             uint32 tResolve,
             uint8 nOutcomes,
             IERC20Upgradeable paymentToken,
-            VirtualFloorMetadata calldata metadata
+            EncodedVirtualFloorMetadata calldata metadata
         ) = params.destructure();
 
         VirtualFloor storage vf = _vfs[vfId];

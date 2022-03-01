@@ -16,6 +16,7 @@ const schema: JSONSchemaType<RoomEventInfo> = {
     'opponents',
     'outcomes',
     'resultSources',
+    'discordChannelId',
   ],
   properties: {
     category: { type: 'string', minLength: 1 },
@@ -65,6 +66,7 @@ const schema: JSONSchemaType<RoomEventInfo> = {
       minItems: 1,
       uniqueItems: true,
     },
+    discordChannelId: { type: 'string', minLength: 1 },
   },
   additionalProperties: false,
 };

@@ -7,8 +7,8 @@ import {
 } from 'ethers';
 import { ethers } from 'hardhat';
 import {
-  deployDummiesAndSetUp,
-  deployProxy,
+  deployDoubleDice,
+  deployDummyUSDCoin,
   DUMMY_METADATA,
   findContractEventArgs,
   findUserCommitmentEventArgs,
@@ -18,12 +18,7 @@ import {
   UserCommitment
 } from '../helpers';
 import {
-  DoubleDice,
-  DoubleDice__factory,
-  DummyUSDCoin,
-  DummyUSDCoin__factory,
-  DummyWrappedBTC,
-  ResultUpdateAction
+  DoubleDice, DummyUSDCoin, ResultUpdateAction
 } from '../lib/contracts';
 
 chai.use(chaiSubset);
@@ -56,7 +51,7 @@ describe('DoubleDice', function () {
   let user2Signer: SignerWithAddress;
   let user3Signer: SignerWithAddress;
   let contract: DoubleDice;
-  let token: DummyUSDCoin | DummyWrappedBTC;
+  let tokenUSDC: DummyUSDCoin;
 
   it('should go through the entire VPF cycle successfully', async function () {
     [
@@ -67,48 +62,45 @@ describe('DoubleDice', function () {
       user3Signer
     ] = await ethers.getSigners();
 
-    token = await new DummyUSDCoin__factory(ownerSigner).deploy();
-    await token.deployed();
+    tokenUSDC = await deployDummyUSDCoin(ownerSigner);
 
-    const impl = await new DoubleDice__factory(ownerSigner).deploy();
-    await impl.deployed();
-    const encodedInitializerData = impl.interface.encodeFunctionData('initialize', [
-      {
-        tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
-        platformFeeRate_e18: toFp18(0.2500),
-        platformFeeBeneficiary: feeBeneficiarySigner.address
-      },
-      token.address,
-    ]);
-
-    const contractAddress = await deployProxy(ownerSigner, impl.address, encodedInitializerData);
-    contract = DoubleDice__factory.connect(contractAddress, ownerSigner);
-    await deployDummiesAndSetUp(ownerSigner, contract);
+    contract = await deployDoubleDice({
+      deployer: ownerSigner,
+      deployArgs: [],
+      initializeArgs: [
+        {
+          tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
+          platformFeeRate_e18: toFp18(0.25),
+          platformFeeBeneficiary: feeBeneficiarySigner.address
+        },
+        tokenUSDC.address,
+      ]
+    });
 
     expect(await contract.platformFeeBeneficiary()).to.eq(feeBeneficiarySigner.address);
 
     {
-      expect(await contract.isPaymentTokenWhitelisted(token.address)).to.be.false;
-      const { events } = await (await contract.connect(ownerSigner).updatePaymentTokenWhitelist(token.address, true)).wait();
+      expect(await contract.isPaymentTokenWhitelisted(tokenUSDC.address)).to.be.false;
+      const { events } = await (await contract.connect(ownerSigner).updatePaymentTokenWhitelist(tokenUSDC.address, true)).wait();
       expect(events).to.have.lengthOf(1);
       expect(findContractEventArgs(events, 'PaymentTokenWhitelistUpdate')).to.containSubset({
-        token: token.address,
+        token: tokenUSDC.address,
         whitelisted: true
       });
-      expect(await contract.isPaymentTokenWhitelisted(token.address)).to.be.true;
+      expect(await contract.isPaymentTokenWhitelisted(tokenUSDC.address)).to.be.true;
     }
 
     const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber => BigNumber.from(1000000).mul(dollars).add(millionths);
 
     // Mint 1000$ to each user    
-    await (await token.connect(ownerSigner).mint(user1Signer.address, $(1000))).wait();
-    await (await token.connect(ownerSigner).mint(user2Signer.address, $(1000))).wait();
-    await (await token.connect(ownerSigner).mint(user3Signer.address, $(1000))).wait();
+    await (await tokenUSDC.connect(ownerSigner).mint(user1Signer.address, $(1000))).wait();
+    await (await tokenUSDC.connect(ownerSigner).mint(user2Signer.address, $(1000))).wait();
+    await (await tokenUSDC.connect(ownerSigner).mint(user3Signer.address, $(1000))).wait();
 
     // Allow the contract to transfer up to 100$ from each user
-    await (await token.connect(user1Signer).approve(contract.address, $(100))).wait();
-    await (await token.connect(user2Signer).approve(contract.address, $(100))).wait();
-    await (await token.connect(user3Signer).approve(contract.address, $(100))).wait();
+    await (await tokenUSDC.connect(user1Signer).approve(contract.address, $(100))).wait();
+    await (await tokenUSDC.connect(user2Signer).approve(contract.address, $(100))).wait();
+    await (await tokenUSDC.connect(user3Signer).approve(contract.address, $(100))).wait();
 
     const virtualFloorId = 0x123450000000000n; // lower 5 bytes must be all 00
     const betaOpen = BigNumber.from(10).pow(18).mul(13); // 1 unit per hour
@@ -138,7 +130,7 @@ describe('DoubleDice', function () {
         tClose,
         tResolve,
         nOutcomes,
-        paymentToken: token.address,
+        paymentToken: tokenUSDC.address,
         metadata: DUMMY_METADATA
       })).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);
@@ -330,7 +322,7 @@ describe('DoubleDice', function () {
         //   '0x'
         // )
 
-        console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
+        console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
 
         const tx1 = await (await contract.connect(user2Signer).claim({
           virtualFloorId,
@@ -338,7 +330,7 @@ describe('DoubleDice', function () {
           timeslot: toTimestamp('2032-01-01T02:00:00')
         })).wait();
 
-        console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
+        console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
 
         const tx2 = await (await contract.connect(user3Signer).claim({
           virtualFloorId,
@@ -346,7 +338,7 @@ describe('DoubleDice', function () {
           timeslot: toTimestamp('2032-01-01T02:00:00')
         })).wait();
 
-        console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
+        console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
 
         const tx3 = await (await contract.connect(user3Signer).claim({
           virtualFloorId,
@@ -354,7 +346,7 @@ describe('DoubleDice', function () {
           timeslot: toTimestamp('2032-01-01T06:00:00')
         })).wait();
 
-        console.log(`contract balance = ${formatUsdc(await token.balanceOf(contract.address))}`);
+        console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
 
         // const asdf = sumOf(...outcomeTotals.map(({ weightedAmount }) => weightedAmount))
       }

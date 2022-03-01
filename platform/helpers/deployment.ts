@@ -1,9 +1,12 @@
 import assert from 'assert';
-import { BigNumberish, BytesLike } from 'ethers';
+import { BytesLike } from 'ethers';
 import { SignerWithAddress } from '.';
 import {
-  BaseDoubleDice,
+  DoubleDice,
+  DoubleDice__factory,
+  DummyUSDCoin,
   DummyUSDCoin__factory,
+  DummyWrappedBTC,
   DummyWrappedBTC__factory,
   ProxyAdmin__factory,
   TransparentUpgradeableProxy__factory
@@ -45,17 +48,32 @@ export const deployProxy = async (
   return proxy.address;
 };
 
-type DoubleDiceLike = Pick<BaseDoubleDice, 'updatePaymentTokenWhitelist'>
-
-export async function deployDummiesAndSetUp(deployerSigner: SignerWithAddress, mainContract: DoubleDiceLike): Promise<void> {
-  const tokenContract1 = await new DummyUSDCoin__factory(deployerSigner).deploy();
+export async function deployDummyUSDCoin(deployer: SignerWithAddress): Promise<DummyUSDCoin> {
+  const tokenContract1 = await new DummyUSDCoin__factory(deployer).deploy();
   process.stdout.write(`Deploying USDC contract to: ${tokenContract1.address}...\n`);
   await tokenContract1.deployed();
+  return tokenContract1;
+}
 
-  const tokenContract2 = await new DummyWrappedBTC__factory(deployerSigner).deploy();
+export async function deployDummyWrappedBTC(deployer: SignerWithAddress): Promise<DummyWrappedBTC> {
+  const tokenContract2 = await new DummyWrappedBTC__factory(deployer).deploy();
   process.stdout.write(`Deploying WBTC contract to: ${tokenContract2.address}...\n`);
   await tokenContract2.deployed();
+  return tokenContract2;
+}
 
-  await (await mainContract.updatePaymentTokenWhitelist(tokenContract1.address, true)).wait();
-  await (await mainContract.updatePaymentTokenWhitelist(tokenContract2.address, true)).wait();
+export async function deployDoubleDice({
+  deployer,
+  deployArgs,
+  initializeArgs
+}: {
+  deployer: SignerWithAddress;
+  deployArgs: Parameters<DoubleDice__factory['deploy']>;
+  initializeArgs: [Parameters<DoubleDice['initialize']>[0], Parameters<DoubleDice['initialize']>[1]]; // No TypeScript magic can do this for now
+}): Promise<DoubleDice> {
+  const impl = await new DoubleDice__factory(deployer).deploy(...deployArgs);
+  await impl.deployed();
+  const encodedInitializerData = impl.interface.encodeFunctionData('initialize', initializeArgs);
+  const proxyAddress = await deployProxy(deployer, impl.address, encodedInitializerData);
+  return DoubleDice__factory.connect(proxyAddress, deployer);
 }

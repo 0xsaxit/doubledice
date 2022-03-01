@@ -1,7 +1,11 @@
 import assert from 'assert';
 import { ethers } from 'hardhat';
-import { deployDummiesAndSetUp, deployProxy, toFp18 } from '../helpers';
-import { DoubleDice__factory } from '../lib/contracts';
+import {
+  deployDoubleDice,
+  deployDummyUSDCoin,
+  deployDummyWrappedBTC,
+  toFp18
+} from '../helpers';
 
 const {
   CHAIN_ID,
@@ -22,20 +26,32 @@ async function main() {
   const { chainId } = await ethers.provider.getNetwork();
   assert(parseInt(CHAIN_ID) === chainId, `${CHAIN_ID} !== ${chainId}; wrong .env config?`);
 
-  const ownerSigner = await ethers.getSigner(OWNER_ADDRESS);
+  const deployer = await ethers.getSigner(OWNER_ADDRESS);
 
-  const impl = await new DoubleDice__factory(ownerSigner).deploy();
-  await impl.deployed();
+  const tokenUSDC = await deployDummyUSDCoin(deployer);
+  const tokenWBTC = await deployDummyWrappedBTC(deployer);
 
-  const encodedInitializerData = impl.interface.encodeFunctionData('initialize', [{
-    tokenMetadataUriTemplate: INIT_TOKEN_METADATA_URI_TEMPLATE,
-    platformFeeRate_e18: toFp18(INIT_PLATFORM_FEE_RATE),
-    platformFeeBeneficiary: INIT_PLATFORM_FEE_BENEFICIARY,
-  }]);
+  const contract = await deployDoubleDice({
+    deployer: deployer,
+    deployArgs: [],
+    initializeArgs: [
+      {
+        tokenMetadataUriTemplate: INIT_TOKEN_METADATA_URI_TEMPLATE,
+        platformFeeRate_e18: toFp18(INIT_PLATFORM_FEE_RATE),
+        platformFeeBeneficiary: INIT_PLATFORM_FEE_BENEFICIARY,
+      },
+      tokenUSDC.address,
+    ]
+  });
 
-  const contractAddress = await deployProxy(ownerSigner, impl.address, encodedInitializerData, true);
-  const contract = DoubleDice__factory.connect(contractAddress, ownerSigner);
-  await deployDummiesAndSetUp(ownerSigner, contract);
+  console.log('Whitelisting USDC on DoubleDice contract');
+  await ((await contract.updatePaymentTokenWhitelist(tokenUSDC.address, true)).wait());
+
+  console.log('Whitelisting WBTC on DoubleDice contract');
+  await ((await contract.updatePaymentTokenWhitelist(tokenWBTC.address, true)).wait());
+
+  console.log(`Granting quota of 10 rooms to admin ${deployer.address}`);
+  await (await contract.increaseQuotas([{ creator: deployer.address, amount: 10 }])).wait();
 }
 
 main()

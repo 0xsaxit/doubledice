@@ -5,8 +5,8 @@ import { DoubleDice__factory, DummyUSDCoin__factory } from '../lib/contracts';
 import { validateRoomEventInfo } from '../lib/metadata';
 import { DUMMY_METADATA } from '../helpers';
 
-const TOKEN_CONTRACT_ADDRESS = '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9';
-const PLATFORM_CONTRACT_ADDRESS = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
+const TOKEN_CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const PLATFORM_CONTRACT_ADDRESS = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9';
 
 async function main() {
 

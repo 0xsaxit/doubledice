@@ -111,7 +111,7 @@ describe('DoubleDice', function () {
     const nOutcomes = 3;
 
     {
-      await (await contract.increaseQuotas([{ creator: ownerSigner.address, amount: 1 }])).wait();
+      await (await contract.adjustCreationQuotas([{ creator: ownerSigner.address, relativeAmount: 1 }])).wait();
     }
 
     const allUserCommitments: UserCommitment[] = [];

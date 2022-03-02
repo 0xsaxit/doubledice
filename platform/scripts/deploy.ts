@@ -70,7 +70,7 @@ async function main() {
   await ((await contract.updatePaymentTokenWhitelist(tokenWBTC.address, true)).wait());
 
   console.log(`Granting quota of 10 rooms to admin ${deployer.address}`);
-  await (await contract.increaseQuotas([{ creator: deployer.address, amount: 10 }])).wait();
+  await (await contract.adjustCreationQuotas([{ creator: deployer.address, relativeAmount: 10 }])).wait();
 }
 
 main()

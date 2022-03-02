@@ -51,8 +51,10 @@ dataSources:
           handler: handleVirtualFloorCancellationFlagged
         - event: VirtualFloorResolution(indexed uint256,uint8,uint8,uint256,uint256,uint256)
           handler: handleVirtualFloorResolution
+        - event: CreationQuotaAdjustments((address,int256)[])
+          handler: handleCreationQuotaAdjustments
         - event: QuotaIncreases((address,uint256)[])
-          handler: handleQuotaIncreases
+          handler: handleLegacyQuotaIncreases
         - event: QuotaDecreases((address,uint256)[])
-          handler: handleQuotaDecreases
+          handler: handleLegacyQuotaDecreases
       file: ./mapping.ts

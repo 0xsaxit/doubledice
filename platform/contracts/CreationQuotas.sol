@@ -3,11 +3,14 @@
 pragma solidity 0.8.12;
 
 import "./BaseDoubleDice.sol";
+import "./library/Utils.sol";
 
 error CreationQuotaExceeded();
 
 /// @dev Gas-naive implementation
 contract CreationQuotas is BaseDoubleDice {
+
+    using Utils for uint256;
 
     function __CreationQuotas_init(BaseDoubleDiceInitParams calldata params) internal onlyInitializing {
         __BaseDoubleDice_init(params);
@@ -28,37 +31,34 @@ contract CreationQuotas is BaseDoubleDice {
         creationQuotas[creator] += 1;
     }
 
-    struct QuotaChange {
+    struct QuotaAdjustment {
         address creator;
-        uint256 amount;
+        int256 relativeAmount;
     }
 
-    event QuotaIncreases(QuotaChange[] increases);
+    event CreationQuotaAdjustments(QuotaAdjustment[] adjustments);
 
-    function increaseQuotas(QuotaChange[] calldata increases)
+    function adjustCreationQuotas(QuotaAdjustment[] calldata adjustments)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        for (uint256 i = 0; i < increases.length; i++) {
-            QuotaChange calldata increase = increases[i];
-            creationQuotas[increase.creator] += increase.amount;
+        for (uint256 i = 0; i < adjustments.length; i++) {
+            QuotaAdjustment calldata adjustment = adjustments[i];
+            creationQuotas[adjustment.creator] = creationQuotas[adjustment.creator].add(adjustment.relativeAmount);
         }
-        emit QuotaIncreases(increases);
-    }
-
-    event QuotaDecreases(QuotaChange[] decreases);
-
-    function decreaseQuotas(QuotaChange[] calldata decreases)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        for (uint256 i = 0; i < decreases.length; i++) {
-            QuotaChange calldata decrease = decreases[i];
-            creationQuotas[decrease.creator] -= decrease.amount;
-        }
-        emit QuotaDecreases(decreases);
+        emit CreationQuotaAdjustments(adjustments);
     }
 
     /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
     uint256[50] private __gap;
+
+
+    // ---------- Legacy ----------
+
+    // ToDo: Kept here so that Graph can generate wrappers for them.
+    // To be dropped before release.
+    struct QuotaChange { address creator; uint256 amount; }
+    event QuotaIncreases(QuotaChange[] increases);
+    event QuotaDecreases(QuotaChange[] decreases);
+
 }

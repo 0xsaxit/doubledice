@@ -8,9 +8,10 @@ import {
   log
 } from '@graphprotocol/graph-ts';
 import {
+  CreationQuotaAdjustments as CreationQuotaAdjustmentsEvent,
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
-  QuotaDecreases as QuotaDecreasesEvent,
-  QuotaIncreases as QuotaIncreasesEvent,
+  QuotaDecreases as LegacyQuotaDecreasesEvent,
+  QuotaIncreases as LegacyQuotaIncreasesEvent,
   TransferSingle as TransferSingleEvent,
   UserCommitment as UserCommitmentEvent,
   VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
@@ -453,7 +454,26 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
   }
 }
 
-export function handleQuotaIncreases(event: QuotaIncreasesEvent): void {
+
+export function handleCreationQuotaAdjustments(event: CreationQuotaAdjustmentsEvent): void {
+  const adjustments = event.params.adjustments;
+  for (let i = 0; i < adjustments.length; i++) {
+    const userId = adjustments[i].creator.toHex();
+    const user = loadOrCreateEntity<User>(User.load, userId);
+    user.maxConcurrentVirtualFloors += adjustments[i].relativeAmount;
+    user.save();
+  }
+}
+
+function adjustUserConcurrentVirtualFloors(userId: string, adjustment: i32): void {
+  const user = loadExistentEntity<User>(User.load, userId);
+  user.concurrentVirtualFloors += BigInt.fromI32(adjustment);
+  user.save();
+}
+
+
+// ToDo: Drop before public release
+export function handleLegacyQuotaIncreases(event: LegacyQuotaIncreasesEvent): void {
   const quotaIncreases = event.params.increases;
   for (let i = 0; i < quotaIncreases.length; i++) {
     const userId = quotaIncreases[i].creator.toHex();
@@ -463,7 +483,8 @@ export function handleQuotaIncreases(event: QuotaIncreasesEvent): void {
   }
 }
 
-export function handleQuotaDecreases(event: QuotaDecreasesEvent): void {
+// ToDo: Drop before public release
+export function handleLegacyQuotaDecreases(event: LegacyQuotaDecreasesEvent): void {
   const quotaDecreases = event.params.decreases;
   for (let i = 0; i < quotaDecreases.length; i++) {
     const userId = quotaDecreases[i].creator.toHex();
@@ -471,10 +492,4 @@ export function handleQuotaDecreases(event: QuotaDecreasesEvent): void {
     user.maxConcurrentVirtualFloors -= quotaDecreases[i].amount;
     user.save();
   }
-}
-
-function adjustUserConcurrentVirtualFloors(userId: string, adjustment: i32): void {
-  const user = loadExistentEntity<User>(User.load, userId);
-  user.concurrentVirtualFloors += BigInt.fromI32(adjustment);
-  user.save();
 }

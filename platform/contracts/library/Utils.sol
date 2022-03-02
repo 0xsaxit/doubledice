@@ -13,4 +13,12 @@ library Utils {
         return bytes(value).length == 0;
     }
 
+    function add(uint256 a, int256 b) internal pure returns (uint256) {
+        if (b >= 0) {
+            return a + uint256(b);
+        } else {
+            return a - uint256(-b);
+        }
+    }
+
 }

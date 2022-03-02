@@ -143,6 +143,9 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     }
     $.owner = userId;
 
+    // should only be done *after* User entity exists
+    adjustUserConcurrentVirtualFloors($.owner, +1);
+
     // Since the platform contract will reject VirtualFloors created with a PaymentToken that is not whitelisted,
     // we are sure that the PaymentToken entity referenced here will have always been created beforehand
     // when the token was originally whitelisted.
@@ -409,6 +412,7 @@ export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCa
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
+    adjustUserConcurrentVirtualFloors($.owner, -1);
     $.state = 'CANCELLED_BECAUSE_UNRESOLVABLE';
     $.save();
   }
@@ -418,6 +422,7 @@ export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancell
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
+    adjustUserConcurrentVirtualFloors($.owner, -1);
     $.state = 'CANCELLED_BECAUSE_FLAGGED';
     $.flaggingReason = event.params.reason;
     $.save();
@@ -428,6 +433,8 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
+
+    adjustUserConcurrentVirtualFloors($.owner, -1);
 
     // Map DoubleDice.sol#VirtualFloorResolutionType => schema.graphql#VirtualFloorState
     switch (event.params.resolutionType) {
@@ -464,4 +471,10 @@ export function handleQuotaDecreases(event: QuotaDecreasesEvent): void {
     user.maxConcurrentVirtualFloors -= quotaDecreases[i].amount;
     user.save();
   }
+}
+
+function adjustUserConcurrentVirtualFloors(userId: string, adjustment: i32): void {
+  const user = loadExistentEntity<User>(User.load, userId);
+  user.concurrentVirtualFloors += BigInt.fromI32(adjustment);
+  user.save();
 }

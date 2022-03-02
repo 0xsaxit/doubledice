@@ -1,3 +1,5 @@
+// This file doubles as a TypeScript and as an AssemblyScript file
+
 export enum VirtualFloorResolutionType {
   CancelledNoWinners,
   Winners

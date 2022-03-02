@@ -38,6 +38,9 @@ import {
   VirtualFloor,
   VirtualFloorTimeslot
 } from '../generated/schema';
+import {
+  VirtualFloorResolutionType,
+} from '../lib/helpers/sol-enums';
 import { decodeMetadata } from './metadata';
 
 const toDecimal = (wei: BigInt): BigDecimal => wei.divDecimal(new BigDecimal(BigInt.fromU32(10).pow(18)));
@@ -437,12 +440,11 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
 
     adjustUserConcurrentVirtualFloors($.owner, -1);
 
-    // Map DoubleDice.sol#VirtualFloorResolutionType => schema.graphql#VirtualFloorState
     switch (event.params.resolutionType) {
-      case 0: // VirtualFloorResolutionType.NoWinners
+      case VirtualFloorResolutionType.CancelledNoWinners:
         $.state = 'CANCELLED_BECAUSE_RESOLVED_NO_WINNERS';
         break;
-      case 1: // VirtualFloorResolutionType.SomeWinners
+      case VirtualFloorResolutionType.Winners:
         $.state = 'RESOLVED_WINNERS';
         break;
     }

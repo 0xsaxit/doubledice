@@ -73,7 +73,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         return CHALLENGE_BOND_USD_AMOUNT * (10 ** _bondUsdErc20Token.decimals());
     }
 
-    mapping(uint256 => Resolution) resolutions;
+    mapping(uint256 => Resolution) public resolutions;
 
     function __ChallengeableCreatorOracle_init(
         BaseDoubleDiceInitParams calldata baseParams,

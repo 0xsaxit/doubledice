@@ -27,3 +27,21 @@ export const sumNumbers = (values: number[]): number => {
 }
 
 export const getSystemTimestamp = (): number => Math.floor(Date.now() / 1000)
+
+export function zipArrays1<A>(aaa: A[]): [A][] {
+  if (aaa.length === 0) {
+    return []
+  } else {
+    const [[a, ...aa]] = [aaa]
+    return [[a], ...zipArrays1(aa)]
+  }
+}
+
+export function zipArrays2<A, B>(aaa: A[], bbb: B[]): [A, B][] {
+  if (aaa.length === 0 || bbb.length === 0) {
+    return []
+  } else {
+    const [[a, ...aa], [b, ...bb]] = [aaa, bbb]
+    return [[a, b], ...zipArrays2(aa, bb)]
+  }
+}

@@ -25,52 +25,61 @@ const schema: JSONSchemaType<RoomEventInfo> = {
     description: { type: 'string', minLength: 1 },
     isListed: { type: 'boolean' },
     opponents: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['title', 'image'],
-        properties: {
-          title: { type: 'string', minLength: 1 },
-          image: { type: 'string', minLength: 1, format: 'uri' },  // for now a URL, later will be an IPFS content-uri
+      type: 'object',
+      required: ['titles', 'images'],
+      properties: {
+        titles: {
+          type: 'array',
+          items: { type: 'string', minLength: 1 },
+          minItems: 1,
+          uniqueItems: true
         },
-        additionalProperties: false,
+        images: {
+          type: 'array',
+          items: { type: 'string', minLength: 1, format: 'uri' },
+          minItems: 1,
+          uniqueItems: true
+        },  // for now a URL, later will be an IPFS content-uri
       },
-      minItems: 1,
-      uniqueItems: true,
+      additionalProperties: false,
     },
     outcomes: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['title'],
-        properties: {
-          title: { type: 'string', minLength: 1 },
-        },
-        additionalProperties: false,
+      type: 'object',
+      required: ['titles'],
+      properties: {
+        titles: {
+          type: 'array',
+          items: { type: 'string', minLength: 1 },
+          minItems: 2,
+          maxItems: 256,
+          uniqueItems: true,
+        }
       },
-      minItems: 2,
-      maxItems: 256,
-      uniqueItems: true,
+      additionalProperties: false,
     },
     resultSources: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['title', 'url'],
-        properties: {
-          title: { type: 'string', minLength: 1 },
-          url: { type: 'string', minLength: 1, format: 'uri' },
+      type: 'object',
+      required: ['titles', 'urls'],
+      properties: {
+        titles: {
+          type: 'array',
+          items: { type: 'string', minLength: 1 },
+          minItems: 1,
+          uniqueItems: true,
         },
-        additionalProperties: false,
+        urls: {
+          type: 'array',
+          items: { type: 'string', minLength: 1, format: 'uri' },
+          minItems: 1,
+          uniqueItems: true,
+        },
       },
-      minItems: 1,
-      uniqueItems: true,
+      additionalProperties: false,
     },
     discordChannelId: { type: 'string', minLength: 1 },
   },
   additionalProperties: false,
 };
-
 // ToDo: Extend function so that in addition to JSON validation,
 // it also checks that outcome index values are correct and in order,
 // category and subcategory match constraints, etc.

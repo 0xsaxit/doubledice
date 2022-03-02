@@ -1,7 +1,7 @@
 <template>
   <form :onsubmit="add" :onreset="clear">
     <ol>
-      <li v-for="(outcome, index) in modelValue" :key="index">{{ outcome.title }}</li>
+      <li v-for="(outcome, index) in zippedModelValue" :key="index">{{ outcome[0] }}</li>
     </ol>
     <table>
       <tr>
@@ -18,6 +18,7 @@
 </template>
 
 <script lang="ts">
+import { zipArrays1 } from '@/utils'
 import { RoomEventInfo } from '@doubledice/platform/lib/contracts'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
@@ -35,16 +36,20 @@ const genDummyEntry = (index0: number) => [
 export default class NewOutcomesComponent extends Vue {
   modelValue!: RoomEventInfo['outcomes']
 
+  get zippedModelValue(): [string][] {
+    return zipArrays1(this.modelValue.titles)
+  }
+
   newTitle = ''
 
   mounted(): void {
-    [this.newTitle] = genDummyEntry(this.modelValue.length)
+    [this.newTitle] = genDummyEntry(this.modelValue.titles.length)
   }
 
   add(): boolean {
-    const updated: RoomEventInfo['outcomes'] = [...this.modelValue, { title: this.newTitle }]
+    const updated: RoomEventInfo['outcomes'] = { titles: [...this.modelValue.titles, this.newTitle] }
     this.$emit('update:modelValue', updated);
-    [this.newTitle] = genDummyEntry(updated.length)
+    [this.newTitle] = genDummyEntry(updated.titles.length)
     return false
   }
 

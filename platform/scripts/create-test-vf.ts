@@ -43,7 +43,7 @@ async function main() {
     tOpen,
     tClose,
     tResolve,
-    nOutcomes: roomEventInfo.outcomes.length,
+    nOutcomes: roomEventInfo.outcomes.titles.length,
     paymentToken: TOKEN_CONTRACT_ADDRESS,
     metadata: encodeVirtualFloorMetadata(DUMMY_METADATA),
   })).wait();

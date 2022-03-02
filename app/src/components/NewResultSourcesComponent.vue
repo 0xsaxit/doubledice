@@ -1,8 +1,8 @@
 <template>
   <form :onsubmit="add" :onreset="clear">
     <ol>
-      <li v-for="(resultSource, index) in modelValue" :key="index">
-        <a :href="resultSource.url">{{ resultSource.title || resultSource.url }}</a>
+      <li v-for="(resultSource, index) in zippedModelValue" :key="index">
+        <a :href="resultSource[1]">{{ resultSource[0] || resultSource[1] }}</a>
       </li>
     </ol>
     <table>
@@ -29,6 +29,7 @@
 </template>
 
 <script lang="ts">
+import { zipArrays2 } from '@/utils'
 import { RoomEventInfo } from '@doubledice/platform/lib/contracts'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
@@ -47,18 +48,22 @@ const genDummyEntry = (index0: number) => [
 export default class NewResultSourcesComponent extends Vue {
   modelValue!: RoomEventInfo['resultSources']
 
+  get zippedModelValue(): [string, string][] {
+    return zipArrays2(this.modelValue.titles, this.modelValue.urls)
+  }
+
   newTitle = ''
 
   newUrl = ''
 
   mounted(): void {
-    [this.newTitle, this.newUrl] = genDummyEntry(this.modelValue.length)
+    [this.newTitle, this.newUrl] = genDummyEntry(this.modelValue.titles.length)
   }
 
   add(): boolean {
-    const updated: RoomEventInfo['resultSources'] = [...this.modelValue, { title: this.newTitle, url: this.newUrl }]
+    const updated: RoomEventInfo['resultSources'] = { titles: [...this.modelValue.titles, this.newTitle], urls: [...this.modelValue.urls, this.newUrl] }
     this.$emit('update:modelValue', updated);
-    [this.newTitle, this.newUrl] = genDummyEntry(updated.length)
+    [this.newTitle, this.newUrl] = genDummyEntry(updated.titles.length)
     return false
   }
 

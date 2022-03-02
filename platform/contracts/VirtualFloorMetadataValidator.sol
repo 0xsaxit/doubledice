@@ -5,18 +5,18 @@ pragma solidity 0.8.12;
 import "./BaseDoubleDice.sol";
 import "./library/Utils.sol";
 
-struct VirtualFloorMetadataOpponent {
-    string title;
-    string image;
+struct VirtualFloorMetadataOpponents {
+    string[] titles;
+    string[] images;
 }
 
-struct VirtualFloorMetadataOutcome {
-    string title;
+struct VirtualFloorMetadataOutcomes {
+    string[] titles;
 }
 
-struct VirtualFloorMetadataResultSource {
-    string title;
-    string url;
+struct VirtualFloorMetadataResultSources {
+    string[] titles;
+    string[] urls;
 }
 
 struct VirtualFloorMetadataV1 {
@@ -25,9 +25,9 @@ struct VirtualFloorMetadataV1 {
     string title;
     string description;
     bool isListed;
-    VirtualFloorMetadataOpponent[] opponents;
-    VirtualFloorMetadataOutcome[] outcomes;
-    VirtualFloorMetadataResultSource[] resultSources;
+    VirtualFloorMetadataOpponents opponents;
+    VirtualFloorMetadataOutcomes outcomes;
+    VirtualFloorMetadataResultSources resultSources;
     string discordChannelId;
 }
 
@@ -44,6 +44,10 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
         require(version == 1);
         (VirtualFloorMetadataV1 memory metadata) = abi.decode(params.metadata.data, (VirtualFloorMetadataV1));
 
+        // Temporary until workaround is removed
+        require(metadata.opponents.titles.length == metadata.opponents.images.length, "Error: Mismatched opponents lengths");
+        require(metadata.resultSources.titles.length == metadata.resultSources.urls.length, "Error: Mismatched resultSources lengths");
+
         // `nOutcomes` could simply be taken to be `metadata.outcomes.length` and this `require` could then be dropped.
         // But for now we choose to make a clear distinction between "essential" data (that needs to be stored on-chain)
         // and "non-essential" data (data that we want to commit to and that is required in the frontend,
@@ -51,11 +55,11 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
         // To this end, we group all non-essential data in the `metadata` parameter,
         // we require a separate `nOutcomes` "essential" argument to be passed,
         // and we enforce consistency with this check.
-        require(metadata.outcomes.length == params.nOutcomes, "Error: Outcomes length mismatch");
+        require(metadata.outcomes.titles.length == params.nOutcomes, "Error: Outcomes length mismatch");
 
-        require(metadata.opponents.length >= 1, "Error: There must be at least 1 opponent");
+        require(metadata.opponents.titles.length >= 1, "Error: There must be at least 1 opponent");
 
-        require(metadata.resultSources.length >= 1, "Error: There must be at least 1 result source");
+        require(metadata.resultSources.titles.length >= 1, "Error: There must be at least 1 result source");
 
         require(!metadata.title.isEmpty(), "Error: Title cannot be empty");
 

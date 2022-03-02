@@ -136,6 +136,10 @@ type User @entity {
   outcomeTimeslotTransfersTo: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "to")
   outcomeTimeslotTransfersFrom: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "from")
   ownedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "owner")
+
+  # properties
+  maxConcurrentVirtualFloors: BigInt!
+  concurrentVirtualFloors: BigInt!
 }
 
 type UserOutcome @entity {

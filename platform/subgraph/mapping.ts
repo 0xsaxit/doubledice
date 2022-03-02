@@ -9,6 +9,8 @@ import {
 } from '@graphprotocol/graph-ts';
 import {
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
+  QuotaDecreases as QuotaDecreasesEvent,
+  QuotaIncreases as QuotaIncreasesEvent,
   TransferSingle as TransferSingleEvent,
   UserCommitment as UserCommitmentEvent,
   VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
@@ -441,5 +443,25 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
     $.winningOutcome = winningOutcomeId;
 
     $.save();
+  }
+}
+
+export function handleQuotaIncreases(event: QuotaIncreasesEvent): void {
+  const quotaIncreases = event.params.increases;
+  for (let i = 0; i < quotaIncreases.length; i++) {
+    const userId = quotaIncreases[i].creator.toHex();
+    const user = loadOrCreateEntity<User>(User.load, userId);
+    user.maxConcurrentVirtualFloors += quotaIncreases[i].amount;
+    user.save();
+  }
+}
+
+export function handleQuotaDecreases(event: QuotaDecreasesEvent): void {
+  const quotaDecreases = event.params.decreases;
+  for (let i = 0; i < quotaDecreases.length; i++) {
+    const userId = quotaDecreases[i].creator.toHex();
+    const user = loadOrCreateEntity<User>(User.load, userId);
+    user.maxConcurrentVirtualFloors -= quotaDecreases[i].amount;
+    user.save();
   }
 }

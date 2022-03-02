@@ -12,6 +12,7 @@ import {
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
   QuotaDecreases as LegacyQuotaDecreasesEvent,
   QuotaIncreases as LegacyQuotaIncreasesEvent,
+  ResultUpdate as ResultUpdateEvent,
   TransferSingle as TransferSingleEvent,
   UserCommitment as UserCommitmentEvent,
   VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
@@ -39,9 +40,16 @@ import {
   VirtualFloorTimeslot
 } from '../generated/schema';
 import {
+  ResultUpdateAction,
   VirtualFloorResolutionType,
 } from '../lib/helpers/sol-enums';
 import { decodeMetadata } from './metadata';
+
+const ONE_HOUR = BigInt.fromU32(60 * 60);
+
+// ToDo: Emit these values per-VF on VirtualFloorCreation event
+const SET_WINDOW_DURATION = ONE_HOUR;
+const CHALLENGE_WINDOW_DURATION = ONE_HOUR;
 
 const toDecimal = (wei: BigInt): BigDecimal => wei.divDecimal(new BigDecimal(BigInt.fromU32(10).pow(18)));
 
@@ -162,6 +170,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.tOpen = event.params.tOpen;
     $.tClose = event.params.tClose;
     $.tResultSetMin = event.params.tResolve;
+    $.tResultSetMax = event.params.tResolve + SET_WINDOW_DURATION; // ToDo: Include this as event param tResultSetMax
     $.state = 'RUNNING_OR_CLOSED__RESULT_NONE';
 
     $.save();
@@ -494,4 +503,28 @@ export function handleLegacyQuotaDecreases(event: LegacyQuotaDecreasesEvent): vo
     user.maxConcurrentVirtualFloors -= quotaDecreases[i].amount;
     user.save();
   }
+}
+
+export function handleResultUpdate(event: ResultUpdateEvent): void {
+  const vfEntityId = event.params.vfId.toHex();
+  const vf = loadExistentEntity<VirtualFloor>(VirtualFloor.load, vfEntityId);
+  const winningOutcomeId = `${vfEntityId}-${event.params.outcomeIndex}`;
+  vf.winningOutcome = winningOutcomeId;
+
+  switch (event.params.action) {
+    case ResultUpdateAction.CreatorSetResult:
+      vf.state = 'RUNNING_OR_CLOSED__RESULT_SET';
+      vf.tResultChallengeMax = event.block.timestamp + CHALLENGE_WINDOW_DURATION; // ToDo: Include this as event param tChallengeMax
+      break;
+    case ResultUpdateAction.SomeoneChallengedSetResult:
+      vf.state = 'RUNNING_OR_CLOSED__RESULT_CHALLENGED';
+      break;
+    case ResultUpdateAction.AdminFinalizedUnsetResult:
+    case ResultUpdateAction.SomeoneConfirmedUnchallengedResult:
+    case ResultUpdateAction.AdminFinalizedChallenge:
+      // No need to handle these, as these will all result in a separate `VirtualFloorResultion` event,
+      // which will be handled by `handleVirtualFloorResultion`
+      break;
+  }
+  vf.save();
 }

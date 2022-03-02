@@ -29,10 +29,6 @@
       <th>Platform-fee beneficiary</th>
       <td>{{ platformFeeBeneficiary }}</td>
     </tr>
-    <tr>
-      <th>Token</th>
-      <td>{{ tokenDescription }}</td>
-    </tr>
     <tr v-if="paymentTokens && contract && accountSigner">
       <th>Tokens</th>
       <td>
@@ -275,8 +271,6 @@ export default class App extends Vue {
 
   networkDescription?: string
 
-  tokenDescription?: string
-
   platformFeeBeneficiary?: string
 
   beta?: number
@@ -391,19 +385,6 @@ export default class App extends Vue {
 
     this.platformFeeBeneficiary = await mainContract.platformFeeBeneficiary()
 
-    const tokenAddress = '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9'
-
-    const tokenContract = ERC20PresetMinterPauser__factory.connect(tokenAddress, signer)
-
-    this.tokenContract = tokenContract
-
-    const tokenName = await tokenContract.name()
-    const tokenSymbol = await tokenContract.symbol()
-    const tokenDecimals = await tokenContract.decimals()
-    // this.tokenDescription = `${tokenName}(${tokenSymbol}, ${1 / (10 ** tokenDecimals)}) ${tokenContract.address}`
-    this.tokenDescription = `${tokenName}(${tokenSymbol}, ${1 / (10 ** tokenDecimals)})`
-
-    await this.refreshBalances()
     await this.refreshBalances()
 
     this.isMounted = true
@@ -411,8 +392,7 @@ export default class App extends Vue {
 
   async refreshBalances(): Promise<void> {
     console.log('Refreshing balances...')
-    this.balance = new BigDecimal((await this.tokenContract.balanceOf(this.accountAddress!)).toString()).dividedBy(1_000000)
-    this.allowance = new BigDecimal((await this.tokenContract.allowance(this.accountAddress!, this.contract.address)).toString()).dividedBy(1_000000)
+    this.$forceUpdate()
   }
 }
 </script>

@@ -23,7 +23,9 @@
     "pregraph:generate-ts-bindings": "mkdir -pv ./graphql/generated && cat ./graphql/schema.preamble.graphql ./subgraph/schema.graphql > ./graphql/generated/schema.graphql",
     "graph:generate-ts-bindings": "graphql-codegen --config ./graphql/codegen.yml",
     "codegen": "hardhat compile && npm run graph:codegen && npm run graph:generate-ts-bindings",
-    "postinstall": "npm run codegen"
+    "postinstall": "npm run codegen",
+    "pregen-sol-interface": "npx hardhat compile",
+    "gen-sol-interface": "cat ./generated/abi/DoubleDice.json | abi-to-sol --validate --solidity-version=0.8.12 IDoubleDiceComplete > ./generated/IDoubleDiceComplete.sol"
   },
   "main": "./lib/index.ts",
   "files": [

@@ -7,7 +7,7 @@
           :start="Number(virtualFloor.tCreated)"
           :open="Number(virtualFloor.tOpen)"
           :close="Number(virtualFloor.tClose)"
-          :resolve="Number((virtualFloor.tResolve))"
+          :resolve="Number((virtualFloor.tResultSetMin))"
           :max="maxVirtualFloorTimestamp"
           :locked="fastforwarding"
           :now="nextBlockTimestamp"
@@ -83,9 +83,9 @@
             <th>tClose</th>
             <td>{{ formatTimestamp(tClose) }}</td>
           </tr>
-          <tr :title="`tResolve = ${virtualFloor.tResolve}`">
-            <th>tResolve</th>
-            <td>{{ formatTimestamp(tResolve) }}</td>
+          <tr :title="`tResultSetMin = ${virtualFloor.tResultSetMin}`">
+            <th>tResultSetMin</th>
+            <td>{{ formatTimestamp(tResultSetMin) }}</td>
           </tr>
         </table>
       </td>
@@ -164,8 +164,8 @@ export default class VirtualFloorComponent extends Vue {
     return Number(this.virtualFloor.tClose)
   }
 
-  get tResolve(): number {
-    return Number(this.virtualFloor.tResolve)
+  get tResultSetMin(): number {
+    return Number(this.virtualFloor.tResultSetMin)
   }
 
   get isOwnedByConnectedAccount(): boolean {
@@ -178,11 +178,11 @@ export default class VirtualFloorComponent extends Vue {
   }
 
   get isRunning(): boolean {
-    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosed && this.nextBlockTimestamp < this.tClose
+    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosedResultNone && this.nextBlockTimestamp < this.tClose
   }
 
   get isClosed(): boolean {
-    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosed && this.nextBlockTimestamp >= this.tClose
+    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosedResultNone && this.nextBlockTimestamp >= this.tClose
   }
 
   get isUnresolvable(): boolean {

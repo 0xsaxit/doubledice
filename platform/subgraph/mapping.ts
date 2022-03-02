@@ -161,8 +161,8 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.tCreated = event.block.timestamp;
     $.tOpen = event.params.tOpen;
     $.tClose = event.params.tClose;
-    $.tResolve = event.params.tResolve;
-    $.state = 'RUNNING_OR_CLOSED';
+    $.tResultSetMin = event.params.tResolve;
+    $.state = 'RUNNING_OR_CLOSED__RESULT_NONE';
 
     $.save();
   }

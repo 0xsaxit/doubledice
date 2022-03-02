@@ -173,7 +173,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
     tCreated
     tOpen
     tClose
-    tResolve
+    tResultSetMin
     state
     winningOutcome {
       id
@@ -340,7 +340,7 @@ export default class App extends Vue {
   }
 
   get maxVirtualFloorTimestamp(): number {
-    return this.isMounted ? Math.max(this.latestBlockTimestamp, ...this.virtualFloors.map(({ tResolve }) => Number(new BigDecimal(tResolve)))) + 86400 : Infinity
+    return this.isMounted ? Math.max(this.latestBlockTimestamp, ...this.virtualFloors.map(({ tResultSetMin }) => Number(new BigDecimal(tResultSetMin)))) + 86400 : Infinity
   }
 
   formatTimestamp(timestamp: string | number): string {

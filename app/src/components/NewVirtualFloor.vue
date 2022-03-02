@@ -45,7 +45,7 @@
         </td>
       </tr>
       <tr>
-        <th>tResolve</th>
+        <th>tResultSetMin</th>
         <td>
           <input v-model="tResolve" type="datetime-local" />
         </td>

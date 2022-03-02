@@ -100,7 +100,7 @@ export default class OutcomeComponent extends Vue {
   }
 
   get canCommit(): boolean {
-    return this.virtualFloor.state === VirtualFloorInternalState.RunningOrClosed &&
+    return this.virtualFloor.state === VirtualFloorInternalState.RunningOrClosedResultNone &&
       this.nextBlockTimestamp < Number(this.virtualFloor.tClose)
   }
 
@@ -125,8 +125,8 @@ export default class OutcomeComponent extends Vue {
   }
 
   get canResolve(): boolean {
-    return this.virtualFloor.state === VirtualFloorInternalState.RunningOrClosed &&
-      this.nextBlockTimestamp >= Number(this.virtualFloor.tResolve) &&
+    return this.virtualFloor.state === VirtualFloorInternalState.RunningOrClosedResultNone &&
+      this.nextBlockTimestamp >= Number(this.virtualFloor.tResultSetMin) &&
       !this.isVirtualFloorUnresolvable
   }
 
@@ -150,8 +150,9 @@ export default class OutcomeComponent extends Vue {
   }
 
   get isWinningOutcome(): boolean {
-    return this.virtualFloor.state !== VirtualFloorInternalState.RunningOrClosed && this.outcome.index === this.virtualFloor.winningOutcome?.index
-    // return false
+    const isResolvedState = this.virtualFloor.state === VirtualFloorInternalState.ResolvedWinners ||
+      this.virtualFloor.state === VirtualFloorInternalState.CancelledBecauseResolvedNoWinners
+    return isResolvedState && this.outcome.index === this.virtualFloor.winningOutcome?.index
   }
 
   get winningText(): string {

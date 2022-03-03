@@ -112,8 +112,6 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.AdminFinalizedUnsetResult, finalOutcomeIndex);
     }
 
-    event ResultSet(uint256 vfId, uint8 setOutcomeIndex);
-
     function setResult(uint256 vfId, uint8 setOutcomeIndex) external {
         VirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
         if (!(_msgSender() == vfParams.creator)) revert OnlyVirtualFloorCreator();

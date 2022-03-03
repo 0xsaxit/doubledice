@@ -59,13 +59,20 @@ type VirtualFloor @entity {
   tCreated: BigInt!
   tOpen: BigInt!
   tClose: BigInt!
+  tResolve: BigInt!
+
+  # Despite being redundant, as it is always equal to tResolve,
+  # this could be different in a different Oracle implementation.
+  # So we make a distinction between `tResolve` the VF creation parameter,
+  # and `tResultSetMin` the value pertaining to the current particular Oracle implementation
   tResultSetMin: BigInt!
 
   # ToDo: Emit per-VF as VirtualFloorCreated event field
+  # Optional because it can only be set once SET_WINDOW starts ticking
   tResultSetMax: BigInt!
 
   # ToDo: Emit per-VF as VirtualFloorCreated event field
-  # Optional because it can only be set once CHALLENGE_DURATION starts ticking
+  # Optional because it can only be set once CHALLENGE_WINDOW starts ticking
   tResultChallengeMax: BigInt
 
   state: VirtualFloorInternalState!

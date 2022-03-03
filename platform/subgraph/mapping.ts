@@ -169,6 +169,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.tCreated = event.block.timestamp;
     $.tOpen = event.params.tOpen;
     $.tClose = event.params.tClose;
+    $.tResolve = event.params.tResolve;
     $.tResultSetMin = event.params.tResolve;
     $.tResultSetMax = event.params.tResolve + SET_WINDOW_DURATION; // ToDo: Include this as event param tResultSetMax
     $.state = 'RUNNING_OR_CLOSED__RESULT_NONE';

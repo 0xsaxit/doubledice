@@ -14,3 +14,18 @@ stateDiagram-v2
     None --> Complete: finalizeUnsetResult\n🔒 platformAdmin\n⏲️ t > tResultSetMax\n rake ➡️ platform
     Complete --> [*]
 ```
+
+```mermaid
+stateDiagram-v2
+    state f <<choice>>
+    [*] --> None
+    None --> Set: setResult(s)
+    Set --> Challenged: challengeSetResult(c)
+    Challenged --> f: finalizeChallenge(f)
+    f --> Complete: f = s
+    f --> Complete: f = c
+    f --> Complete: f ≠ s
+    Set --> Complete: confirmUnchallengedResult()
+    None --> Complete: finalizeUnsetResult()
+    Complete --> [*]
+```

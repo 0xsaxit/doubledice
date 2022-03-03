@@ -18,7 +18,10 @@ import {
   UserCommitment
 } from '../helpers';
 import {
-  DoubleDice, DummyUSDCoin, ResultUpdateAction
+  DoubleDice,
+  DummyUSDCoin,
+  ResolutionState,
+  ResultUpdateAction
 } from '../lib/contracts';
 
 chai.use(chaiSubset);
@@ -294,6 +297,12 @@ describe('DoubleDice', function () {
         expect(action).to.eq(ResultUpdateAction.SomeoneConfirmedUnchallengedResult);
         expect(outcomeIndex).to.eq(1);
       }
+
+      {
+        const { state: resolutionState } = await contract.resolutions(virtualFloorId);
+        expect(resolutionState).to.eq(ResolutionState.Complete);
+      }
+
       {
         const { winnerProfits, platformFeeAmount, creatorFeeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
 

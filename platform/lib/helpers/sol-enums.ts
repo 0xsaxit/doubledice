@@ -24,3 +24,11 @@ export enum ResultUpdateAction {
   SomeoneChallengedSetResult,
   AdminFinalizedChallenge
 }
+
+export enum ResolutionState {
+  None,
+  Set,
+  Challenged,
+  ChallengeCancelled,
+  Complete
+}

@@ -229,74 +229,32 @@ abstract contract BaseDoubleDice is
     // ---------- Virtual-floor lifecycle ----------
 
     function createVirtualFloor(VirtualFloorCreationParams calldata params) public {
-        (
-            uint256 vfId,
-            UFixed256x18 betaOpen,
-            UFixed256x18 creationFeeRate,
-            uint32 tOpen,
-            uint32 tClose,
-            uint32 tResolve,
-            uint8 nOutcomes,
-            IERC20Upgradeable paymentToken,
-            uint256 bonusAmount,
-            EncodedVirtualFloorMetadata calldata metadata
-        ) = params.destructure();
 
-        VirtualFloor storage vf = _vfs[vfId];
+        // Pure value validation
+        params.validatePure();
 
+        // Validation against block
+        require(block.timestamp <= params.tCreateMax(), "Error: t >= 10% into open period");
+
+        VirtualFloor storage vf = _vfs[params.virtualFloorId];
+
+        // Validation against storage
         require(vf.internalState == VirtualFloorInternalState.None, "MARKET_DUPLICATE");
-
-        require(betaOpen.gte(_BETA_CLOSE), "Error: betaOpen < 1.0");
-        vf.betaOpenMinusBetaClose = betaOpen.sub(_BETA_CLOSE).toUFixed32x6();
-
-        require(creationFeeRate.lte(UFIXED256X18_ONE), "Error: creationFeeRate > 1.0");
-        vf.creationFeeRate = creationFeeRate.toUFixed16x4();
-
-        // freeze platformFeeRate value as it is right now
-        vf.platformFeeRate = _platformFeeRate;
-
-        // Allow creation to happen up to 10% into the Open period,
-        // to be a bit tolerant to mining delays.
-        require(block.timestamp < tOpen + (tClose - tOpen) / 10, "Error: t >= 10% into open period");
-
-        require(tOpen < tClose, "Error: tOpen >= tClose");
-        require(tClose <= tResolve, "Error: tClose > tResolve");
-
-        require(nOutcomes >= 2, "Error: nOutcomes < 2");
-
-        require(_paymentTokenWhitelist.isWhitelisted(address(paymentToken)), "Error: Payment token is not whitelisted");
-        vf.paymentTokenId = toAddressWhitelistKey(address(paymentToken));
+        require(_paymentTokenWhitelist.isWhitelisted(address(params.paymentToken)), "Error: Payment token is not whitelisted");
 
         vf.internalState = VirtualFloorInternalState.RunningOrClosed;
-        vf.tOpen = tOpen;
-        vf.tClose = tClose;
-        vf.tResolve = tResolve;
-        vf.nOutcomes = nOutcomes;
-
-        emit VirtualFloorCreation({
-            virtualFloorId: vfId,
-            creator: _msgSender(),
-            betaOpen_e18: betaOpen,
-            creationFeeRate_e18: creationFeeRate,
-            platformFeeRate_e18: _platformFeeRate.toUFixed256x18(),
-            tOpen: tOpen,
-            tClose: tClose,
-            tResolve: tResolve,
-            nOutcomes: nOutcomes,
-            paymentToken: paymentToken,
-            bonusAmount: bonusAmount,
-            metadata: metadata
-        });
-
-        require(ERC1155TokenIds.isValidVirtualFloorId(vfId), "INVALID_VIRTUALFLOOR_ID");
-
-        // ToDo: For now we simply set owner field on VF data-structure.
-        // Later we might bring back this VF being a NFT, as this would
-        // allow ownership transfer, integration with Etherscan, wallets, etc.
         vf.creator = _msgSender();
+        vf.betaOpenMinusBetaClose = params.betaOpen_e18.sub(_BETA_CLOSE).toUFixed32x6();
+        vf.creationFeeRate = params.creationFeeRate_e18.toUFixed16x4();
+        vf.platformFeeRate = _platformFeeRate; // freeze current global platformFeeRate
+        vf.tOpen = params.tOpen;
+        vf.tClose = params.tClose;
+        vf.tResolve = params.tResolve;
+        vf.nOutcomes = params.nOutcomes;
+        vf.paymentTokenId = toAddressWhitelistKey(address(params.paymentToken));
 
-        if (bonusAmount > 0) {
-            vf.bonusAmount = bonusAmount;
+        if (params.bonusAmount > 0) {
+            vf.bonusAmount = params.bonusAmount;
 
             // For the purpose of knowing whether a VF is unresolvable,
             // the bonus amount is equivalent to a commitment to a "virtual" outcome
@@ -304,9 +262,26 @@ abstract contract BaseDoubleDice is
             // amount committed to the VF
             vf.nonzeroOutcomeCount += 1;
 
-            paymentToken.safeTransferFrom(_msgSender(), address(this), bonusAmount);
+            params.paymentToken.safeTransferFrom(_msgSender(), address(this), params.bonusAmount);
         }
 
+        emit VirtualFloorCreation({
+            virtualFloorId: params.virtualFloorId,
+            creator: vf.creator,
+            betaOpen_e18: params.betaOpen_e18,
+            creationFeeRate_e18: params.creationFeeRate_e18,
+            platformFeeRate_e18: _platformFeeRate.toUFixed256x18(),
+            tOpen: params.tOpen,
+            tClose: params.tClose,
+            tResolve: params.tResolve,
+            nOutcomes: params.nOutcomes,
+            paymentToken: params.paymentToken,
+            bonusAmount: params.bonusAmount,
+            metadata: params.metadata
+        });
+
+        // Hooks might want to read VF values from storage,
+        // so hook-call must happen last.
         _onVirtualFloorCreation(params);
     }
 

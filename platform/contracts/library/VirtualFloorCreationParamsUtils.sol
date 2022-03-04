@@ -2,37 +2,37 @@
 
 pragma solidity 0.8.12;
 
+import "../BaseDoubleDice.sol";
 import "../interface/IDoubleDice.sol";
+import "./ERC1155TokenIds.sol";
 import "./FixedPointTypes.sol";
 
 library VirtualFloorCreationParamsUtils {
 
-    function destructure(VirtualFloorCreationParams calldata params)
-        internal
-        pure
-        returns (
-            uint256 vfId,
-            UFixed256x18 betaOpen_e18,
-            UFixed256x18 creationFeeRate_e18,
-            uint32 tOpen,
-            uint32 tClose,
-            uint32 tResolve,
-            uint8 nOutcomes,
-            IERC20Upgradeable paymentToken,
-            uint256 bonusAmount,
-            EncodedVirtualFloorMetadata calldata metadata
-        )
-    {
-        vfId = params.virtualFloorId;
-        betaOpen_e18 = params.betaOpen_e18;
-        creationFeeRate_e18 = params.creationFeeRate_e18;
-        tOpen = params.tOpen;
-        tClose = params.tClose;
-        tResolve = params.tResolve;
-        nOutcomes = params.nOutcomes;
-        paymentToken = params.paymentToken;
-        bonusAmount = params.bonusAmount;
-        metadata = params.metadata;
+    using ERC1155TokenIds for uint256;
+    using FixedPointTypes for UFixed256x18;
+
+    function validatePure(VirtualFloorCreationParams calldata $) internal pure {
+        {
+            require($.virtualFloorId.isValidVirtualFloorId(), "INVALID_VIRTUALFLOOR_ID");
+        }
+        {
+            require($.betaOpen_e18.gte(_BETA_CLOSE), "Error: betaOpen < 1.0");
+        }
+        {
+            require($.creationFeeRate_e18.lte(UFIXED256X18_ONE), "Error: creationFeeRate > 1.0");
+        }
+        {
+            require($.tOpen < $.tClose && $.tClose <= $.tResolve, "Error: tOpen >= tClose|Error: tClose > tResolve");
+        }
+        {
+            require($.nOutcomes >= 2, "Error: nOutcomes < 2");
+        }
     }
 
+    // Allow creation to happen up to 10% into the Open period,
+    // to be a bit tolerant to mining delays.
+    function tCreateMax(VirtualFloorCreationParams calldata params) internal pure returns (uint256) {
+        return params.tOpen + (params.tClose - params.tOpen) / 10;
+    }
 }

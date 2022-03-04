@@ -41,8 +41,6 @@ dataSources:
           handler: handlePaymentTokenWhitelistUpdate
         - event: VirtualFloorCreation(indexed uint256,indexed address,uint256,uint256,uint256,uint32,uint32,uint32,uint8,address,uint256,uint256,uint256,(bytes32,bytes))
           handler: handleVirtualFloorCreation
-        - event: VirtualFloorCreation(indexed uint256,indexed address,uint256,uint256,uint256,uint32,uint32,uint32,uint8,address,(bytes32,bytes))
-          handler: handleLegacyVirtualFloorCreation
         - event: UserCommitment(indexed uint256,indexed address,uint8,uint256,uint256,uint256,uint256)
           handler: handleUserCommitment
         - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
@@ -55,10 +53,6 @@ dataSources:
           handler: handleVirtualFloorResolution
         - event: CreationQuotaAdjustments((address,int256)[])
           handler: handleCreationQuotaAdjustments
-        - event: QuotaIncreases((address,uint256)[])
-          handler: handleLegacyQuotaIncreases
-        - event: QuotaDecreases((address,uint256)[])
-          handler: handleLegacyQuotaDecreases
         - event: ResultUpdate(indexed uint256,address,uint8,uint8)
           handler: handleResultUpdate
       file: ./mapping.ts

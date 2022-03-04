@@ -3,7 +3,6 @@
   "files": [
     "./constants.ts",
     "./entities.ts",
-    "./legacy.ts",
     "./mapping.ts",
     "./metadata.ts",
     "./utils.ts",

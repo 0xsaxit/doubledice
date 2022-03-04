@@ -15,7 +15,7 @@ import {
   UserCommitment as UserCommitmentEvent,
   VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
   VirtualFloorCancellationUnresolvable as VirtualFloorCancellationUnresolvableEvent,
-  VirtualFloorCreation1 as VirtualFloorCreationEvent,
+  VirtualFloorCreation as VirtualFloorCreationEvent,
   VirtualFloorResolution as VirtualFloorResolutionEvent
 } from '../generated/DoubleDice/DoubleDice';
 import {
@@ -45,8 +45,6 @@ import { CHALLENGE_WINDOW_DURATION, SET_WINDOW_DURATION, TIMESLOT_DURATION } fro
 import { createNewEntity, loadExistentEntity, loadOrCreateEntity } from './entities';
 import { decodeMetadata } from './metadata';
 import { paymentTokenAmountToBigDecimal, toDecimal } from './utils';
-
-export * from './legacy';
 
 /**
  * It doesn't matter whether this token is being enabled or disabled, we are only using it to discover

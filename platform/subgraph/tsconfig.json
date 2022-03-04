@@ -1,6 +1,11 @@
 {
   "extends": "assemblyscript/std/assembly.json",
   "files": [
-    "./mapping.ts"
+    "./constants.ts",
+    "./entities.ts",
+    "./legacy.ts",
+    "./mapping.ts",
+    "./metadata.ts",
+    "./utils.ts",
   ]
 }

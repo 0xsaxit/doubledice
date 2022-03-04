@@ -10,8 +10,6 @@ import {
 import {
   CreationQuotaAdjustments as CreationQuotaAdjustmentsEvent,
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
-  QuotaDecreases as LegacyQuotaDecreasesEvent,
-  QuotaIncreases as LegacyQuotaIncreasesEvent,
   ResultUpdate as ResultUpdateEvent,
   TransferSingle as TransferSingleEvent,
   UserCommitment as UserCommitmentEvent,
@@ -41,57 +39,14 @@ import {
 } from '../generated/schema';
 import {
   ResultUpdateAction,
-  VirtualFloorResolutionType,
+  VirtualFloorResolutionType
 } from '../lib/helpers/sol-enums';
+import { CHALLENGE_WINDOW_DURATION, SET_WINDOW_DURATION, TIMESLOT_DURATION } from './constants';
+import { createNewEntity, loadExistentEntity, loadOrCreateEntity } from './entities';
 import { decodeMetadata } from './metadata';
+import { paymentTokenAmountToBigDecimal, toDecimal } from './utils';
 
-const ONE_HOUR = BigInt.fromU32(60 * 60);
-
-// ToDo: Emit these values per-VF on VirtualFloorCreation event
-const SET_WINDOW_DURATION = ONE_HOUR;
-const CHALLENGE_WINDOW_DURATION = ONE_HOUR;
-
-const toDecimal = (wei: BigInt): BigDecimal => wei.divDecimal(new BigDecimal(BigInt.fromU32(10).pow(18)));
-
-const paymentTokenAmountToBigDecimal = (wei: BigInt, decimals: i32): BigDecimal => wei.divDecimal(new BigDecimal(BigInt.fromU32(10).pow(u8(decimals))));
-
-// Mirrors DoubleDice.sol#TIMESLOT_DURATION
-const TIMESLOT_DURATION = 60;
-
-interface Entity {
-  save(): void
-}
-
-type LoadEntity<T> = (id: string) => T | null
-
-function createNewEntity<T extends Entity>(load: LoadEntity<T>, id: string): T {
-  let entity = load(id);
-  if (entity !== null) {
-    throw new Error('createNewEntity: Was not expecting the entity to already exist');
-  }
-  entity = instantiate<T>(id);
-  entity.save();
-  return entity;
-}
-
-function loadExistentEntity<T extends Entity>(load: LoadEntity<T>, id: string): T {
-  const entity = load(id);
-  if (entity === null) {
-    throw new Error('loadExistentEntity: Was expecting entity to already exist');
-  }
-  return entity;
-}
-
-// ToDo: Ideally this would return { entity, isNew },
-// so that caller could use isNew to run some code only the first time.
-function loadOrCreateEntity<T extends Entity>(load: LoadEntity<T>, id: string): T {
-  let entity = load(id);
-  if (entity === null) {
-    entity = instantiate<T>(id);
-    entity.save();
-  }
-  return entity;
-}
+export * from './legacy';
 
 /**
  * It doesn't matter whether this token is being enabled or disabled, we are only using it to discover
@@ -481,29 +436,6 @@ function adjustUserConcurrentVirtualFloors(userId: string, adjustment: i32): voi
   const user = loadExistentEntity<User>(User.load, userId);
   user.concurrentVirtualFloors += BigInt.fromI32(adjustment);
   user.save();
-}
-
-
-// ToDo: Drop before public release
-export function handleLegacyQuotaIncreases(event: LegacyQuotaIncreasesEvent): void {
-  const quotaIncreases = event.params.increases;
-  for (let i = 0; i < quotaIncreases.length; i++) {
-    const userId = quotaIncreases[i].creator.toHex();
-    const user = loadOrCreateEntity<User>(User.load, userId);
-    user.maxConcurrentVirtualFloors += quotaIncreases[i].amount;
-    user.save();
-  }
-}
-
-// ToDo: Drop before public release
-export function handleLegacyQuotaDecreases(event: LegacyQuotaDecreasesEvent): void {
-  const quotaDecreases = event.params.decreases;
-  for (let i = 0; i < quotaDecreases.length; i++) {
-    const userId = quotaDecreases[i].creator.toHex();
-    const user = loadOrCreateEntity<User>(User.load, userId);
-    user.maxConcurrentVirtualFloors -= quotaDecreases[i].amount;
-    user.save();
-  }
 }
 
 export function handleResultUpdate(event: ResultUpdateEvent): void {

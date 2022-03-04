@@ -6,6 +6,9 @@ import "../BaseDoubleDice.sol";
 import "../interface/IDoubleDice.sol";
 import "./FixedPointTypes.sol";
 
+uint256 constant _MIN_POSSIBLE_COMMITMENT_AMOUNT = 1;
+uint256 constant _MAX_POSSIBLE_COMMITMENT_AMOUNT = type(uint256).max;
+
 library VirtualFloors {
 
     using FixedPointTypes for UFixed256x18;
@@ -56,6 +59,17 @@ library VirtualFloors {
         total = vf.bonusAmount;
         for (uint256 i = 0; i < vf.nOutcomes; i++) {
             total += vf.outcomeTotals[i].amount;
+        }
+    }
+
+    function minMaxCommitmentAmounts(VirtualFloor storage vf) internal view returns (uint256 min, uint256 max) {
+        min = vf._optionalMinCommitmentAmount;
+        max = vf._optionalMaxCommitmentAmount;
+        if (min == UNSPECIFIED_ZERO) {
+            min = _MIN_POSSIBLE_COMMITMENT_AMOUNT;
+        }
+        if (max == UNSPECIFIED_ZERO) {
+            max = _MAX_POSSIBLE_COMMITMENT_AMOUNT;
         }
     }
 

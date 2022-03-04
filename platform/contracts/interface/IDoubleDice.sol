@@ -7,6 +7,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import "../library/FixedPointTypes.sol";
 
+uint256 constant UNSPECIFIED_ZERO = 0;
+
 /// @notice The version defines how to interpret the data.
 /// In v1 the data could be abi-encoded, in v2 it could be JSON-encoded,
 /// and in v3 the data could be just a sha256 hash of the content.
@@ -39,6 +41,12 @@ struct VirtualFloorCreationParams {
 
     uint256 bonusAmount;
 
+    /// @notice Leave unspecified by passing value 0
+    uint256 optionalMinCommitmentAmount;
+
+    /// @notice Leave unspecified by passing value 0
+    uint256 optionalMaxCommitmentAmount;
+
     EncodedVirtualFloorMetadata metadata;
 }
 
@@ -52,6 +60,8 @@ struct VirtualFloorParams {
     uint8 nOutcomes;
     IERC20Upgradeable paymentToken;
     uint256 bonusAmount;
+    uint256 minCommitmentAmount;
+    uint256 maxCommitmentAmount;
     address creator;
 }
 
@@ -85,6 +95,8 @@ interface IDoubleDice is
         uint8 nOutcomes,
         IERC20Upgradeable paymentToken,
         uint256 bonusAmount,
+        uint256 minCommitmentAmount,
+        uint256 maxCommitmentAmount,
         EncodedVirtualFloorMetadata metadata
     );
 

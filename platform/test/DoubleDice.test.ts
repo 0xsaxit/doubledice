@@ -135,6 +135,8 @@ describe('DoubleDice', function () {
         nOutcomes,
         paymentToken: tokenUSDC.address,
         bonusAmount: 0,
+        optionalMinCommitmentAmount: 0,
+        optionalMaxCommitmentAmount: 0,
         metadata: ENCODED_DUMMY_METADATA
       })).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);

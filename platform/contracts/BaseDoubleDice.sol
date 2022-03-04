@@ -81,6 +81,12 @@ struct VirtualFloor {
                                // = 25 bytes => packed into 1 32-byte slot
 
     uint256 bonusAmount;
+
+    // Pack into 1 storage slot
+    // _prefixed as they are not meant to be read directly,
+    // but through .minMaxCommitmentAmounts() 
+    uint128 _optionalMinCommitmentAmount;
+    uint128 _optionalMaxCommitmentAmount;
 }
 
 abstract contract BaseDoubleDice is
@@ -207,6 +213,7 @@ abstract contract BaseDoubleDice is
 
     function getVirtualFloorParams(uint256 vfId) public view returns (VirtualFloorParams memory) {
         VirtualFloor storage vf = _vfs[vfId];
+        (uint256 minCommitmentAmount, uint256 maxCommitmentAmount) = vf.minMaxCommitmentAmounts();
         return VirtualFloorParams({
             betaOpen_e18: vf.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
             creationFeeRate_e18: vf.creationFeeRate.toUFixed256x18(),
@@ -217,6 +224,8 @@ abstract contract BaseDoubleDice is
             nOutcomes: vf.nOutcomes,
             paymentToken: _paymentTokenOf(vf),
             bonusAmount: vf.bonusAmount,
+            minCommitmentAmount: minCommitmentAmount,
+            maxCommitmentAmount: maxCommitmentAmount,
             creator: vf.creator
         });
     }
@@ -256,14 +265,36 @@ abstract contract BaseDoubleDice is
         if (params.bonusAmount > 0) {
             vf.bonusAmount = params.bonusAmount;
 
-            // For the purpose of knowing whether a VF is unresolvable,
-            // the bonus amount is equivalent to a commitment to a "virtual" outcome
-            // that never wins, but only serves the purpose of increasing the total
-            // amount committed to the VF
-            vf.nonzeroOutcomeCount += 1;
+                // For the purpose of knowing whether a VF is unresolvable,
+                // the bonus amount is equivalent to a commitment to a "virtual" outcome
+                // that never wins, but only serves the purpose of increasing the total
+                // amount committed to the VF
+                vf.nonzeroOutcomeCount += 1;
 
             params.paymentToken.safeTransferFrom(_msgSender(), address(this), params.bonusAmount);
         }
+
+        uint256 min;
+        uint256 max;
+        {
+            // ToDo: Does it save gas to skip if == 0 ?
+            // First store raw values ...
+            vf._optionalMinCommitmentAmount = params.optionalMinCommitmentAmount.toUint128();
+            vf._optionalMaxCommitmentAmount = params.optionalMaxCommitmentAmount.toUint128();
+            // ... then validate values returned through the library getter.
+            (min, max) = vf.minMaxCommitmentAmounts();
+            require(
+                _MIN_POSSIBLE_COMMITMENT_AMOUNT <= min
+                                                && min <= max
+                                                       && max <= _MAX_POSSIBLE_COMMITMENT_AMOUNT,
+                "ERROR"
+            );
+        }
+
+        // Extracting this value to a local variable
+        // averts a "Stack too deep" CompilerError in the
+        // subsequent `emit`
+        EncodedVirtualFloorMetadata calldata metadata = params.metadata;
 
         emit VirtualFloorCreation({
             virtualFloorId: params.virtualFloorId,
@@ -277,7 +308,9 @@ abstract contract BaseDoubleDice is
             nOutcomes: params.nOutcomes,
             paymentToken: params.paymentToken,
             bonusAmount: params.bonusAmount,
-            metadata: params.metadata
+            minCommitmentAmount: min,
+            maxCommitmentAmount: max,
+            metadata: metadata
         });
 
         // Hooks might want to read VF values from storage,
@@ -292,9 +325,8 @@ abstract contract BaseDoubleDice is
 
         require(outcomeIndex < vf.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
 
-        // Note: By enforcing this requirement, we can later assume that 0 committed value = 0 commitments
-        // If we allowed 0-value commitments, it would no longer be possible to make this deduction.
-        require(amount > 0, "AMOUNT_ZERO");
+        (uint256 minAmount, uint256 maxAmount) = vf.minMaxCommitmentAmounts();
+        require(minAmount <= amount && amount <= maxAmount, "ERROR");
 
         _paymentTokenOf(vf).safeTransferFrom(_msgSender(), address(this), amount);
 

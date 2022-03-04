@@ -46,6 +46,8 @@ async function main() {
     nOutcomes: roomEventInfo.outcomes.titles.length,
     paymentToken: TOKEN_CONTRACT_ADDRESS,
     bonusAmount: 0,
+    optionalMinCommitmentAmount: 0,
+    optionalMaxCommitmentAmount: 0,
     metadata: encodeVirtualFloorMetadata(DUMMY_METADATA),
   })).wait();
 

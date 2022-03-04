@@ -280,6 +280,8 @@ export default class NewVirtualFloor extends Vue {
       nOutcomes,
       paymentToken,
       bonusAmount: 0,
+      optionalMinCommitmentAmount: 0,
+      optionalMaxCommitmentAmount: 0,
       metadata: encodeVirtualFloorMetadata(metadata)
     }
     // eslint-disable-next-line space-before-function-paren

@@ -61,6 +61,8 @@ type VirtualFloor @entity {
   tClose: BigInt!
   tResolve: BigInt!
   bonusAmount: BigDecimal!
+  minCommitmentAmount: BigDecimal!
+  maxCommitmentAmount: BigDecimal!
 
   # Despite being redundant, as it is always equal to tResolve,
   # this could be different in a different Oracle implementation.

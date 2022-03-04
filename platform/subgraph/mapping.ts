@@ -130,9 +130,13 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.state = 'RUNNING_OR_CLOSED__RESULT_NONE';
 
     const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
+
     const decimalBonusAmount = paymentTokenAmountToBigDecimal(event.params.bonusAmount, paymentToken.decimals);
     $.bonusAmount = decimalBonusAmount;
     $.totalSupply += decimalBonusAmount;
+
+    $.minCommitmentAmount = paymentTokenAmountToBigDecimal(event.params.minCommitmentAmount, paymentToken.decimals);
+    $.maxCommitmentAmount = paymentTokenAmountToBigDecimal(event.params.maxCommitmentAmount, paymentToken.decimals);
 
     $.save();
   }

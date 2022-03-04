@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
+import "./ExtraStorageGap.sol";
 import "./interface/IDoubleDiceAdmin.sol";
 import "./library/AddressWhitelists.sol";
 import "./library/ERC1155TokenIds.sol";
@@ -95,6 +96,7 @@ abstract contract BaseDoubleDice is
     ERC1155Upgradeable,
     AccessControlUpgradeable,
     PausableUpgradeable,
+    ExtraStorageGap,
     MultipleInheritanceOptimization
 {
     using AddressWhitelists for address;

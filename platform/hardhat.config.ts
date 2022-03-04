@@ -60,6 +60,9 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 20,
       },
+      debug: {
+        revertStrings: 'strip',
+      }
     },
   },
   typechain: {

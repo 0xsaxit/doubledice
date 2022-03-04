@@ -2,14 +2,16 @@
 
 pragma solidity 0.8.12;
 
-import "./CreationQuotas.sol";
 import "./ChallengeableCreatorOracle.sol";
+import "./CreationQuotas.sol";
+import "./Legacy.sol";
 import "./VirtualFloorMetadataValidator.sol";
 
 contract DoubleDice is
     ChallengeableCreatorOracle,
     CreationQuotas,
-    VirtualFloorMetadataValidator
+    VirtualFloorMetadataValidator,
+    Legacy
 {
 
     function initialize(

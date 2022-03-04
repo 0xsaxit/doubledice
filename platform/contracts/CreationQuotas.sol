@@ -52,13 +52,4 @@ contract CreationQuotas is BaseDoubleDice {
     /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
     uint256[50] private __gap;
 
-
-    // ---------- Legacy ----------
-
-    // ToDo: Kept here so that Graph can generate wrappers for them.
-    // To be dropped before release.
-    struct QuotaChange { address creator; uint256 amount; }
-    event QuotaIncreases(QuotaChange[] increases);
-    event QuotaDecreases(QuotaChange[] decreases);
-
 }

@@ -45,6 +45,9 @@ type VirtualFloor @entity {
   owner: User!
   subcategory: Subcategory!
 
+  """Only set if the result set by the creator has been challenged"""
+  challenger: User
+
   # children
   outcomes: [Outcome!]! @derivedFrom(field: "virtualFloor")
   opponents: [Opponent!]! @derivedFrom(field: "virtualFloor")
@@ -156,6 +159,7 @@ type User @entity {
   outcomeTimeslotTransfersTo: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "to")
   outcomeTimeslotTransfersFrom: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "from")
   ownedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "owner")
+  challengedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "challenger")
 
   # properties
   maxConcurrentVirtualFloors: BigInt!

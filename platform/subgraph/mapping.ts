@@ -456,9 +456,15 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
       vf.state = 'RUNNING_OR_CLOSED__RESULT_SET';
       vf.tResultChallengeMax = event.block.timestamp + CHALLENGE_WINDOW_DURATION; // ToDo: Include this as event param tChallengeMax
       break;
-    case ResultUpdateAction.SomeoneChallengedSetResult:
+    case ResultUpdateAction.SomeoneChallengedSetResult: {
       vf.state = 'RUNNING_OR_CLOSED__RESULT_CHALLENGED';
+
+      const challengerUserId = event.params.operator.toHex();
+      loadOrCreateEntity<User>(User.load, challengerUserId);
+      vf.challenger = challengerUserId;
+
       break;
+    }
     case ResultUpdateAction.AdminFinalizedUnsetResult:
     case ResultUpdateAction.SomeoneConfirmedUnchallengedResult:
     case ResultUpdateAction.AdminFinalizedChallenge:

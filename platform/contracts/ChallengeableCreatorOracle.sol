@@ -112,7 +112,10 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.AdminFinalizedUnsetResult, finalOutcomeIndex);
     }
 
-    function setResult(uint256 vfId, uint8 setOutcomeIndex) external {
+    function setResult(uint256 vfId, uint8 setOutcomeIndex)
+        external
+        whenNotPaused
+    {
         VirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
         if (!(_msgSender() == vfParams.creator)) revert OnlyVirtualFloorCreator();
         VirtualFloorState state = getVirtualFloorState(vfId);
@@ -130,7 +133,10 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
 
     /// @notice Once 1 hour has passed and the set result remains unchallenged,
     /// anyone may call this function to resolve the VF.
-    function confirmUnchallengedResult(uint256 vfId) external {
+    function confirmUnchallengedResult(uint256 vfId)
+        external
+        whenNotPaused
+    {
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.Set)) revert WrongResolutionState(resolution.state);
         uint256 tResultChallengeMax = resolution.setTimestamp + CHALLENGE_WINDOW_DURATION;
@@ -141,7 +147,10 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         _resolve(vfId, resolution.setOutcomeIndex, creatorFeeBeneficiary);
     }
 
-    function challengeSetResult(uint256 vfId, uint8 challengeOutcomeIndex) external {
+    function challengeSetResult(uint256 vfId, uint8 challengeOutcomeIndex)
+        external
+        whenNotPaused
+    {
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.Set)) revert WrongResolutionState(resolution.state);
         VirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);

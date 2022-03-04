@@ -3,6 +3,7 @@
 pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
@@ -93,6 +94,7 @@ abstract contract BaseDoubleDice is
     IDoubleDiceAdmin,
     ERC1155Upgradeable,
     AccessControlUpgradeable,
+    PausableUpgradeable,
     MultipleInheritanceOptimization
 {
     using AddressWhitelists for address;
@@ -133,6 +135,7 @@ abstract contract BaseDoubleDice is
     {
         __ERC1155_init(params.tokenMetadataUriTemplate);
         __AccessControl_init();
+        __Pausable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setPlatformFeeRate(params.platformFeeRate_e18);
         _setPlatformFeeBeneficiary(params.platformFeeBeneficiary);
@@ -237,7 +240,10 @@ abstract contract BaseDoubleDice is
 
     // ---------- Virtual-floor lifecycle ----------
 
-    function createVirtualFloor(VirtualFloorCreationParams calldata params) public {
+    function createVirtualFloor(VirtualFloorCreationParams calldata params)
+        public
+        whenNotPaused
+    {
 
         // Pure value validation
         params.validatePure();
@@ -318,7 +324,10 @@ abstract contract BaseDoubleDice is
         _onVirtualFloorCreation(params);
     }
 
-    function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount) public {
+    function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount)
+        public
+        whenNotPaused
+    {
         VirtualFloor storage vf = _vfs[vfId];
 
         require(vf.state() == VirtualFloorState.Running, "MARKET_NOT_FOUND|MARKET_CLOSED");
@@ -424,7 +433,10 @@ abstract contract BaseDoubleDice is
     /// 1. The only possible action for this virtual-floor is to cancel it via this function,
     ///    which may be invoked by anyone without restriction.
     /// 2. Any ERC-1155 commitment-type token balance associated with this virtual-floor is untransferable
-    function cancelVirtualFloorUnresolvable(uint256 vfId) public {
+    function cancelVirtualFloorUnresolvable(uint256 vfId)
+        public
+        whenNotPaused
+    {
         VirtualFloor storage vf = _vfs[vfId];
         require(vf.state() == VirtualFloorState.ClosedUnresolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY|Error: VF only unresolvable if commitments to less than 2 outcomes");
         vf.internalState = VirtualFloorInternalState.CancelledUnresolvable;
@@ -432,7 +444,10 @@ abstract contract BaseDoubleDice is
         _onVirtualFloorConclusion(vfId);
     }
 
-    function cancelVirtualFloorFlagged(uint256 vfId, string calldata reason) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function cancelVirtualFloorFlagged(uint256 vfId, string calldata reason)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         VirtualFloor storage vf = _vfs[vfId];
         require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
         vf.internalState = VirtualFloorInternalState.CancelledFlagged;
@@ -518,7 +533,10 @@ abstract contract BaseDoubleDice is
         _onVirtualFloorConclusion(vfId);
     }
 
-    function claim(VirtualFloorOutcomeTimeslot calldata context) public {
+    function claim(VirtualFloorOutcomeTimeslot calldata context)
+        public
+        whenNotPaused
+    {
         VirtualFloor storage vf = _vfs[context.virtualFloorId];
         if (vf.internalState == VirtualFloorInternalState.ResolvedWinners) {
 
@@ -568,6 +586,18 @@ abstract contract BaseDoubleDice is
 
     function _onVirtualFloorConclusion(uint256 vfId) internal virtual {        
     }
+
+
+    // ---------- Pausability ----------
+
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
+    }
+
 
     /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
     uint256[50] private __gap;

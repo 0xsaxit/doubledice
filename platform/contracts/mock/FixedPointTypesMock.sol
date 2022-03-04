@@ -23,6 +23,10 @@ contract FixedPointTypesMock {
         return a.mul0(b);
     }
 
+    function div0(UFixed256x18 a, uint256 b) external pure returns (UFixed256x18) {
+        return a.div0(b);
+    }
+
     function divToUint256(UFixed256x18 a, UFixed256x18 b) external pure returns (uint256) {
         return a.divToUint256(b);
     }

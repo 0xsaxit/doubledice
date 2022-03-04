@@ -27,6 +27,10 @@ describe('FixedPointTypes', function () {
     expect(await lib.mul0(1_230000_000000_000000n, 3)).to.eq(3_690000_000000_000000n);
   });
 
+  it('div0', async function () {
+    expect(await lib.div0(1_000000_000000_000000n, 3)).to.eq(333333_333333_333333n);
+  });
+
   it('divToUint256', async function () {
     expect(await lib.divToUint256(200_000000_000000_000000n, 3_000000_000000_000000n)).to.eq(66);
   });

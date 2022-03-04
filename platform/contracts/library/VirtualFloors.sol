@@ -52,8 +52,8 @@ library VirtualFloors {
         return _BETA_CLOSE.add(betaOpenMinusBetaClose.mul0(vf.tClose - t).div0(vf.tClose - vf.tOpen));
     }
 
-    function totalCommitmentsToAllOutcomes(VirtualFloor storage vf) internal view returns (uint256 total) {
-        total = 0;
+    function totalCommitmentsToAllOutcomesPlusBonus(VirtualFloor storage vf) internal view returns (uint256 total) {
+        total = vf.bonusAmount;
         for (uint256 i = 0; i < vf.nOutcomes; i++) {
             total += vf.outcomeTotals[i].amount;
         }

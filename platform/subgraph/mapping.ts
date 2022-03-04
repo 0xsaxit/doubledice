@@ -15,7 +15,7 @@ import {
   UserCommitment as UserCommitmentEvent,
   VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
   VirtualFloorCancellationUnresolvable as VirtualFloorCancellationUnresolvableEvent,
-  VirtualFloorCreation as VirtualFloorCreationEvent,
+  VirtualFloorCreation1 as VirtualFloorCreationEvent,
   VirtualFloorResolution as VirtualFloorResolutionEvent
 } from '../generated/DoubleDice/DoubleDice';
 import {
@@ -128,6 +128,11 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.tResultSetMin = event.params.tResolve;
     $.tResultSetMax = event.params.tResolve + SET_WINDOW_DURATION; // ToDo: Include this as event param tResultSetMax
     $.state = 'RUNNING_OR_CLOSED__RESULT_NONE';
+
+    const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
+    const decimalBonusAmount = paymentTokenAmountToBigDecimal(event.params.bonusAmount, paymentToken.decimals);
+    $.bonusAmount = decimalBonusAmount;
+    $.totalSupply += decimalBonusAmount;
 
     $.save();
   }

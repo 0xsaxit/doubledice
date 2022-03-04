@@ -60,6 +60,7 @@ type VirtualFloor @entity {
   tOpen: BigInt!
   tClose: BigInt!
   tResolve: BigInt!
+  bonusAmount: BigDecimal!
 
   # Despite being redundant, as it is always equal to tResolve,
   # this could be different in a different Oracle implementation.

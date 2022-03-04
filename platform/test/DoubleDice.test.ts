@@ -134,6 +134,7 @@ describe('DoubleDice', function () {
         tResolve,
         nOutcomes,
         paymentToken: tokenUSDC.address,
+        bonusAmount: 0,
         metadata: ENCODED_DUMMY_METADATA
       })).wait();
       const { timestamp } = await ethers.provider.getBlock(blockHash);

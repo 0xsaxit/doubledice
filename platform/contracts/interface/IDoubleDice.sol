@@ -36,6 +36,9 @@ struct VirtualFloorCreationParams {
     uint32 tResolve;
     uint8 nOutcomes;
     IERC20Upgradeable paymentToken;
+
+    uint256 bonusAmount;
+
     EncodedVirtualFloorMetadata metadata;
 }
 
@@ -48,6 +51,7 @@ struct VirtualFloorParams {
     uint32 tResolve;
     uint8 nOutcomes;
     IERC20Upgradeable paymentToken;
+    uint256 bonusAmount;
     address creator;
 }
 
@@ -80,6 +84,7 @@ interface IDoubleDice is
         uint32 tResolve,
         uint8 nOutcomes,
         IERC20Upgradeable paymentToken,
+        uint256 bonusAmount,
         EncodedVirtualFloorMetadata metadata
     );
 

@@ -19,6 +19,7 @@ library VirtualFloorCreationParamsUtils {
             uint32 tResolve,
             uint8 nOutcomes,
             IERC20Upgradeable paymentToken,
+            uint256 bonusAmount,
             EncodedVirtualFloorMetadata calldata metadata
         )
     {
@@ -30,6 +31,7 @@ library VirtualFloorCreationParamsUtils {
         tResolve = params.tResolve;
         nOutcomes = params.nOutcomes;
         paymentToken = params.paymentToken;
+        bonusAmount = params.bonusAmount;
         metadata = params.metadata;
     }
 

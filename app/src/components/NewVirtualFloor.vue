@@ -279,6 +279,7 @@ export default class NewVirtualFloor extends Vue {
       tResolve,
       nOutcomes,
       paymentToken,
+      bonusAmount: 0,
       metadata: encodeVirtualFloorMetadata(metadata)
     }
     // eslint-disable-next-line space-before-function-paren

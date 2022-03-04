@@ -79,6 +79,8 @@ struct VirtualFloor {
     uint8 winningOutcomeIndex; // +  1 byte
     uint192 winnerProfits;     // + 24 bytes ; fits with 18-decimal-place precision all values up to ~1.5e30 (and with less decimals, more)
                                // = 25 bytes => packed into 1 32-byte slot
+
+    uint256 bonusAmount;
 }
 
 abstract contract BaseDoubleDice is
@@ -214,6 +216,7 @@ abstract contract BaseDoubleDice is
             tResolve: vf.tResolve,
             nOutcomes: vf.nOutcomes,
             paymentToken: _paymentTokenOf(vf),
+            bonusAmount: vf.bonusAmount,
             creator: vf.creator
         });
     }
@@ -235,6 +238,7 @@ abstract contract BaseDoubleDice is
             uint32 tResolve,
             uint8 nOutcomes,
             IERC20Upgradeable paymentToken,
+            uint256 bonusAmount,
             EncodedVirtualFloorMetadata calldata metadata
         ) = params.destructure();
 
@@ -280,6 +284,7 @@ abstract contract BaseDoubleDice is
             tResolve: tResolve,
             nOutcomes: nOutcomes,
             paymentToken: paymentToken,
+            bonusAmount: bonusAmount,
             metadata: metadata
         });
 
@@ -289,6 +294,18 @@ abstract contract BaseDoubleDice is
         // Later we might bring back this VF being a NFT, as this would
         // allow ownership transfer, integration with Etherscan, wallets, etc.
         vf.creator = _msgSender();
+
+        if (bonusAmount > 0) {
+            vf.bonusAmount = bonusAmount;
+
+            // For the purpose of knowing whether a VF is unresolvable,
+            // the bonus amount is equivalent to a commitment to a "virtual" outcome
+            // that never wins, but only serves the purpose of increasing the total
+            // amount committed to the VF
+            vf.nonzeroOutcomeCount += 1;
+
+            paymentToken.safeTransferFrom(_msgSender(), address(this), bonusAmount);
+        }
 
         _onVirtualFloorCreation(params);
     }
@@ -425,7 +442,7 @@ abstract contract BaseDoubleDice is
 
         vf.winningOutcomeIndex = winningOutcomeIndex;
 
-        uint256 totalCommitmentsToAllOutcomes = vf.totalCommitmentsToAllOutcomes();
+        uint256 totalCommitmentsToAllOutcomesPlusBonus = vf.totalCommitmentsToAllOutcomesPlusBonus();
         uint256 totalCommitmentsToWinningOutcome = vf.outcomeTotals[winningOutcomeIndex].amount;
 
         // This used to be handled on this contract as a VirtualFloorResolution of type AllWinners,
@@ -433,7 +450,7 @@ abstract contract BaseDoubleDice is
         // transaction would have already been reverted because of
         // the condition nonzeroOutcomeCount == 1, which is < 2.
         // We retain this assertion as a form of documentation.
-        assert(totalCommitmentsToWinningOutcome != totalCommitmentsToAllOutcomes);
+        assert(totalCommitmentsToWinningOutcome != totalCommitmentsToAllOutcomesPlusBonus);
 
         VirtualFloorResolutionType resolutionType;
         uint256 platformFeeAmount;
@@ -452,15 +469,17 @@ abstract contract BaseDoubleDice is
             platformFeeAmount = 0;
             creatorFeeAmount = 0;
             totalWinnerProfits = 0;
+
+            _paymentTokenOf(vf).safeTransfer(vf.creator, vf.bonusAmount);
         } else {
             vf.internalState = VirtualFloorInternalState.ResolvedWinners;
             resolutionType = VirtualFloorResolutionType.Winners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
-            uint256 maxTotalFeeAmount = vf.creationFeeRate.toUFixed256x18().mul0(totalCommitmentsToAllOutcomes).floorToUint256();
+            uint256 maxTotalFeeAmount = vf.creationFeeRate.toUFixed256x18().mul0(totalCommitmentsToAllOutcomesPlusBonus).floorToUint256();
 
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
-            uint256 totalFeePlusTotalWinnerProfits = totalCommitmentsToAllOutcomes - totalCommitmentsToWinningOutcome;
+            uint256 totalFeePlusTotalWinnerProfits = totalCommitmentsToAllOutcomesPlusBonus - totalCommitmentsToWinningOutcome;
 
             // ToDo: Replace Math.min with `a < b ? a : b` and check gas usage
             uint256 totalFeeAmount = MathUpgradeable.min(maxTotalFeeAmount, totalFeePlusTotalWinnerProfits);

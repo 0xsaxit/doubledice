@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { BigNumber, BigNumberish, ContractReceipt } from 'ethers';
+import { BigNumber, BigNumberish, ContractReceipt, ethers } from 'ethers';
 import {
   encodeVirtualFloorMetadata,
   RoomEventInfo
@@ -84,5 +84,8 @@ export const DUMMY_METADATA: RoomEventInfo = {
   },
   discordChannelId: '123456789',
 };
+
+export const generateRandomVirtualFloorId = () =>
+  BigNumber.from(ethers.utils.hexlify(ethers.utils.randomBytes(8))).shl(5 * 8);
 
 export const ENCODED_DUMMY_METADATA = encodeVirtualFloorMetadata(DUMMY_METADATA);

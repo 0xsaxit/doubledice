@@ -67,10 +67,10 @@ struct VirtualFloor {
                                         // = 31 bytes => packed into 1 32-byte slot
 
     // Storage slot 1: Slot written to during createVirtualFloor, and updated throughout VF lifecycle
-    address creator;                         //   20 bytes
-    VirtualFloorInternalState internalState; // +  1 byte
-    uint8 nonzeroOutcomeCount;               // +  1 byte  ; number of outcomes having aggregate commitments > 0
-                                             // = 22 bytes => packed into 1 32-byte slot
+    address creator;                          //   20 bytes
+    VirtualFloorInternalState _internalState; // +  1 byte
+    uint8 nonzeroOutcomeCount;                // +  1 byte  ; number of outcomes having aggregate commitments > 0
+                                              // = 22 bytes => packed into 1 32-byte slot
 
     // Storage slot 2: Not written to, but used in calculation of outcome-specific slots
     // Note: A fixed-length array is used to not an entire 32-byte slot to write array-length,
@@ -254,10 +254,10 @@ abstract contract BaseDoubleDice is
         VirtualFloor storage vf = _vfs[params.virtualFloorId];
 
         // Validation against storage
-        require(vf.internalState == VirtualFloorInternalState.None, "MARKET_DUPLICATE");
+        require(vf._internalState == VirtualFloorInternalState.None, "MARKET_DUPLICATE");
         require(_paymentTokenWhitelist.isWhitelisted(address(params.paymentToken)), "Error: Payment token is not whitelisted");
 
-        vf.internalState = VirtualFloorInternalState.RunningOrClosed;
+        vf._internalState = VirtualFloorInternalState.RunningOrClosed;
         vf.creator = _msgSender();
         vf.betaOpenMinusBetaClose = params.betaOpen_e18.sub(_BETA_CLOSE).toUFixed32x6();
         vf.creationFeeRate = params.creationFeeRate_e18.toUFixed16x4();
@@ -439,7 +439,7 @@ abstract contract BaseDoubleDice is
     {
         VirtualFloor storage vf = _vfs[vfId];
         require(vf.state() == VirtualFloorState.ClosedUnresolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY|Error: VF only unresolvable if commitments to less than 2 outcomes");
-        vf.internalState = VirtualFloorInternalState.CancelledUnresolvable;
+        vf._internalState = VirtualFloorInternalState.CancelledUnresolvable;
         emit VirtualFloorCancellationUnresolvable(vfId);
         _onVirtualFloorConclusion(vfId);
     }
@@ -449,8 +449,8 @@ abstract contract BaseDoubleDice is
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         VirtualFloor storage vf = _vfs[vfId];
-        require(vf.internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
-        vf.internalState = VirtualFloorInternalState.CancelledFlagged;
+        require(vf._internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        vf._internalState = VirtualFloorInternalState.CancelledFlagged;
         emit VirtualFloorCancellationFlagged(vfId, reason);
         _onVirtualFloorConclusion(vfId);
     }
@@ -486,7 +486,7 @@ abstract contract BaseDoubleDice is
             // to reclaim the equivalent original ERC-20 token amount,
             // i.e. to withdraw the current ERC-1155 balance as ERC-20 tokens.
             // Neither the creator nor the platform take any fees in this circumstance.
-            vf.internalState = VirtualFloorInternalState.CancelledResolvedNoWinners;
+            vf._internalState = VirtualFloorInternalState.CancelledResolvedNoWinners;
             resolutionType = VirtualFloorResolutionType.CancelledNoWinners;
             platformFeeAmount = 0;
             creatorFeeAmount = 0;
@@ -494,7 +494,7 @@ abstract contract BaseDoubleDice is
 
             _paymentTokenOf(vf).safeTransfer(vf.creator, vf.bonusAmount);
         } else {
-            vf.internalState = VirtualFloorInternalState.ResolvedWinners;
+            vf._internalState = VirtualFloorInternalState.ResolvedWinners;
             resolutionType = VirtualFloorResolutionType.Winners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
@@ -538,7 +538,7 @@ abstract contract BaseDoubleDice is
         whenNotPaused
     {
         VirtualFloor storage vf = _vfs[context.virtualFloorId];
-        if (vf.internalState == VirtualFloorInternalState.ResolvedWinners) {
+        if (vf._internalState == VirtualFloorInternalState.ResolvedWinners) {
 
             // ToDo: Because of this requirement, losing tokens can never be burnt... would we like to burn them? 
             require(context.outcomeIndex == vf.winningOutcomeIndex, "NOT_WINNING_OUTCOME");
@@ -553,17 +553,17 @@ abstract contract BaseDoubleDice is
             require(payout > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
             _paymentTokenOf(vf).transfer(_msgSender(), payout);
-        } else if (vf.internalState == VirtualFloorInternalState.CancelledUnresolvable
-                || vf.internalState == VirtualFloorInternalState.CancelledResolvedNoWinners
-                || vf.internalState == VirtualFloorInternalState.CancelledFlagged) {
+        } else if (vf._internalState == VirtualFloorInternalState.CancelledUnresolvable
+                || vf._internalState == VirtualFloorInternalState.CancelledResolvedNoWinners
+                || vf._internalState == VirtualFloorInternalState.CancelledFlagged) {
             uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
             uint256 amount = balanceOf(_msgSender(), tokenId);
             require(amount > 0, "ZERO_BALANCE");
             _burn(_msgSender(), tokenId, amount);
             _paymentTokenOf(vf).transfer(_msgSender(), amount);
-        } else if (vf.internalState == VirtualFloorInternalState.RunningOrClosed) {
+        } else if (vf._internalState == VirtualFloorInternalState.RunningOrClosed) {
             revert("MARKET_NOT_RESOLVED");
-        } else if (vf.internalState == VirtualFloorInternalState.None) {
+        } else if (vf._internalState == VirtualFloorInternalState.None) {
             revert("MARKET_NOT_FOUND");
         }
     }

@@ -16,10 +16,10 @@ library VirtualFloors {
     using VirtualFloors for VirtualFloor;
 
     function state(VirtualFloor storage vf) internal view returns (VirtualFloorState) {
-        VirtualFloorInternalState internalState = vf.internalState;
-        if (internalState == VirtualFloorInternalState.None) {
+        VirtualFloorInternalState _internalState = vf._internalState;
+        if (_internalState == VirtualFloorInternalState.None) {
             return VirtualFloorState.None;
-        } else if (internalState == VirtualFloorInternalState.RunningOrClosed) {
+        } else if (_internalState == VirtualFloorInternalState.RunningOrClosed) {
             if (block.timestamp < vf.tClose) {
                 return VirtualFloorState.Running;
             } else {
@@ -33,13 +33,13 @@ library VirtualFloors {
                     return VirtualFloorState.ClosedUnresolvable;
                 }
             }
-        } else if (internalState == VirtualFloorInternalState.ResolvedWinners) {
+        } else if (_internalState == VirtualFloorInternalState.ResolvedWinners) {
             return VirtualFloorState.ResolvedWinners;
-        } else if (internalState == VirtualFloorInternalState.CancelledUnresolvable) {
+        } else if (_internalState == VirtualFloorInternalState.CancelledUnresolvable) {
             return VirtualFloorState.CancelledResolvedNoWinners;
-        } else if (internalState == VirtualFloorInternalState.CancelledResolvedNoWinners) {
+        } else if (_internalState == VirtualFloorInternalState.CancelledResolvedNoWinners) {
             return VirtualFloorState.CancelledUnresolvable;
-        } else /* if (internalState == VirtualFloorInternalState.CancelledFlagged) */ {
+        } else /* if (_internalState == VirtualFloorInternalState.CancelledFlagged) */ {
             return VirtualFloorState.CancelledFlagged;
         }
     }

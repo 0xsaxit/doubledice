@@ -22,7 +22,7 @@ contract ForkedERC1155UpgradeableV4_4_1 is Initializable, ContextUpgradeable, ER
     using AddressUpgradeable for address;
 
     // Mapping from token ID to account balances
-    mapping(uint256 => mapping(address => uint256)) private _balances;
+    mapping(uint256 => mapping(address => uint256)) internal _balances;
 
     // Mapping from account to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;

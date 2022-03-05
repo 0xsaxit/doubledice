@@ -9,10 +9,6 @@ struct Entry {
 
 type AddressWhitelistKey is bytes10;
 
-function toAddressWhitelistKey(address addr) pure returns (AddressWhitelistKey) {
-    return AddressWhitelistKey.wrap(bytes10(bytes20(address(addr))));
-}
-
 struct AddressWhitelist {
     mapping(AddressWhitelistKey => Entry) _entries;
 }
@@ -24,16 +20,22 @@ struct AddressWhitelist {
 /// The 10-byte whitelist-key should never leak to the external interface, but should always remain internal.
 library AddressWhitelists {
 
+    using AddressWhitelists for address;
+
+    function toAddressWhitelistKey(address addr) internal pure returns (AddressWhitelistKey) {
+        return AddressWhitelistKey.wrap(bytes10(bytes20(address(addr))));
+    }
+
     function setWhitelistStatus(AddressWhitelist storage whitelist, address addr, bool isWhitelisted_) internal {
         require(addr != address(0), "ZERO_ADDRESS");
-        Entry storage entry = whitelist._entries[toAddressWhitelistKey(addr)];
+        Entry storage entry = whitelist._entries[addr.toAddressWhitelistKey()];
         require(entry.addr == address(0) || entry.addr == addr, "Error: Address whitelist key collision");
         (entry.addr, entry.isWhitelisted) = (addr, isWhitelisted_);
     }
 
     function isWhitelisted(AddressWhitelist storage whitelist, address addr) internal view returns (bool) {
         require(addr != address(0), "ZERO_ADDRESS");
-        Entry storage entry = whitelist._entries[toAddressWhitelistKey(addr)];
+        Entry storage entry = whitelist._entries[addr.toAddressWhitelistKey()];
         return entry.addr == addr && entry.isWhitelisted;
     }
 

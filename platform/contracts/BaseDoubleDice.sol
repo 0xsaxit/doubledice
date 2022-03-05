@@ -406,7 +406,7 @@ abstract contract BaseDoubleDice is
     )
         internal
         override
-        // non-virtual, to prevent extending contracts from altering core behaviour
+        virtual
     {
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
 
@@ -417,9 +417,7 @@ abstract contract BaseDoubleDice is
 
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
-            uint256 vfId = ERC1155TokenIds.extractVirtualFloorId(id);
-            VirtualFloor storage vf = _vfs[vfId];
-            VirtualFloorState state = vf.state();
+            VirtualFloorState state = _vfs[id.extractVirtualFloorId()].state();
             if (state != VirtualFloorState.ClosedPreResolvable) {
                 revert CommitmentBalanceTransferRejection(id, state);
             }

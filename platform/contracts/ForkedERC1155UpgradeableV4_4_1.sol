@@ -3,13 +3,13 @@
 
 pragma solidity ^0.8.0;
 
-import "./IERC1155Upgradeable.sol";
-import "./IERC1155ReceiverUpgradeable.sol";
-import "./extensions/IERC1155MetadataURIUpgradeable.sol";
-import "../../utils/AddressUpgradeable.sol";
-import "../../utils/ContextUpgradeable.sol";
-import "../../utils/introspection/ERC165Upgradeable.sol";
-import "../../proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/IERC1155MetadataURIUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @dev Implementation of the basic standard multi-token.
@@ -18,7 +18,7 @@ import "../../proxy/utils/Initializable.sol";
  *
  * _Available since v3.1._
  */
-contract ERC1155Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeable, IERC1155Upgradeable, IERC1155MetadataURIUpgradeable {
+contract ForkedERC1155UpgradeableV4_4_1 is Initializable, ContextUpgradeable, ERC165Upgradeable, IERC1155Upgradeable, IERC1155MetadataURIUpgradeable {
     using AddressUpgradeable for address;
 
     // Mapping from token ID to account balances

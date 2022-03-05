@@ -170,4 +170,18 @@ interface IDoubleDice is
 
     function isPaymentTokenWhitelisted(IERC20Upgradeable token) external view returns (bool);
 
+
+    // ---------- Admin functions ----------
+
+    event PlatformFeeBeneficiaryUpdate(address platformFeeBeneficiary);
+
+    function setPlatformFeeBeneficiary(address platformFeeBeneficiary) external;
+
+    event PlatformFeeRateUpdate(UFixed256x18 platformFeeRate_e18);
+
+    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18) external;
+
+    event PaymentTokenWhitelistUpdate(IERC20Upgradeable indexed token, bool whitelisted);
+
+    function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external;
 }

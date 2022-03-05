@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./ExtraStorageGap.sol";
-import "./interface/IDoubleDiceAdmin.sol";
+import "./interface/IDoubleDice.sol";
 import "./library/AddressWhitelists.sol";
 import "./library/ERC1155TokenIds.sol";
 import "./library/FixedPointTypes.sol";
@@ -92,7 +92,7 @@ struct VirtualFloor {
 }
 
 abstract contract BaseDoubleDice is
-    IDoubleDiceAdmin,
+    IDoubleDice,
     ForkedERC1155UpgradeableV4_4_1,
     AccessControlUpgradeable,
     PausableUpgradeable,

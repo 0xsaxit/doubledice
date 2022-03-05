@@ -211,9 +211,7 @@ abstract contract BaseDoubleDice is
     }
 
     function getVirtualFloorCreator(uint256 vfId) public view returns (address) {
-        VirtualFloor storage vf = _vfs[vfId];
-        require(vf.internalState != VirtualFloorInternalState.None, "VIRTUAL_FLOOR_NOT_FOUND");
-        return vf.creator;
+        return _vfs[vfId].creator;
     }
 
     function getVirtualFloorParams(uint256 vfId) public view returns (VirtualFloorParams memory) {
@@ -273,11 +271,11 @@ abstract contract BaseDoubleDice is
         if (params.bonusAmount > 0) {
             vf.bonusAmount = params.bonusAmount;
 
-                // For the purpose of knowing whether a VF is unresolvable,
-                // the bonus amount is equivalent to a commitment to a "virtual" outcome
-                // that never wins, but only serves the purpose of increasing the total
-                // amount committed to the VF
-                vf.nonzeroOutcomeCount += 1;
+            // For the purpose of knowing whether a VF is unresolvable,
+            // the bonus amount is equivalent to a commitment to a "virtual" outcome
+            // that never wins, but only serves the purpose of increasing the total
+            // amount committed to the VF
+            vf.nonzeroOutcomeCount += 1;
 
             params.paymentToken.safeTransferFrom(_msgSender(), address(this), params.bonusAmount);
         }

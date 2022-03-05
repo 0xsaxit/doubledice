@@ -27,6 +27,12 @@ library ERC1155TokenIds {
         return erc1155TokenId & ~uint256(0xffffffffff);
     }
 
+    function destructure(uint256 erc1155TokenId) internal pure returns (uint256 vfId, uint8 outcomeIndex, uint32 timeslot) {
+        vfId = erc1155TokenId & ~uint256(0xff_ff_ff_ff_ff);
+        outcomeIndex = uint8((erc1155TokenId >> 32) & 0xff);
+        timeslot = uint32(erc1155TokenId & 0xff_ff_ff_ff);
+    }
+
     function vfOutcomeTimeslotIdOf(
         uint256 validVirtualFloorId,
         uint8 outcomeIndex,

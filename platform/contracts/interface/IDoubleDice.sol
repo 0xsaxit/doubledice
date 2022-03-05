@@ -19,12 +19,6 @@ struct EncodedVirtualFloorMetadata {
     bytes data;
 }
 
-struct VirtualFloorOutcomeTimeslot {
-    uint256 virtualFloorId;
-    uint8 outcomeIndex;
-    uint256 timeslot;
-}
-
 struct VirtualFloorCreationParams {
     uint256 virtualFloorId;
     UFixed256x18 betaOpen_e18;
@@ -78,6 +72,10 @@ enum VirtualFloorState {
 }
 
 enum VirtualFloorResolutionType { CancelledNoWinners, Winners }
+
+
+error IllegalVirtualFloorState(VirtualFloorState actual);
+
 
 interface IDoubleDice is
     IAccessControlUpgradeable,
@@ -145,7 +143,13 @@ interface IDoubleDice is
 
     function cancelVirtualFloorUnresolvable(uint256 virtualFloorId) external;
 
-    function claim(VirtualFloorOutcomeTimeslot calldata context) external;
+
+    error MismatchedVirtualFloorId(uint256 tokenId);
+
+    function claimRefunds(uint256 vfId, uint256[] calldata tokenIds) external;
+
+    function claimPayouts(uint256 vfId, uint256[] calldata tokenIds) external;
+
 
     /// @notice The timeline is split into a number of non-overlapping consecutive timeslots of this duration.
     /// Token amounts committed to a specific outcome of a specific virtual-floor within a specific timeslot

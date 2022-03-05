@@ -73,4 +73,14 @@ library VirtualFloors {
         }
     }
 
+    function isCancelled(VirtualFloor storage vf) internal view returns (bool) {
+        return vf._internalState == VirtualFloorInternalState.CancelledUnresolvable
+            || vf._internalState == VirtualFloorInternalState.CancelledResolvedNoWinners
+            || vf._internalState == VirtualFloorInternalState.CancelledFlagged;
+    }
+
+    function isWon(VirtualFloor storage vf) internal view returns (bool) {
+        return vf._internalState == VirtualFloorInternalState.ResolvedWinners;
+    }
+
 }

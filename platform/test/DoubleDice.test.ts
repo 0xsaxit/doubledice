@@ -336,27 +336,27 @@ describe('DoubleDice', function () {
 
         console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
 
-        const tx1 = await (await contract.connect(user2Signer).claim({
-          virtualFloorId,
+        const tx1 = await (await contract.connect(user2Signer).claimPayouts(virtualFloorId, [tokenIdOf({
+          vfId: virtualFloorId,
           outcomeIndex: 1,
-          timeslot: toTimestamp('2032-01-01T02:00:00')
-        })).wait();
+          datetime: '2032-01-01T02:00:00'
+        })])).wait();
 
         console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
 
-        const tx2 = await (await contract.connect(user3Signer).claim({
-          virtualFloorId,
+        const tx2 = await (await contract.connect(user3Signer).claimPayouts(virtualFloorId, [tokenIdOf({
+          vfId: virtualFloorId,
           outcomeIndex: 1,
-          timeslot: toTimestamp('2032-01-01T02:00:00')
-        })).wait();
+          datetime: '2032-01-01T02:00:00'
+        })])).wait();
 
         console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
 
-        const tx3 = await (await contract.connect(user3Signer).claim({
-          virtualFloorId,
+        const tx3 = await (await contract.connect(user3Signer).claimPayouts(virtualFloorId, [tokenIdOf({
+          vfId: virtualFloorId,
           outcomeIndex: 1,
-          timeslot: toTimestamp('2032-01-01T06:00:00')
-        })).wait();
+          datetime: '2032-01-01T06:00:00'
+        })])).wait();
 
         console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
 

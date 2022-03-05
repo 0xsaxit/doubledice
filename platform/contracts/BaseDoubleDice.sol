@@ -4,7 +4,7 @@ pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
+import "./ForkedERC1155UpgradeableV4_4_1.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
@@ -93,7 +93,7 @@ struct VirtualFloor {
 
 abstract contract BaseDoubleDice is
     IDoubleDiceAdmin,
-    ERC1155Upgradeable,
+    ForkedERC1155UpgradeableV4_4_1,
     AccessControlUpgradeable,
     PausableUpgradeable,
     ExtraStorageGap,
@@ -101,6 +101,7 @@ abstract contract BaseDoubleDice is
 {
     using AddressWhitelists for address;
     using AddressWhitelists for AddressWhitelist;
+    using ERC1155TokenIds for uint256;
     using FixedPointTypes for UFixed16x4;
     using FixedPointTypes for UFixed256x18;
     using FixedPointTypes for UFixed32x6;
@@ -533,49 +534,78 @@ abstract contract BaseDoubleDice is
         _onVirtualFloorConclusion(vfId);
     }
 
-    function claim(VirtualFloorOutcomeTimeslot calldata context)
+
+    // ---------- Claims ----------
+
+    /// @notice Claim multiple refunds from a VF that has been cancelled.
+    /// A tokenId may be included multiple times, but it will count only once.
+    function claimRefunds(uint256 vfId, uint256[] calldata tokenIds)
         public
         whenNotPaused
     {
-        VirtualFloor storage vf = _vfs[context.virtualFloorId];
-        if (vf._internalState == VirtualFloorInternalState.ResolvedWinners) {
-
-            // ToDo: Because of this requirement, losing tokens can never be burnt... would we like to burn them? 
-            require(context.outcomeIndex == vf.winningOutcomeIndex, "NOT_WINNING_OUTCOME");
-
-            uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
-            uint256 amount = balanceOf(_msgSender(), tokenId);
-            UFixed256x18 beta = vf.betaOf(context.timeslot);
-            UFixed256x18 amountTimesBeta = beta.mul0(amount);
-            UFixed256x18 aggregateAmountTimesBeta = vf.outcomeTotals[vf.winningOutcomeIndex].amountTimesBeta_e18;
-            uint256 profit = amountTimesBeta.mul0(vf.winnerProfits).divToUint256(aggregateAmountTimesBeta);
-            uint256 payout = amount + profit;
-            require(payout > 0, "ZERO_BALANCE");
-            _burn(_msgSender(), tokenId, amount);
-            _paymentTokenOf(vf).transfer(_msgSender(), payout);
-        } else if (vf._internalState == VirtualFloorInternalState.CancelledUnresolvable
-                || vf._internalState == VirtualFloorInternalState.CancelledResolvedNoWinners
-                || vf._internalState == VirtualFloorInternalState.CancelledFlagged) {
-            uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(context.virtualFloorId, context.outcomeIndex, context.timeslot);
-            uint256 amount = balanceOf(_msgSender(), tokenId);
-            require(amount > 0, "ZERO_BALANCE");
-            _burn(_msgSender(), tokenId, amount);
-            _paymentTokenOf(vf).transfer(_msgSender(), amount);
-        } else if (vf._internalState == VirtualFloorInternalState.RunningOrClosed) {
-            revert("MARKET_NOT_RESOLVED");
-        } else if (vf._internalState == VirtualFloorInternalState.None) {
-            revert("MARKET_NOT_FOUND");
+        VirtualFloor storage vf = _vfs[vfId];
+        if (!vf.isCancelled()) revert IllegalVirtualFloorState(vf.state());
+        address msgSender = _msgSender();
+        uint256 totalPayout = 0;
+        uint256[] memory amounts = new uint256[](tokenIds.length);
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            uint256 tokenId = tokenIds[i];
+            (uint256 extractedVfId, /*outcomeIndex*/, /*timeslot*/) = tokenId.destructure();
+            if (!(extractedVfId == vfId)) revert MismatchedVirtualFloorId(tokenId);
+            uint256 amount = _balances[tokenId][msgSender];
+            amounts[i] = amount;
+            if (amount > 0) {
+                _balances[tokenId][msgSender] = 0;
+                totalPayout += amount;
+            }
         }
+        emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
+        _paymentTokenOf(vf).transfer(msgSender, totalPayout);
     }
+
+    /// @notice Claim payouts from a VF that has been resolved with winners.
+    /// A tokenId may be included multiple times, but it will count only once.
+    function claimPayouts(uint256 vfId, uint256[] calldata tokenIds)
+        public
+        whenNotPaused
+    {
+        VirtualFloor storage vf = _vfs[vfId];
+        if (!vf.isWon()) revert IllegalVirtualFloorState(vf.state());
+        address msgSender = _msgSender();
+        uint256 totalPayout = 0;
+        uint256[] memory amounts = new uint256[](tokenIds.length);
+        uint8 winningOutcomeIndex = vf.winningOutcomeIndex;
+        UFixed256x18 winningOutcomeTotalAmountTimesBeta = vf.outcomeTotals[winningOutcomeIndex].amountTimesBeta_e18;
+        uint256 totalWinnerProfits = vf.winnerProfits;
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            uint256 tokenId = tokenIds[i];
+            (uint256 extractedVfId, uint8 outcomeIndex, uint32 timeslot) = tokenId.destructure();
+            if (!(extractedVfId == vfId)) revert MismatchedVirtualFloorId(tokenId);
+            uint256 amount = _balances[tokenId][msgSender];
+            amounts[i] = amount;
+            _balances[tokenId][msgSender] = 0;
+            if (outcomeIndex == winningOutcomeIndex) {
+                UFixed256x18 beta = vf.betaOf(timeslot);
+                UFixed256x18 amountTimesBeta = beta.mul0(amount);
+                uint256 profit = amountTimesBeta.mul0(totalWinnerProfits).divToUint256(winningOutcomeTotalAmountTimesBeta);
+                totalPayout += amount + profit;
+            }
+        }
+        emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
+        _paymentTokenOf(vf).transfer(msgSender, totalPayout);
+    }
+
+
+    // ---------- ERC-165 support ----------
 
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(IERC165Upgradeable, ERC1155Upgradeable, AccessControlUpgradeable)
+        override(IERC165Upgradeable, ForkedERC1155UpgradeableV4_4_1, AccessControlUpgradeable)
         virtual // Leave door open for extending contracts to support further interfaces
         returns (bool)
     {
-        return ERC1155Upgradeable.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
+        return ForkedERC1155UpgradeableV4_4_1.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
     }
 
 

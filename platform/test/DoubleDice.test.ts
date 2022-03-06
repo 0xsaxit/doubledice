@@ -99,7 +99,7 @@ describe('DoubleDice', function () {
     // Allow the contract to transfer up to 100$ from each user
     await (await tokenUSDC.connect(user1Signer).approve(contract.address, $(100))).wait();
     await (await tokenUSDC.connect(user2Signer).approve(contract.address, $(100))).wait();
-    await (await tokenUSDC.connect(user3Signer).approve(contract.address, $(100))).wait();
+    await (await tokenUSDC.connect(user3Signer).approve(contract.address, $(400))).wait();
     await (await tokenUSDC.connect(vfCreatorSigner).approve(contract.address, $(100))).wait();
 
     const virtualFloorId = 0x123450000000000n; // lower 5 bytes must be all 00
@@ -772,6 +772,137 @@ describe('DoubleDice', function () {
         userCommitmentEventArgs.tokenId
       );
       expect(mintedTokenAmount).to.be.eq(amount);
+    });
+  });
+
+  describe('Resolve Virtual Floor', function () {
+    // Random virtual floor for each test case
+    const virtualFloorId = generateRandomVirtualFloorId();
+    const virtualFloorId2 = generateRandomVirtualFloorId();
+    const virtualFloorId3 = generateRandomVirtualFloorId();
+    const tOpen = toTimestamp('2032-01-01T12:00:00');
+    const tClose = toTimestamp('2033-01-01T12:00:00');
+    const tResolve = toTimestamp('2033-01-10T00:00:00');
+    const nOutcomes = 3;
+    const betaOpen_e18 = BigNumber.from(10)
+      .pow(18)
+      .mul(13); // 1 unit per hour
+
+    before(async () => {
+
+
+      const virtualFloorCreationParams: VirtualFloorCreationParamsStruct = {
+        virtualFloorId,
+        tOpen,
+        tClose,
+        tResolve,
+        nOutcomes,
+        betaOpen_e18,
+        creationFeeRate_e18: 50000_000000_000000n, // 0.05 = 5%,
+        bonusAmount: 0,
+        optionalMinCommitmentAmount: 0,
+        optionalMaxCommitmentAmount: 0,
+        paymentToken: tokenUSDC.address,
+        metadata: ENCODED_DUMMY_METADATA,
+      };
+      await (
+        await contract.connect(vfCreatorSigner).createVirtualFloor(virtualFloorCreationParams)
+      ).wait();
+      await (
+        await contract.connect(vfCreatorSigner).createVirtualFloor({
+          ...virtualFloorCreationParams,
+          virtualFloorId: virtualFloorId2,
+        })
+      ).wait();
+      await (
+        await contract.connect(vfCreatorSigner).createVirtualFloor({
+          ...virtualFloorCreationParams,
+          virtualFloorId: virtualFloorId3,
+        })
+      ).wait();
+      {
+        await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId, 1, $(10))).wait();
+        await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10))).wait();
+        await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId2, 1, $(10))).wait();
+        await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId2, 2, $(10))).wait();
+        await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId3, 1, $(10))).wait();
+        await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId3, 2, $(10))).wait();
+
+      }
+    });
+
+    it('Should revert if VF / market does not exist', async function () {
+      const wrongVirtualFloorId = '0x00000000000000000000000000000000000000000000000000dead0000000000';
+      await expect(contract.connect(vfCreatorSigner).setResult(wrongVirtualFloorId, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.None})`);
+    });
+
+    it('Should revert if resolve time has not reached', async function () {
+      await expect(contract.connect(vfCreatorSigner).setResult(virtualFloorId, 0)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Running})`);
+    });
+
+    it('Should set the VF result correctly with outcomes', async function () {
+      await evm.setNextBlockTimestamp('2033-01-10T00:10:00');
+
+      const { events } = await (await contract.connect(vfCreatorSigner).setResult(virtualFloorId, 1)).wait();
+      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      expect(vfId).to.eq(virtualFloorId);
+      expect(operator).to.eq(vfCreatorSigner.address);
+      expect(action).to.eq(ResultUpdateAction.CreatorSetResult);
+      expect(outcomeIndex).to.eq(1);
+    });
+
+    it('Should revert if you try to confrim challenge before 1 hour is over', async function () {
+      await expect(contract.connect(user1Signer).confirmUnchallengedResult(virtualFloorId)).to.be.revertedWith('TooEarly()');
+    });
+
+    it('Should revert if you try to challenge a set result when it is too late', async function () {
+      const checkpoint = await EvmCheckpoint.create();
+      await (await contract.connect(vfCreatorSigner).setResult(virtualFloorId3, 1)).wait();
+      await evm.setNextBlockTimestamp('2033-01-12T01:10:00');
+
+      await expect(contract.connect(user1Signer).challengeSetResult(virtualFloorId3, 2)).to.be.revertedWith('TooLate()');
+      await checkpoint.revertTo();
+    });
+
+
+    it('Should challenge a set result', async function () {
+
+      await (await contract.connect(vfCreatorSigner).setResult(virtualFloorId2, 1)).wait();
+      await evm.setNextBlockTimestamp('2033-01-10T01:10:00');
+
+      const { events } = await (await contract.connect(user3Signer).challengeSetResult(virtualFloorId2, 2)).wait();
+      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      expect(vfId).to.eq(virtualFloorId2);
+      expect(operator).to.eq(user3Signer.address);
+      expect(action).to.eq(ResultUpdateAction.SomeoneChallengedSetResult);
+      expect(outcomeIndex).to.eq(2);
+    });
+
+    it('Confirm unchallenged result by anyone after 1 hour', async function () {
+      await evm.setNextBlockTimestamp('2033-01-10T01:11:00');
+      const { events } = await (await contract.connect(user1Signer).confirmUnchallengedResult(virtualFloorId)).wait();
+
+      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      expect(vfId).to.eq(virtualFloorId);
+      expect(operator).to.eq(user1Signer.address);
+      expect(action).to.eq(ResultUpdateAction.SomeoneConfirmedUnchallengedResult);
+      expect(outcomeIndex).to.eq(1);
+    });
+
+    it('Should revert if vf creator tries to finalize result', async function () {
+      await expect(contract.connect(vfCreatorSigner).finalizeChallenge(virtualFloorId2, 2)).to.be.revertedWith(`AccessControl: account ${vfCreatorSigner.address.toLowerCase()} is missing role 0x0000000000000000000000000000000000000000000000000000000000000000`);
+    });
+
+    it('Should finalize set result', async function () {
+      const checkpoint = await EvmCheckpoint.create();
+      await evm.setNextBlockTimestamp('2033-01-11T00:00:00');
+      const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(virtualFloorId2, 2)).wait();
+      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      expect(vfId).to.eq(virtualFloorId2);
+      expect(operator).to.eq(ownerSigner.address);
+      expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
+      expect(outcomeIndex).to.eq(2);
+      await checkpoint.revertTo();
     });
   });
 

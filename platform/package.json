@@ -54,7 +54,7 @@
     "hardhat": "2.9.1",
     "hardhat-abi-exporter": "2.8.0",
     "hardhat-gas-reporter": "1.0.8",
-    "solidity-coverage": "0.7.19",
+    "solidity-coverage": "0.7.20",
     "typechain": "7.0.0"
   },
   "dependencies": {

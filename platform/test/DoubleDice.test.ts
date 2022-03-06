@@ -11,6 +11,7 @@ import {
   deployDummyUSDCoin,
   ENCODED_DUMMY_METADATA,
   EvmCheckpoint,
+  EvmHelper,
   findContractEventArgs,
   findUserCommitmentEventArgs,
   formatUsdc,
@@ -18,6 +19,7 @@ import {
   sumOf,
   timestampMinuteCeil,
   toFp18,
+  toTimestamp,
   UserCommitment
 } from '../helpers';
 import {
@@ -29,18 +31,6 @@ import {
 } from '../lib/contracts';
 
 chai.use(chaiSubset);
-
-const toTimestamp = (datetime: string): BigNumber => BigNumber.from(new Date(datetime).getTime() / 1000);
-
-const setNextBlockTimestamp = async (datetime: string | number | BigNumber) => {
-  let timestamp: BigNumber;
-  if (typeof datetime === 'string') {
-    timestamp = toTimestamp(datetime);
-  } else {
-    timestamp = BigNumber.from(datetime);
-  }
-  await ethers.provider.send('evm_setNextBlockTimestamp', [timestamp.toNumber()]);
-};
 
 function tokenIdOf({ vfId, outcomeIndex, datetime }: { vfId: BigNumberish; outcomeIndex: number; datetime: string }): BigNumber {
   const timeslot = toTimestamp(datetime);
@@ -60,8 +50,11 @@ describe('DoubleDice', function () {
   let vfCreatorSigner: SignerWithAddress;
   let contract: DoubleDice;
   let tokenUSDC: DummyUSDCoin;
+  let evm: EvmHelper;
 
   before(async function () {
+    evm = new EvmHelper(ethers.provider);
+
     [
       ownerSigner,
       feeBeneficiarySigner,
@@ -132,7 +125,7 @@ describe('DoubleDice', function () {
     const allUserCommitments: UserCommitment[] = [];
 
     {
-      await setNextBlockTimestamp('2032-01-01T00:00:00');
+      await evm.setNextBlockTimestamp('2032-01-01T00:00:00');
 
       const {
         events,
@@ -162,7 +155,7 @@ describe('DoubleDice', function () {
       const outcomeIndex = 0;
       const amount = $(10);
 
-      await setNextBlockTimestamp('2032-01-01T01:00:00');
+      await evm.setNextBlockTimestamp('2032-01-01T01:00:00');
 
       const { events, blockHash } = await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)).wait();
 
@@ -189,7 +182,7 @@ describe('DoubleDice', function () {
     }
 
 
-    await setNextBlockTimestamp('2032-01-01T02:00:00');
+    await evm.setNextBlockTimestamp('2032-01-01T02:00:00');
     {
       const { events } = await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId, 1, $(10))).wait();
       const userCommitmentArgs = findUserCommitmentEventArgs(events);
@@ -203,7 +196,7 @@ describe('DoubleDice', function () {
       allUserCommitments.push(userCommitmentArgs);
     }
 
-    await setNextBlockTimestamp('2032-01-01T06:00:00');
+    await evm.setNextBlockTimestamp('2032-01-01T06:00:00');
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 1, $(10))).wait();
       const userCommitmentArgs = findUserCommitmentEventArgs(events);
@@ -217,7 +210,7 @@ describe('DoubleDice', function () {
       allUserCommitments.push(userCommitmentArgs);
     }
 
-    await setNextBlockTimestamp('2032-01-01T10:00:00');
+    await evm.setNextBlockTimestamp('2032-01-01T10:00:00');
     {
       const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10))).wait();
       const userCommitmentArgs = findUserCommitmentEventArgs(events);
@@ -225,7 +218,7 @@ describe('DoubleDice', function () {
       allUserCommitments.push(userCommitmentArgs);
     }
 
-    // await setNextBlockTimestamp('2032-01-01T12:00:00')
+    // await evm.setNextBlockTimestamp('2032-01-01T12:00:00')
     // expect(contract.connect(user3Signer).commitToVirtualFloor(vfId, 2, $(10))).to.be.revertedWith('MARKET_CLOSED')
 
     // const vf = await contract._vfs(vfId)
@@ -278,10 +271,10 @@ describe('DoubleDice', function () {
       $(10).mul(betaAt('2032-01-01T10:00:00')),
     ));
 
-    // await setNextBlockTimestamp('2032-01-01T23:59:59')
+    // await evm.setNextBlockTimestamp('2032-01-01T23:59:59')
     // expect(contract.resolve(vfId, 1)).to.be.revertedWith('TOO_EARLY_TO_RESOLVE')
 
-    await setNextBlockTimestamp(tClose);
+    await evm.setNextBlockTimestamp(tClose);
 
     // user3 gives user2 5$ worth of commitment made at 2032-01-01T02:00:00
     await (await contract.connect(user3Signer).safeTransferFrom(
@@ -292,7 +285,7 @@ describe('DoubleDice', function () {
       '0x'
     )).wait();
 
-    await setNextBlockTimestamp('2032-01-02T00:00:00');
+    await evm.setNextBlockTimestamp('2032-01-02T00:00:00');
     {
       const { events } = await (await contract.setResult(virtualFloorId, 1)).wait();
       const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
@@ -302,7 +295,7 @@ describe('DoubleDice', function () {
       expect(outcomeIndex).to.eq(1);
     }
 
-    await setNextBlockTimestamp('2032-01-02T01:30:00');
+    await evm.setNextBlockTimestamp('2032-01-02T01:30:00');
     {
       const { events } = await (await contract.confirmUnchallengedResult(virtualFloorId)).wait();
       {
@@ -618,7 +611,7 @@ describe('DoubleDice', function () {
 
     it('Should revert if virtual Floor is closed', async function () {
       const checkpoint = await EvmCheckpoint.create();
-      await setNextBlockTimestamp('2033-01-02T13:00:00');
+      await evm.setNextBlockTimestamp('2033-01-02T13:00:00');
 
       await expect(
         contract
@@ -709,7 +702,7 @@ describe('DoubleDice', function () {
       ).wait();
 
 
-      await setNextBlockTimestamp(tCommitment1);
+      await evm.setNextBlockTimestamp(tCommitment1);
 
       const { events: commitment1Events, blockHash: blockHash1 } = await (
         await contract
@@ -723,7 +716,7 @@ describe('DoubleDice', function () {
       expect((await ethers.provider.getBlock(blockHash1)).timestamp).to.eq(tCommitment1);
 
 
-      await setNextBlockTimestamp(tCommitment2);
+      await evm.setNextBlockTimestamp(tCommitment2);
 
       const { events: commitment2Events, blockHash: blockHash2 } = await (
         await contract

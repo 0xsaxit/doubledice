@@ -1,5 +1,6 @@
-import { providers } from 'ethers';
+import { BigNumber, providers } from 'ethers';
 import hre from 'hardhat';
+import { toTimestamp } from '.';
 
 // Ported from https://github.com/DoubleDice-com/doubledice-token/blob/master/test/lib/utils.ts
 export class EvmCheckpoint {
@@ -29,3 +30,24 @@ export class EvmCheckpoint {
     if (log) console.log(`Captured EVM snapshot ${this.latestSnapshot}`);
   }
 }
+
+export class EvmHelper {
+
+  private readonly provider: providers.JsonRpcProvider;
+
+  constructor(provider: providers.JsonRpcProvider) {
+    this.provider = provider;
+  }
+
+  async setNextBlockTimestamp(datetime: string | number | BigNumber): Promise<void> {
+    let timestamp: BigNumber;
+    if (typeof datetime === 'string') {
+      timestamp = toTimestamp(datetime);
+    } else {
+      timestamp = BigNumber.from(datetime);
+    }
+    await this.provider.send('evm_setNextBlockTimestamp', [timestamp.toNumber()]);
+  }
+
+}
+

@@ -11,7 +11,6 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./ExtraStorageGap.sol";
 import "./interface/IDoubleDice.sol";
-import "./library/AddressWhitelists.sol";
 import "./library/ERC1155TokenIds.sol";
 import "./library/FixedPointTypes.sol";
 import "./library/Utils.sol";
@@ -69,8 +68,8 @@ struct VirtualFloor {
     uint8 nOutcomes;                          // +  1 byte
     VirtualFloorInternalState _internalState; // +  1 byte
     uint8 nonzeroOutcomeCount;                // +  1 byte  ; number of outcomes having aggregate commitments > 0
-    AddressWhitelistKey _paymentTokenKey;     // + 10 bytes
-                                              // = 21 bytes => packed into 1 32-byte slot
+    IERC20Upgradeable paymentToken;           // + 20 bytes
+                                              // = 31 bytes => packed into 1 32-byte slot
 
     // Storage slot 2: Not written to, but used in calculation of outcome-specific slots
     // Note: A fixed-length array is used to not an entire 32-byte slot to write array-length,
@@ -99,8 +98,6 @@ abstract contract BaseDoubleDice is
     ExtraStorageGap,
     MultipleInheritanceOptimization
 {
-    using AddressWhitelists for address;
-    using AddressWhitelists for AddressWhitelist;
     using ERC1155TokenIds for uint256;
     using FixedPointTypes for UFixed16x4;
     using FixedPointTypes for UFixed256x18;
@@ -120,7 +117,7 @@ abstract contract BaseDoubleDice is
 
     mapping(uint256 => VirtualFloor) private _vfs;
 
-    AddressWhitelist private _paymentTokenWhitelist;
+    mapping(IERC20Upgradeable => bool) private _paymentTokenWhitelist;
 
 
     // ---------- Setup & config ----------
@@ -178,13 +175,8 @@ abstract contract BaseDoubleDice is
     }
 
     function _updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) internal {
-        _paymentTokenWhitelist.setWhitelistStatus(address(token), isWhitelisted);
+        _paymentTokenWhitelist[token] = isWhitelisted;
         emit PaymentTokenWhitelistUpdate(token, isWhitelisted);
-    }
-
-
-    function _paymentTokenOf(VirtualFloor storage vf) internal view returns (IERC20Upgradeable) {
-        return IERC20Upgradeable(_paymentTokenWhitelist.addressForKey(vf._paymentTokenKey));
     }
 
 
@@ -204,7 +196,7 @@ abstract contract BaseDoubleDice is
     }
 
     function isPaymentTokenWhitelisted(IERC20Upgradeable token) public view returns (bool) {
-        return _paymentTokenWhitelist.isWhitelisted(address(token));
+        return _paymentTokenWhitelist[token];
     }
 
     function getVirtualFloorState(uint256 vfId) public view returns (VirtualFloorState) {
@@ -226,7 +218,7 @@ abstract contract BaseDoubleDice is
             tClose: vf.tClose,
             tResolve: vf.tResolve,
             nOutcomes: vf.nOutcomes,
-            paymentToken: _paymentTokenOf(vf),
+            paymentToken: vf.paymentToken,
             bonusAmount: vf.bonusAmount,
             minCommitmentAmount: minCommitmentAmount,
             maxCommitmentAmount: maxCommitmentAmount,
@@ -256,7 +248,7 @@ abstract contract BaseDoubleDice is
 
         // Validation against storage
         if (!(vf._internalState == VirtualFloorInternalState.None)) revert WrongVirtualFloorState(vf.state());
-        if (!_paymentTokenWhitelist.isWhitelisted(address(params.paymentToken))) revert PaymentTokenNotWhitelisted();
+        if (!isPaymentTokenWhitelisted(params.paymentToken)) revert PaymentTokenNotWhitelisted();
 
         vf._internalState = VirtualFloorInternalState.RunningOrClosed;
         vf.creator = _msgSender();
@@ -267,7 +259,7 @@ abstract contract BaseDoubleDice is
         vf.tClose = params.tClose;
         vf.tResolve = params.tResolve;
         vf.nOutcomes = params.nOutcomes;
-        vf._paymentTokenKey = address(params.paymentToken).toAddressWhitelistKey();
+        vf.paymentToken = params.paymentToken;
 
         if (params.bonusAmount > 0) {
             vf.bonusAmount = params.bonusAmount;
@@ -334,7 +326,7 @@ abstract contract BaseDoubleDice is
         (uint256 minAmount, uint256 maxAmount) = vf.minMaxCommitmentAmounts();
         if (!(minAmount <= amount && amount <= maxAmount)) revert CommitmentAmountOutOfRange();
 
-        _paymentTokenOf(vf).safeTransferFrom(_msgSender(), address(this), amount);
+        vf.paymentToken.safeTransferFrom(_msgSender(), address(this), amount);
 
         // Assign all commitments that happen within the same `_TIMESLOT_DURATION`, to the same "timeslot."
         // These commitments will all be assigned the same associated beta value.
@@ -489,7 +481,7 @@ abstract contract BaseDoubleDice is
             creatorFeeAmount = 0;
             totalWinnerProfits = 0;
 
-            _paymentTokenOf(vf).safeTransfer(vf.creator, vf.bonusAmount);
+            vf.paymentToken.safeTransfer(vf.creator, vf.bonusAmount);
         } else {
             vf._internalState = VirtualFloorInternalState.ResolvedWinners;
             resolutionType = VirtualFloorResolutionType.Winners;
@@ -509,13 +501,13 @@ abstract contract BaseDoubleDice is
             vf.winnerProfits = totalWinnerProfits.toUint192();
 
             platformFeeAmount = vf.platformFeeRate.toUFixed256x18().mul0(totalFeeAmount).floorToUint256();
-            _paymentTokenOf(vf).safeTransfer(_platformFeeBeneficiary, platformFeeAmount);
+            vf.paymentToken.safeTransfer(_platformFeeBeneficiary, platformFeeAmount);
 
             unchecked { // because platformFeeRate <= 1.0
                 creatorFeeAmount = totalFeeAmount - platformFeeAmount;
             }
             // _msgSender() owns the virtual-floor
-            _paymentTokenOf(vf).safeTransfer(creatorFeeBeneficiary, creatorFeeAmount);
+            vf.paymentToken.safeTransfer(creatorFeeBeneficiary, creatorFeeAmount);
         }
 
         emit VirtualFloorResolution({
@@ -556,7 +548,7 @@ abstract contract BaseDoubleDice is
             }
         }
         emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
-        _paymentTokenOf(vf).transfer(msgSender, totalPayout);
+        vf.paymentToken.transfer(msgSender, totalPayout);
     }
 
     /// @notice Claim payouts from a VF that has been resolved with winners.
@@ -588,7 +580,7 @@ abstract contract BaseDoubleDice is
             }
         }
         emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
-        _paymentTokenOf(vf).transfer(msgSender, totalPayout);
+        vf.paymentToken.transfer(msgSender, totalPayout);
     }
 
 

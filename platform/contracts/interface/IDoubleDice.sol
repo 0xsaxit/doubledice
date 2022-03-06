@@ -82,6 +82,8 @@ error TooEarly();
 
 error TooLate();
 
+error DuplicateVirtualFloorId();
+
 /// @notice platformFeeRate <= 1.0 not satisfied
 error PlatformFeeRateTooLarge();
 

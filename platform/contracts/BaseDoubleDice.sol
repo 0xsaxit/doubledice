@@ -247,7 +247,7 @@ abstract contract BaseDoubleDice is
         VirtualFloor storage vf = _vfs[params.virtualFloorId];
 
         // Validation against storage
-        if (!(vf._internalState == VirtualFloorInternalState.None)) revert WrongVirtualFloorState(vf.state());
+        if (!(vf._internalState == VirtualFloorInternalState.None)) revert DuplicateVirtualFloorId();
         if (!isPaymentTokenWhitelisted(params.paymentToken)) revert PaymentTokenNotWhitelisted();
 
         vf._internalState = VirtualFloorInternalState.RunningOrClosed;

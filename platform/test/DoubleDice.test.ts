@@ -19,6 +19,7 @@ import {
   sumOf,
   timestampMinuteCeil,
   toFp18,
+  tokenIdOf,
   toTimestamp,
   UserCommitment
 } from '../helpers';
@@ -32,14 +33,6 @@ import {
 
 chai.use(chaiSubset);
 
-function tokenIdOf({ vfId, outcomeIndex, datetime }: { vfId: BigNumberish; outcomeIndex: number; datetime: string }): BigNumber {
-  const timeslot = toTimestamp(datetime);
-  return BigNumber.from(ethers.utils.solidityPack(
-    ['uint216', 'uint8', 'uint32'],
-    [BigNumber.from(vfId).shr((1 + 4) * 8), outcomeIndex, timeslot]
-  ));
-}
-
 describe('DoubleDice', function () {
 
   let ownerSigner: SignerWithAddress;
@@ -48,12 +41,15 @@ describe('DoubleDice', function () {
   let user2Signer: SignerWithAddress;
   let user3Signer: SignerWithAddress;
   let vfCreatorSigner: SignerWithAddress;
+  let noQuotaSigner: SignerWithAddress;
   let contract: DoubleDice;
   let tokenUSDC: DummyUSDCoin;
   let evm: EvmHelper;
+  let checkpoint: EvmCheckpoint;
 
   before(async function () {
     evm = new EvmHelper(ethers.provider);
+    checkpoint = await EvmCheckpoint.create(ethers.provider);
 
     [
       ownerSigner,
@@ -61,7 +57,8 @@ describe('DoubleDice', function () {
       user1Signer,
       user2Signer,
       user3Signer,
-      vfCreatorSigner
+      vfCreatorSigner,
+      noQuotaSigner
     ] = await ethers.getSigners();
 
     tokenUSDC = await deployDummyUSDCoin(ownerSigner);
@@ -280,7 +277,7 @@ describe('DoubleDice', function () {
     await (await contract.connect(user3Signer).safeTransferFrom(
       user3Signer.address,
       user2Signer.address,
-      tokenIdOf({ vfId: virtualFloorId, outcomeIndex: 1, datetime: '2032-01-01T02:00:00' }),
+      tokenIdOf({ vfId: virtualFloorId, outcomeIndex: 1, timeslot: toTimestamp('2032-01-01T02:00:00') }),
       $(5),
       '0x'
     )).wait();
@@ -344,7 +341,7 @@ describe('DoubleDice', function () {
         const tx1 = await (await contract.connect(user2Signer).claimPayouts(virtualFloorId, [tokenIdOf({
           vfId: virtualFloorId,
           outcomeIndex: 1,
-          datetime: '2032-01-01T02:00:00'
+          timeslot: toTimestamp('2032-01-01T02:00:00')
         })])).wait();
 
         console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
@@ -352,7 +349,7 @@ describe('DoubleDice', function () {
         const tx2 = await (await contract.connect(user3Signer).claimPayouts(virtualFloorId, [tokenIdOf({
           vfId: virtualFloorId,
           outcomeIndex: 1,
-          datetime: '2032-01-01T02:00:00'
+          timeslot: toTimestamp('2032-01-01T02:00:00')
         })])).wait();
 
         console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
@@ -360,7 +357,7 @@ describe('DoubleDice', function () {
         const tx3 = await (await contract.connect(user3Signer).claimPayouts(virtualFloorId, [tokenIdOf({
           vfId: virtualFloorId,
           outcomeIndex: 1,
-          datetime: '2032-01-01T06:00:00'
+          timeslot: toTimestamp('2032-01-01T06:00:00')
         })])).wait();
 
         console.log(`contract balance = ${formatUsdc(await tokenUSDC.balanceOf(contract.address))}`);
@@ -534,7 +531,7 @@ describe('DoubleDice', function () {
         virtualFloorId: _virtualFloorId,
         paymentToken: tokenUSDC.address,
       };
-      await expect(contract.createVirtualFloor(params)).to.be.reverted;
+      await expect(contract.connect(noQuotaSigner).createVirtualFloor(params)).to.be.reverted;
     });
 
     it('Should revert if VF with same id created before', async function () {
@@ -778,4 +775,9 @@ describe('DoubleDice', function () {
       expect(mintedTokenAmount).to.be.eq(amount);
     });
   });
+
+  after(async () => {
+    await checkpoint.revertTo();
+  });
+
 });

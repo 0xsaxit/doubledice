@@ -39,7 +39,7 @@ library VirtualFloors {
             return VirtualFloorState.CancelledResolvedNoWinners;
         } else if (_internalState == VirtualFloorInternalState.CancelledResolvedNoWinners) {
             return VirtualFloorState.CancelledUnresolvable;
-        } else /* if (_internalState == VirtualFloorInternalState.CancelledFlagged) */ {
+        } else /*if (_internalState == VirtualFloorInternalState.CancelledFlagged)*/ {
             return VirtualFloorState.CancelledFlagged;
         }
     }

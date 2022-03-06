@@ -68,9 +68,6 @@ async function main() {
 
   console.log(`Whitelisting WBTC@${tokenWBTC.address} on DoubleDice contract`);
   await ((await contract.updatePaymentTokenWhitelist(tokenWBTC.address, true)).wait());
-
-  console.log(`Granting quota of 10 rooms to admin ${deployer.address}`);
-  await (await contract.adjustCreationQuotas([{ creator: deployer.address, relativeAmount: 10 }])).wait();
 }
 
 main()

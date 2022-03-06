@@ -36,6 +36,8 @@ struct Resolution {
 
 error WrongResolutionState(ResolutionState state);
 
+error ChallengeOutcomeIndexEqualToSet();
+
 
 /**
  * @notice This Resolver allows the VF-owner to set the result within 1 hour of tResolve:
@@ -112,15 +114,15 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         external
         whenNotPaused
     {
-        CreatedVirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
-        if (!(_msgSender() == vfParams.creator)) revert UnauthorizedMsgSender();
         VirtualFloorState state = getVirtualFloorState(vfId);
         if (!(state == VirtualFloorState.ClosedResolvable)) revert WrongVirtualFloorState(state);
+        CreatedVirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
+        if (!(_msgSender() == vfParams.creator)) revert UnauthorizedMsgSender();
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.None)) revert WrongResolutionState(resolution.state);
         uint256 tResultSetMax = vfParams.tResolve + SET_WINDOW_DURATION;
         if (!(block.timestamp <= tResultSetMax)) revert TooLate();
-        require(setOutcomeIndex < vfParams.nOutcomes);
+        if (!(setOutcomeIndex < vfParams.nOutcomes)) revert OutcomeIndexOutOfRange();
         resolution.setTimestamp = block.timestamp.toUint32();
         resolution.setOutcomeIndex = setOutcomeIndex;
         resolution.state = ResolutionState.Set;
@@ -150,8 +152,8 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.Set)) revert WrongResolutionState(resolution.state);
         CreatedVirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
-        require(challengeOutcomeIndex < vfParams.nOutcomes);
-        require(challengeOutcomeIndex != resolution.setOutcomeIndex);
+        if (!(challengeOutcomeIndex < vfParams.nOutcomes)) revert OutcomeIndexOutOfRange();
+        if (!(challengeOutcomeIndex != resolution.setOutcomeIndex)) revert ChallengeOutcomeIndexEqualToSet();
         uint256 tResultChallengeMax = resolution.setTimestamp + CHALLENGE_WINDOW_DURATION;
         if (!(block.timestamp <= tResultChallengeMax)) revert TooLate();
         _bondUsdErc20Token.safeTransferFrom(_msgSender(), address(this), _bondAmount());

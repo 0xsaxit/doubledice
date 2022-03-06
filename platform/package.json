@@ -7,6 +7,7 @@
     "test": "hardhat typechain && hardhat test",
     "start": "./scripts/start.sh",
     "stop": "docker-compose down --volumes",
+    "coverage": "hardhat coverage",
     "contracts:deploy:local": "  hardhat run ./scripts/deploy.ts --network localhost",
     "contracts:deploy:rinkeby": "hardhat run ./scripts/deploy.ts --network rinkeby",
     "contracts:deploy:mumbai": "hardhat run ./scripts/deploy.ts --network mumbai",
@@ -53,6 +54,7 @@
     "hardhat": "2.9.1",
     "hardhat-abi-exporter": "2.8.0",
     "hardhat-gas-reporter": "1.0.8",
+    "solidity-coverage": "0.7.19",
     "typechain": "7.0.0"
   },
   "dependencies": {

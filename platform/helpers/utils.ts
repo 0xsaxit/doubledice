@@ -41,14 +41,35 @@ export const findContractEventArgs = <T = any>(events: ContractReceipt['events']
 
 export interface UserCommitment {
   virtualFloorId: BigNumber;
-  outcomeIndex: number;
+  committer: string;
+  outcomeIndex: BigNumber;
   timeslot: BigNumber;
   amount: BigNumber;
+  beta_e18: BigNumber;
   tokenId: BigNumber;
+}
+
+enum VirtualFloorResolutionType {
+  'NoWinners',
+  'AllWinners',
+  'SomeWinners'
+}
+
+export interface VirtualFloorResolution {
+  virtualFloorId: BigNumber;
+  winningOutcomeIndex: BigNumber;
+  resolutionType: VirtualFloorResolutionType;
+  winnerProfits: BigNumber;
+  platformFeeAmount: BigNumber;
+  creatorFeeAmount: BigNumber;
 }
 
 export const findUserCommitmentEventArgs = (events: ContractReceipt['events']): UserCommitment => {
   return findContractEventArgs(events, 'UserCommitment');
+};
+
+export const findVFResolutionEventArgs = (events: ContractReceipt['events']): VirtualFloorResolution => {
+  return findContractEventArgs(events, 'VirtualFloorResolution');
 };
 
 export const DUMMY_METADATA: RoomEventInfo = {
@@ -93,3 +114,11 @@ export const ENCODED_DUMMY_METADATA = encodeVirtualFloorMetadata(DUMMY_METADATA)
 export const timestampMinuteCeil = (timestamp: number) => Math.ceil(timestamp / 60) * 60;
 
 export const toTimestamp = (datetime: string): BigNumber => BigNumber.from(new Date(datetime).getTime() / 1000);
+
+export function tokenIdOf({ vfId, outcomeIndex, timeslot }: { vfId: BigNumberish; outcomeIndex: number; timeslot: BigNumberish }): BigNumber {
+  return BigNumber.from(ethers.utils.solidityPack(
+    ['uint216', 'uint8', 'uint32'],
+    [BigNumber.from(vfId).shr((1 + 4) * 8), outcomeIndex, timeslot]
+  ));
+}
+

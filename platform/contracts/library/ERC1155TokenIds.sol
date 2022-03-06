@@ -12,19 +12,11 @@ library ERC1155TokenIds {
     /// A valid virtual-floor id doubles as both the virtual-floor's id,
     /// and as the ERC-1155 token id representing ownership of that virtual-floor.
     function isValidVirtualFloorId(uint256 value) internal pure returns (bool) {
-        return value & 0xffffffffff == 0;
-    }
-
-    function isTypeVirtualFloorOwnership(uint256 erc1155TokenId) internal pure returns (bool) {
-        return erc1155TokenId & 0xffffffffff == 0;
-    }
-
-    function isTypeCommitmentBalance(uint256 erc1155TokenId) internal pure returns (bool) {
-        return !isTypeVirtualFloorOwnership(erc1155TokenId);
+        return value & 0xff_ff_ff_ff_ff == 0;
     }
 
     function extractVirtualFloorId(uint256 erc1155TokenId) internal pure returns (uint256) {
-        return erc1155TokenId & ~uint256(0xffffffffff);
+        return erc1155TokenId & ~uint256(0xff_ff_ff_ff_ff);
     }
 
     function destructure(uint256 erc1155TokenId) internal pure returns (uint256 vfId, uint8 outcomeIndex, uint32 timeslot) {

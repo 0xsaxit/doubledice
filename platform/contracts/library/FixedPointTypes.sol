@@ -12,6 +12,12 @@ type UFixed256x18 is uint256;
 
 UFixed256x18 constant UFIXED256X18_ONE = UFixed256x18.wrap(1e18);
 
+
+error UFixed16x4LossOfPrecision(UFixed256x18 value);
+
+error UFixed32x6LossOfPrecision(UFixed256x18 value);
+
+
 /// @notice The primary fixed-point type is UFixed256x18,
 /// but some conversions to UFixed32x6 and UFixed16x4 are also provided,
 /// as these are used on the main contract.
@@ -71,7 +77,7 @@ library FixedPointTypes {
     /// or if conversion would lose precision, e.g. 1.234560_000000_000000 will revert.
     function toUFixed16x4(UFixed256x18 value) internal pure returns (UFixed16x4 converted) {
         converted = UFixed16x4.wrap((UFixed256x18.unwrap(value) / 1e14).toUint16());
-        require(converted.toUFixed256x18().eq(value), "FixedPointTypes: Loss of precision");
+        if (!(converted.toUFixed256x18().eq(value))) revert UFixed16x4LossOfPrecision(value);
     }
 
     /// @notice e.g. 123.456789_000000_000000 => 123.456789
@@ -79,7 +85,7 @@ library FixedPointTypes {
     /// or if conversion would lose precision, e.g. 123.456789_100000_000000 will revert.
     function toUFixed32x6(UFixed256x18 value) internal pure returns (UFixed32x6 converted) {
         converted = UFixed32x6.wrap((UFixed256x18.unwrap(value) / 1e12).toUint32());
-        require(converted.toUFixed256x18().eq(value), "FixedPointTypes: Loss of precision");
+        if (!(converted.toUFixed256x18().eq(value))) revert UFixed32x6LossOfPrecision(value);
     }
 
     /// @notice e.g. 123 => 123.000000_000000_000000

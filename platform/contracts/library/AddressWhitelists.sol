@@ -13,6 +13,10 @@ struct AddressWhitelist {
     mapping(AddressWhitelistKey => Entry) _entries;
 }
 
+error AddressWhitelistZeroAddress();
+
+error AddressWhitelistKeyCollision(address existingEntry);
+
 /// @dev Instead of using a `mapping(address => bool)`, a `mapping(bytes10 => (address, bool))` is used,
 /// at no extra storage cost (because address + bool = 21 bytes, which still fit into 1 storage slot.)
 /// In return for the added complexity, it is then possible store a registered address more compactly
@@ -27,14 +31,14 @@ library AddressWhitelists {
     }
 
     function setWhitelistStatus(AddressWhitelist storage whitelist, address addr, bool isWhitelisted_) internal {
-        require(addr != address(0), "ZERO_ADDRESS");
+        if (!(addr != address(0))) revert AddressWhitelistZeroAddress();
         Entry storage entry = whitelist._entries[addr.toAddressWhitelistKey()];
-        require(entry.addr == address(0) || entry.addr == addr, "Error: Address whitelist key collision");
+        if (!(entry.addr == address(0) || entry.addr == addr)) revert AddressWhitelistKeyCollision(entry.addr);
         (entry.addr, entry.isWhitelisted) = (addr, isWhitelisted_);
     }
 
     function isWhitelisted(AddressWhitelist storage whitelist, address addr) internal view returns (bool) {
-        require(addr != address(0), "ZERO_ADDRESS");
+        if (!(addr != address(0))) revert AddressWhitelistZeroAddress();
         Entry storage entry = whitelist._entries[addr.toAddressWhitelistKey()];
         return entry.addr == addr && entry.isWhitelisted;
     }

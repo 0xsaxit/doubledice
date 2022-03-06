@@ -12,7 +12,7 @@ contract SimpleOracle is BaseDoubleDice {
 
     function resolve(uint256 vfId, uint8 winningOutcomeIndex) external {
         address creator = getVirtualFloorCreator(vfId);
-        require(_msgSender() == creator, "NOT_VIRTUALFLOOR_OWNER");
+        if (!(_msgSender() == creator)) revert UnauthorizedMsgSender();
         _resolve(vfId, winningOutcomeIndex, creator);
     }
 

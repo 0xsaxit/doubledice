@@ -31,6 +31,30 @@ struct VirtualFloorMetadataV1 {
     string discordChannelId;
 }
 
+
+error InvalidMetadataVersion();
+
+error MetadataOpponentArrayLengthMismatch();
+
+error ResultSourcesArrayLengthMismatch();
+
+error InvalidOutcomesArrayLength();
+
+error TooFewOpponents();
+
+error TooFewResultSources();
+
+error EmptyCategory();
+
+error EmptySubcategory();
+
+error EmptyTitle();
+
+error EmptyDescription();
+
+error EmptyDiscordChannelId();
+
+
 contract VirtualFloorMetadataValidator is BaseDoubleDice {
 
     using Utils for string;
@@ -41,12 +65,13 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
 
     function _onVirtualFloorCreation(VirtualFloorCreationParams calldata params) internal virtual override {
         uint256 version = uint256(params.metadata.version);
-        require(version == 1);
+        if (!(version == 1)) revert InvalidMetadataVersion();
+
         (VirtualFloorMetadataV1 memory metadata) = abi.decode(params.metadata.data, (VirtualFloorMetadataV1));
 
         // Temporary until workaround is removed
-        require(metadata.opponents.titles.length == metadata.opponents.images.length, "Error: Mismatched opponents lengths");
-        require(metadata.resultSources.titles.length == metadata.resultSources.urls.length, "Error: Mismatched resultSources lengths");
+        if (!(metadata.opponents.titles.length == metadata.opponents.images.length)) revert MetadataOpponentArrayLengthMismatch();
+        if (!(metadata.resultSources.titles.length == metadata.resultSources.urls.length)) revert ResultSourcesArrayLengthMismatch();
 
         // `nOutcomes` could simply be taken to be `metadata.outcomes.length` and this `require` could then be dropped.
         // But for now we choose to make a clear distinction between "essential" data (that needs to be stored on-chain)
@@ -55,15 +80,19 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
         // To this end, we group all non-essential data in the `metadata` parameter,
         // we require a separate `nOutcomes` "essential" argument to be passed,
         // and we enforce consistency with this check.
-        require(metadata.outcomes.titles.length == params.nOutcomes, "Error: Outcomes length mismatch");
+        if (!(metadata.outcomes.titles.length == params.nOutcomes)) revert InvalidOutcomesArrayLength();
 
-        require(metadata.opponents.titles.length >= 1, "Error: There must be at least 1 opponent");
+        if (!(metadata.opponents.titles.length >= 1)) revert TooFewOpponents();
 
-        require(metadata.resultSources.titles.length >= 1, "Error: There must be at least 1 result source");
+        if (!(metadata.resultSources.titles.length >= 1)) revert TooFewResultSources();
 
-        require(!metadata.title.isEmpty(), "Error: Title cannot be empty");
+        if (!(!metadata.category.isEmpty())) revert EmptyCategory();
 
-        require(!metadata.description.isEmpty(), "Error: Description cannot be empty");
+        if (!(!metadata.subcategory.isEmpty())) revert EmptySubcategory();
+
+        if (!(!metadata.title.isEmpty())) revert EmptyTitle();
+
+        if (!(!metadata.description.isEmpty())) revert EmptyDescription();
 
         // ToDo: Here we should proceed to validate individual array item metadata,
         // but this is going to waste even more gas.
@@ -72,7 +101,7 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
         // graph-indexer (mapping.ts) and simply do not index virtual-floors created with invalid metadata.
         // If we adopt this strategy, we could drop even the few checks made above.
 
-        require(!metadata.discordChannelId.isEmpty(), "Error: discordChannelId cannot be empty");
+        if (!(!metadata.discordChannelId.isEmpty())) revert EmptyDiscordChannelId();
     }
 
     /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps

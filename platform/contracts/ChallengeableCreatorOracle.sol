@@ -33,13 +33,9 @@ struct Resolution {
     address challenger;
 }
 
+
 error WrongResolutionState(ResolutionState state);
-error WrongVirtualFloorState(VirtualFloorState state);
 
-error OnlyVirtualFloorCreator();
-
-error TooEarly();
-error TooLate();
 
 /**
  * @notice This Resolver allows the VF-owner to set the result within 1 hour of tResolve:
@@ -117,7 +113,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         whenNotPaused
     {
         VirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
-        if (!(_msgSender() == vfParams.creator)) revert OnlyVirtualFloorCreator();
+        if (!(_msgSender() == vfParams.creator)) revert UnauthorizedMsgSender();
         VirtualFloorState state = getVirtualFloorState(vfId);
         if (!(state == VirtualFloorState.ClosedResolvable)) revert WrongVirtualFloorState(state);
         Resolution storage resolution = resolutions[vfId];

@@ -14,19 +14,19 @@ library VirtualFloorCreationParamsUtils {
 
     function validatePure(VirtualFloorCreationParams calldata $) internal pure {
         {
-            require($.virtualFloorId.isValidVirtualFloorId(), "INVALID_VIRTUALFLOOR_ID");
+            if (!$.virtualFloorId.isValidVirtualFloorId()) revert InvalidVirtualFloorId();
         }
         {
-            require($.betaOpen_e18.gte(_BETA_CLOSE), "Error: betaOpen < 1.0");
+            if (!($.betaOpen_e18.gte(_BETA_CLOSE))) revert BetaOpenTooSmall();
         }
         {
-            require($.creationFeeRate_e18.lte(UFIXED256X18_ONE), "Error: creationFeeRate > 1.0");
+            if (!($.creationFeeRate_e18.lte(UFIXED256X18_ONE))) revert CreationFeeRateTooLarge();
         }
         {
-            require($.tOpen < $.tClose && $.tClose <= $.tResolve, "Error: tOpen >= tClose|Error: tClose > tResolve");
+            if (!($.tOpen < $.tClose && $.tClose <= $.tResolve)) revert InvalidTimeline();
         }
         {
-            require($.nOutcomes >= 2, "Error: nOutcomes < 2");
+            if (!($.nOutcomes >= 2)) revert NotEnoughOutcomes();
         }
     }
 

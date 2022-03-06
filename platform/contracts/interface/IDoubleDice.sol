@@ -74,7 +74,48 @@ enum VirtualFloorState {
 enum VirtualFloorResolutionType { CancelledNoWinners, Winners }
 
 
-error IllegalVirtualFloorState(VirtualFloorState actual);
+error UnauthorizedMsgSender();
+
+error WrongVirtualFloorState(VirtualFloorState actualState);
+
+error TooEarly();
+
+error TooLate();
+
+/// @notice platformFeeRate <= 1.0 not satisfied
+error PlatformFeeRateTooLarge();
+
+/// @notice Trying to create a VF with a non-whitelisted ERC-20 payment-token
+error PaymentTokenNotWhitelisted();
+
+/// @notice A VF id's lower 5 bytes must be 0x00_00_00_00_00
+error InvalidVirtualFloorId();
+
+/// @notice betaOpen >= 1.0 not satisfied
+error BetaOpenTooSmall();
+
+/// @notice creationFeeRate <= 1.0 not satisfied
+error CreationFeeRateTooLarge();
+
+/// @notice VF timeline does not satisfy relation tOpen < tClose <= tResolve
+error InvalidTimeline();
+
+/// @notice _MIN_POSSIBLE <= min <= max <= _MAX_POSSIBLE not satisfied
+error InvalidMinMaxCommitmentAmounts();
+
+/// @notice nOutcomes >= 2 not satisfied
+error NotEnoughOutcomes();
+
+/// @notice outcomeIndex < nOutcomes not satisfied
+error OutcomeIndexOutOfRange();
+
+/// @notice minCommitmentAmount <= amount <= maxCommitmentAmount not satisfied
+error CommitmentAmountOutOfRange();
+
+error CommitmentBalanceTransferRejection(uint256 id, VirtualFloorState state);
+
+/// @notice One of the token ids passed to a claim does not correspond to the passed virtualFloorId
+error MismatchedVirtualFloorId(uint256 tokenId);
 
 
 interface IDoubleDice is
@@ -137,14 +178,10 @@ interface IDoubleDice is
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
 
-    error CommitmentBalanceTransferRejection(uint256 id, VirtualFloorState state);
-
     function cancelVirtualFloorFlagged(uint256 virtualFloorId, string calldata reason) external;
 
     function cancelVirtualFloorUnresolvable(uint256 virtualFloorId) external;
 
-
-    error MismatchedVirtualFloorId(uint256 tokenId);
 
     function claimRefunds(uint256 vfId, uint256[] calldata tokenIds) external;
 

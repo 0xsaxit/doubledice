@@ -172,7 +172,7 @@ abstract contract BaseDoubleDice is
     }
 
     function _setPlatformFeeRate(UFixed256x18 platformFeeRate) internal {
-        require(platformFeeRate.lte(UFIXED256X18_ONE), "Error: platformFeeRate > 1.0");
+        if (!platformFeeRate.lte(UFIXED256X18_ONE)) revert PlatformFeeRateTooLarge();
         _platformFeeRate = platformFeeRate.toUFixed16x4();
         emit PlatformFeeRateUpdate(platformFeeRate);
     }
@@ -250,13 +250,13 @@ abstract contract BaseDoubleDice is
         params.validatePure();
 
         // Validation against block
-        require(block.timestamp <= params.tCreateMax(), "Error: t >= 10% into open period");
+        if (!(block.timestamp <= params.tCreateMax())) revert TooLate();
 
         VirtualFloor storage vf = _vfs[params.virtualFloorId];
 
         // Validation against storage
-        require(vf._internalState == VirtualFloorInternalState.None, "MARKET_DUPLICATE");
-        require(_paymentTokenWhitelist.isWhitelisted(address(params.paymentToken)), "Error: Payment token is not whitelisted");
+        if (!(vf._internalState == VirtualFloorInternalState.None)) revert WrongVirtualFloorState(vf.state());
+        if (!_paymentTokenWhitelist.isWhitelisted(address(params.paymentToken))) revert PaymentTokenNotWhitelisted();
 
         vf._internalState = VirtualFloorInternalState.RunningOrClosed;
         vf.creator = _msgSender();
@@ -290,12 +290,7 @@ abstract contract BaseDoubleDice is
             vf._optionalMaxCommitmentAmount = params.optionalMaxCommitmentAmount.toUint128();
             // ... then validate values returned through the library getter.
             (min, max) = vf.minMaxCommitmentAmounts();
-            require(
-                _MIN_POSSIBLE_COMMITMENT_AMOUNT <= min
-                                                && min <= max
-                                                       && max <= _MAX_POSSIBLE_COMMITMENT_AMOUNT,
-                "ERROR"
-            );
+            if (!(_MIN_POSSIBLE_COMMITMENT_AMOUNT <= min && min <= max && max <= _MAX_POSSIBLE_COMMITMENT_AMOUNT)) revert InvalidMinMaxCommitmentAmounts();
         }
 
         // Extracting this value to a local variable
@@ -331,12 +326,13 @@ abstract contract BaseDoubleDice is
     {
         VirtualFloor storage vf = _vfs[vfId];
 
-        require(vf.state() == VirtualFloorState.Running, "MARKET_NOT_FOUND|MARKET_CLOSED");
+        VirtualFloorState state = vf.state();
+        if (!(state == VirtualFloorState.Running)) revert WrongVirtualFloorState(state);
 
-        require(outcomeIndex < vf.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+        if (!(outcomeIndex < vf.nOutcomes)) revert OutcomeIndexOutOfRange();
 
         (uint256 minAmount, uint256 maxAmount) = vf.minMaxCommitmentAmounts();
-        require(minAmount <= amount && amount <= maxAmount, "ERROR");
+        if (!(minAmount <= amount && amount <= maxAmount)) revert CommitmentAmountOutOfRange();
 
         _paymentTokenOf(vf).safeTransferFrom(_msgSender(), address(this), amount);
 
@@ -437,7 +433,8 @@ abstract contract BaseDoubleDice is
         whenNotPaused
     {
         VirtualFloor storage vf = _vfs[vfId];
-        require(vf.state() == VirtualFloorState.ClosedUnresolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY|Error: VF only unresolvable if commitments to less than 2 outcomes");
+        VirtualFloorState state = vf.state();
+        if (!(state == VirtualFloorState.ClosedUnresolvable)) revert WrongVirtualFloorState(state);
         vf._internalState = VirtualFloorInternalState.CancelledUnresolvable;
         emit VirtualFloorCancellationUnresolvable(vfId);
         _onVirtualFloorConclusion(vfId);
@@ -448,7 +445,7 @@ abstract contract BaseDoubleDice is
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         VirtualFloor storage vf = _vfs[vfId];
-        require(vf._internalState == VirtualFloorInternalState.RunningOrClosed, "MARKET_INEXISTENT_OR_IN_WRONG_STATE");
+        if (!(vf._internalState == VirtualFloorInternalState.RunningOrClosed)) revert WrongVirtualFloorState(vf.state());
         vf._internalState = VirtualFloorInternalState.CancelledFlagged;
         emit VirtualFloorCancellationFlagged(vfId, reason);
         _onVirtualFloorConclusion(vfId);
@@ -457,9 +454,10 @@ abstract contract BaseDoubleDice is
     function _resolve(uint256 vfId, uint8 winningOutcomeIndex, address creatorFeeBeneficiary) internal {
         VirtualFloor storage vf = _vfs[vfId];
 
-        require(vf.state() == VirtualFloorState.ClosedResolvable, "MARKET_INEXISTENT_OR_IN_WRONG_STATE|TOO_EARLY_TO_RESOLVE|Error: Cannot resolve VF with commitments to less than 2 outcomes");
+        VirtualFloorState state = vf.state();
+        if (!(vf.state() == VirtualFloorState.ClosedResolvable)) revert WrongVirtualFloorState(state);
 
-        require(winningOutcomeIndex < vf.nOutcomes, "OUTCOME_INDEX_OUT_OF_RANGE");
+        if (!(winningOutcomeIndex < vf.nOutcomes)) revert OutcomeIndexOutOfRange();
 
         vf.winningOutcomeIndex = winningOutcomeIndex;
 
@@ -542,7 +540,7 @@ abstract contract BaseDoubleDice is
         whenNotPaused
     {
         VirtualFloor storage vf = _vfs[vfId];
-        if (!vf.isCancelled()) revert IllegalVirtualFloorState(vf.state());
+        if (!vf.isCancelled()) revert WrongVirtualFloorState(vf.state());
         address msgSender = _msgSender();
         uint256 totalPayout = 0;
         uint256[] memory amounts = new uint256[](tokenIds.length);
@@ -568,7 +566,7 @@ abstract contract BaseDoubleDice is
         whenNotPaused
     {
         VirtualFloor storage vf = _vfs[vfId];
-        if (!vf.isWon()) revert IllegalVirtualFloorState(vf.state());
+        if (!vf.isWon()) revert WrongVirtualFloorState(vf.state());
         address msgSender = _msgSender();
         uint256 totalPayout = 0;
         uint256[] memory amounts = new uint256[](tokenIds.length);

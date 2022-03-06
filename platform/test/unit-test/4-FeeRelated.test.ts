@@ -3,6 +3,7 @@ import chaiSubset from 'chai-subset';
 import { BigNumber, BigNumberish } from 'ethers';
 import { ethers } from 'hardhat';
 import {
+  $,
   deployDoubleDice,
   deployDummyUSDCoin,
   DoubleDicePlatformHelper,
@@ -23,11 +24,6 @@ import {
 } from '../../lib/contracts';
 
 chai.use(chaiSubset);
-
-const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber =>
-  BigNumber.from(1000000)
-    .mul(dollars)
-    .add(millionths);
 
 let helper: DoubleDicePlatformHelper;
 
@@ -213,8 +209,8 @@ describe('DoubleDice/FeeRelated', function () {
       console.log('user2 commitment', user2CommitmentEventArgs.timeslot.toNumber());
       console.log('user3 commitment', user3CommitmentEventArgs.timeslot.toNumber());
 
-      console.log('\n beta commitment', user1CommitmentEventArgs.beta_e18);
-      console.log('bata commitment', user3CommitmentEventArgs.beta_e18);
+      console.log('beta commitment', user1CommitmentEventArgs.beta_e18);
+      console.log('beta commitment', user3CommitmentEventArgs.beta_e18);
 
       // loser commitment
       await helper.commitToVirtualFloor(virtualFloorId, 0, user4Signer, amountToCommit);

@@ -3,6 +3,7 @@ import chaiSubset from 'chai-subset';
 import { BigNumber, BigNumberish } from 'ethers';
 import { ethers } from 'hardhat';
 import {
+  $,
   deployDoubleDice,
   deployDummyUSDCoin,
   DoubleDicePlatformHelper,
@@ -26,11 +27,6 @@ import {
 } from '../../lib/contracts';
 
 chai.use(chaiSubset);
-
-const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber =>
-  BigNumber.from(1000000)
-    .mul(dollars)
-    .add(millionths);
 
 let helper: DoubleDicePlatformHelper;
 

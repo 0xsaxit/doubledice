@@ -122,3 +122,7 @@ export function tokenIdOf({ vfId, outcomeIndex, timeslot }: { vfId: BigNumberish
   ));
 }
 
+export const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber =>
+  BigNumber.from(1000000)
+    .mul(dollars)
+    .add(millionths);

@@ -7,6 +7,7 @@ import {
 } from 'ethers';
 import { ethers } from 'hardhat';
 import {
+  $,
   deployDoubleDice,
   deployDummyUSDCoin,
   ENCODED_DUMMY_METADATA,
@@ -88,8 +89,6 @@ describe('DoubleDice', function () {
       });
       expect(await contract.isPaymentTokenWhitelisted(tokenUSDC.address)).to.be.true;
     }
-
-    const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber => BigNumber.from(1000000).mul(dollars).add(millionths);
 
     // Mint 1000$ to each user
     await (await tokenUSDC.connect(ownerSigner).mint(user1Signer.address, $(1000))).wait();

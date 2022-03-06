@@ -218,7 +218,7 @@ describe('DoubleDice/Resolve', function () {
       await checkpoint.revertTo();
     });
 
-    it.skip('Should cancel VF and set resolution type to No Winners when total commitments for the resolution index is 0', async function () {
+    it('Should cancel VF and set resolution type to No Winners when total commitments for the resolution index is 0', async function () {
       const checkpoint = await EvmCheckpoint.create();
       const { amount: amount0 } = await contract.getVirtualFloorOutcomeTotals(virtualFloorId, 0);
       expect(amount0).to.be.gt(0);
@@ -234,7 +234,7 @@ describe('DoubleDice/Resolve', function () {
       await checkpoint.revertTo();
     });
 
-    it.skip('Should fail with WrongVirtualFloorState(ClosedUnresolvable) when total commits of the VF is equal to winner commitments', async function () {
+    it('Should fail with WrongVirtualFloorState(ClosedUnresolvable) when total commits of the VF is equal to winner commitments', async function () {
       const checkpoint = await EvmCheckpoint.create();
       const vfAggregateCommitments = await contract.getVirtualFloorOutcomeTotals(
         allWinnersVf,

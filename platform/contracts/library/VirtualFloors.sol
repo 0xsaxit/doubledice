@@ -35,9 +35,9 @@ library VirtualFloors {
             }
         } else if (_internalState == VirtualFloorInternalState.ResolvedWinners) {
             return VirtualFloorState.ResolvedWinners;
-        } else if (_internalState == VirtualFloorInternalState.CancelledUnresolvable) {
-            return VirtualFloorState.CancelledResolvedNoWinners;
         } else if (_internalState == VirtualFloorInternalState.CancelledResolvedNoWinners) {
+            return VirtualFloorState.CancelledResolvedNoWinners;
+        } else if (_internalState == VirtualFloorInternalState.CancelledUnresolvable) {
             return VirtualFloorState.CancelledUnresolvable;
         } else /*if (_internalState == VirtualFloorInternalState.CancelledFlagged)*/ {
             return VirtualFloorState.CancelledFlagged;

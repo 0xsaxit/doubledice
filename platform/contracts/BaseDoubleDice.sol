@@ -41,12 +41,12 @@ enum VirtualFloorInternalState {
 
     ResolvedWinners,
 
+    /// @dev The VF was resolved, but to an outcome that had 0 commitments
+    CancelledResolvedNoWinners,
+
     /// @dev At tClose there were commitments to less than 2 outcomes,
     /// so the VF could not possibly be concluded.
     CancelledUnresolvable,
-
-    /// @dev The VF was resolved, but to an outcome that had 0 commitments
-    CancelledResolvedNoWinners,
 
     /// @dev The VF was flagged by the community and cancelled by the admin
     CancelledFlagged

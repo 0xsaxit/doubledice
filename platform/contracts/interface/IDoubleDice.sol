@@ -44,7 +44,7 @@ struct VirtualFloorCreationParams {
     EncodedVirtualFloorMetadata metadata;
 }
 
-struct VirtualFloorParams {
+struct CreatedVirtualFloorParams {
     UFixed256x18 betaOpen_e18;
     UFixed256x18 creationFeeRate_e18;
     UFixed256x18 platformFeeRate_e18;
@@ -200,7 +200,7 @@ interface IDoubleDice is
 
     function getVirtualFloorCreator(uint256 virtualFloorId) external view returns (address);
 
-    function getVirtualFloorParams(uint256 virtualFloorId) external view returns (VirtualFloorParams memory);
+    function getVirtualFloorParams(uint256 virtualFloorId) external view returns (CreatedVirtualFloorParams memory);
 
     function getVirtualFloorState(uint256 virtualFloorId) external view returns (VirtualFloorState);
 

@@ -215,10 +215,10 @@ abstract contract BaseDoubleDice is
         return _vfs[vfId].creator;
     }
 
-    function getVirtualFloorParams(uint256 vfId) public view returns (VirtualFloorParams memory) {
+    function getVirtualFloorParams(uint256 vfId) public view returns (CreatedVirtualFloorParams memory) {
         VirtualFloor storage vf = _vfs[vfId];
         (uint256 minCommitmentAmount, uint256 maxCommitmentAmount) = vf.minMaxCommitmentAmounts();
-        return VirtualFloorParams({
+        return CreatedVirtualFloorParams({
             betaOpen_e18: vf.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
             creationFeeRate_e18: vf.creationFeeRate.toUFixed256x18(),
             platformFeeRate_e18: vf.platformFeeRate.toUFixed256x18(),

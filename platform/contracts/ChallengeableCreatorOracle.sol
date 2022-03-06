@@ -100,7 +100,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
     {
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.None)) revert WrongResolutionState(resolution.state);
-        VirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
+        CreatedVirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
         uint256 tResultSetMax = vfParams.tResolve + SET_WINDOW_DURATION;
         if (!(block.timestamp > tResultSetMax)) revert TooEarly();
         resolution.state = ResolutionState.Complete;
@@ -112,7 +112,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         external
         whenNotPaused
     {
-        VirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
+        CreatedVirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
         if (!(_msgSender() == vfParams.creator)) revert UnauthorizedMsgSender();
         VirtualFloorState state = getVirtualFloorState(vfId);
         if (!(state == VirtualFloorState.ClosedResolvable)) revert WrongVirtualFloorState(state);
@@ -149,7 +149,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
     {
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.Set)) revert WrongResolutionState(resolution.state);
-        VirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
+        CreatedVirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
         require(challengeOutcomeIndex < vfParams.nOutcomes);
         require(challengeOutcomeIndex != resolution.setOutcomeIndex);
         uint256 tResultChallengeMax = resolution.setTimestamp + CHALLENGE_WINDOW_DURATION;

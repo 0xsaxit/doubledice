@@ -89,3 +89,5 @@ export const generateRandomVirtualFloorId = () =>
   BigNumber.from(ethers.utils.hexlify(ethers.utils.randomBytes(8))).shl(5 * 8);
 
 export const ENCODED_DUMMY_METADATA = encodeVirtualFloorMetadata(DUMMY_METADATA);
+
+export const timestampMinuteCeil = (timestamp: number) => Math.ceil(timestamp / 60) * 60;

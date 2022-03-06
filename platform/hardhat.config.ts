@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import 'hardhat-abi-exporter';
 import 'hardhat-gas-reporter';
 import { HardhatUserConfig } from 'hardhat/types';
+import 'solidity-coverage';
 
 const dotenvResult = dotenv.config();
 if (dotenvResult.error) {

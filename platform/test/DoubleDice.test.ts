@@ -10,20 +10,22 @@ import {
   deployDoubleDice,
   deployDummyUSDCoin,
   ENCODED_DUMMY_METADATA,
+  EvmCheckpoint,
   findContractEventArgs,
   findUserCommitmentEventArgs,
   formatUsdc,
   generateRandomVirtualFloorId,
   sumOf,
+  timestampMinuteCeil,
   toFp18,
   UserCommitment
 } from '../helpers';
 import {
-  DoubleDice,
-  DummyUSDCoin,
+  DoubleDice, DummyUSDCoin,
   ResolutionState,
   ResultUpdateAction,
-  VirtualFloorCreationParamsStruct
+  VirtualFloorCreationParamsStruct,
+  VirtualFloorState
 } from '../lib/contracts';
 
 chai.use(chaiSubset);
@@ -55,6 +57,7 @@ describe('DoubleDice', function () {
   let user1Signer: SignerWithAddress;
   let user2Signer: SignerWithAddress;
   let user3Signer: SignerWithAddress;
+  let vfCreatorSigner: SignerWithAddress;
   let contract: DoubleDice;
   let tokenUSDC: DummyUSDCoin;
 
@@ -64,7 +67,8 @@ describe('DoubleDice', function () {
       feeBeneficiarySigner,
       user1Signer,
       user2Signer,
-      user3Signer
+      user3Signer,
+      vfCreatorSigner
     ] = await ethers.getSigners();
 
     tokenUSDC = await deployDummyUSDCoin(ownerSigner);
@@ -101,11 +105,13 @@ describe('DoubleDice', function () {
     await (await tokenUSDC.connect(ownerSigner).mint(user1Signer.address, $(1000))).wait();
     await (await tokenUSDC.connect(ownerSigner).mint(user2Signer.address, $(1000))).wait();
     await (await tokenUSDC.connect(ownerSigner).mint(user3Signer.address, $(1000))).wait();
+    await (await tokenUSDC.connect(ownerSigner).mint(vfCreatorSigner.address, $(1000))).wait();
 
     // Allow the contract to transfer up to 100$ from each user
     await (await tokenUSDC.connect(user1Signer).approve(contract.address, $(100))).wait();
     await (await tokenUSDC.connect(user2Signer).approve(contract.address, $(100))).wait();
     await (await tokenUSDC.connect(user3Signer).approve(contract.address, $(100))).wait();
+    await (await tokenUSDC.connect(vfCreatorSigner).approve(contract.address, $(100))).wait();
 
     const virtualFloorId = 0x123450000000000n; // lower 5 bytes must be all 00
     const betaOpen = BigNumber.from(10).pow(18).mul(13); // 1 unit per hour
@@ -117,6 +123,10 @@ describe('DoubleDice', function () {
 
     {
       await (await contract.adjustCreationQuotas([{ creator: ownerSigner.address, relativeAmount: 1 }])).wait();
+    }
+
+    {
+      await (await contract.adjustCreationQuotas([{ creator: vfCreatorSigner.address, relativeAmount: 1000 }])).wait();
     }
 
     const allUserCommitments: UserCommitment[] = [];
@@ -365,8 +375,6 @@ describe('DoubleDice', function () {
         // const asdf = sumOf(...outcomeTotals.map(({ weightedAmount }) => weightedAmount))
       }
     }
-    console.log('end');
-
   });
 
   describe('Create Virtual Floor', function () {
@@ -546,6 +554,235 @@ describe('DoubleDice', function () {
       };
 
       await expect(contract.createVirtualFloor(params)).to.be.revertedWith('DuplicateVirtualFloorId()');
+    });
+  });
+
+  describe('Commit To Virtual Floor', function () {
+    // Random virtual floor for each test case
+    let virtualFloorId: BigNumberish;
+    const tOpen = toTimestamp('2032-01-01T12:00:00');
+    const tClose = toTimestamp('2033-01-01T12:00:00');
+    const tResolve = toTimestamp('2033-01-10T00:00:00');
+    const nOutcomes = 3;
+    const bonusAmount = 0;
+    const betaOpen_e18 = BigNumber.from(10)
+      .pow(18)
+      .mul(13); // 1 unit per hour
+
+
+    const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumber =>
+      BigNumber.from(1000000)
+        .mul(dollars)
+        .add(millionths);
+
+    const outcomeIndex = 0;
+    const amount = $(10);
+    const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
+
+    let virtualFloorCreationParams: VirtualFloorCreationParamsStruct;
+
+    beforeEach(async () => {
+      virtualFloorId = generateRandomVirtualFloorId();
+
+      virtualFloorCreationParams = {
+        virtualFloorId,
+        betaOpen_e18,
+        creationFeeRate_e18,
+        tOpen,
+        tClose,
+        tResolve,
+        nOutcomes,
+        paymentToken: tokenUSDC.address,
+        bonusAmount,
+        optionalMinCommitmentAmount: 0,
+        optionalMaxCommitmentAmount: 0,
+        metadata: ENCODED_DUMMY_METADATA,
+      };
+
+      await (
+        await contract.connect(vfCreatorSigner).createVirtualFloor(virtualFloorCreationParams)
+      ).wait();
+    });
+
+    it('Should revert if virtualFloorId doesn’t exist', async function () {
+      const randomVirtualFloorId = '0x00000000000000000000000000000000000000000000000000dead0000000000';
+      const outcomeIndex = 0;
+      const amount = $(10);
+
+      await expect(
+        contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(randomVirtualFloorId, outcomeIndex, amount)
+      ).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.None})`);
+    });
+
+    it('Should revert if virtual Floor is closed', async function () {
+      const checkpoint = await EvmCheckpoint.create();
+      await setNextBlockTimestamp('2033-01-02T13:00:00');
+
+      await expect(
+        contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
+      ).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.ClosedUnresolvable})`);
+      await checkpoint.revertTo();
+    });
+
+    it('Should revert if outcome index provided is out of options set for VF', async function () {
+      const wrongOutComeIndex = 3;
+      await expect(
+        contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(virtualFloorId, wrongOutComeIndex, amount)
+      ).to.be.revertedWith('OutcomeIndexOutOfRange()');
+    });
+
+    it('Should revert if amount is zero', async function () {
+      const wrongAmount = $(0);
+      await expect(
+        contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(virtualFloorId, outcomeIndex, wrongAmount)
+      ).to.be.revertedWith('CommitmentAmountOutOfRange()');
+    });
+
+    it('Should revert if enough allowance was not granted', async function () {
+      const amountBiggerThanAllowance = $(200);
+      await expect(
+        contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(
+            virtualFloorId,
+            outcomeIndex,
+            amountBiggerThanAllowance
+          )
+      ).to.be.revertedWith('ERC20: insufficient allowance');
+    });
+
+    it('Should commit successfully if right parameters passed and as well emit right event with right parameters', async function () {
+      const { events } = await (
+        await contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
+      ).wait();
+
+      const userCommitmentEventArgs = findUserCommitmentEventArgs(events);
+
+      expect(userCommitmentEventArgs.virtualFloorId).to.eq(virtualFloorId);
+      expect(userCommitmentEventArgs.outcomeIndex).to.eq(outcomeIndex);
+      expect(userCommitmentEventArgs.amount).to.eq(amount);
+    });
+
+    it('Should transfer the amount to the contract address', async function () {
+      const balanceOfContractBeforeCommit = await tokenUSDC.balanceOf(
+        contract.address
+      );
+      await (
+        await contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
+      ).wait();
+      const balanceOfContractAfterCommit = await tokenUSDC.balanceOf(
+        contract.address
+      );
+      expect(
+        balanceOfContractAfterCommit.sub(balanceOfContractBeforeCommit)
+      ).to.be.eq(amount);
+    });
+
+    it('Should generate unique token id for the granularity level of time slot duration after open time', async function () {
+      const virtualFloorId1 = generateRandomVirtualFloorId();
+
+      const { timestamp } = await ethers.provider.getBlock('latest');
+
+      const _tOpen = timestampMinuteCeil(timestamp + 60);
+      const tCommitment1 = timestampMinuteCeil(_tOpen + 3 * 60);
+      const tCommitment2 = timestampMinuteCeil(_tOpen + 6 * 60);
+
+      await (
+        await contract.createVirtualFloor({
+          ...virtualFloorCreationParams,
+          virtualFloorId: virtualFloorId1,
+          tOpen: _tOpen,
+          paymentToken: tokenUSDC.address,
+        })
+      ).wait();
+
+
+      await setNextBlockTimestamp(tCommitment1);
+
+      const { events: commitment1Events, blockHash: blockHash1 } = await (
+        await contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(virtualFloorId1, outcomeIndex, amount)
+      ).wait();
+      const commitment1EventArgs = findUserCommitmentEventArgs(
+        commitment1Events
+      );
+
+      expect((await ethers.provider.getBlock(blockHash1)).timestamp).to.eq(tCommitment1);
+
+
+      await setNextBlockTimestamp(tCommitment2);
+
+      const { events: commitment2Events, blockHash: blockHash2 } = await (
+        await contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(virtualFloorId1, outcomeIndex, amount)
+      ).wait();
+      const commitment2EventArgs = findUserCommitmentEventArgs(
+        commitment2Events
+      );
+
+      expect((await ethers.provider.getBlock(blockHash2)).timestamp).to.eq(tCommitment2);
+
+
+      expect(commitment2EventArgs.tokenId).to.be.not.eq(
+        commitment1EventArgs.tokenId
+      );
+    });
+
+    it('Should revert if the amount passed is more than the limit uint256', async function () {
+      const amountExceedUint256Limit = 2n ** 256n + 1n;
+
+      await expect(
+        contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(
+            virtualFloorId,
+            outcomeIndex,
+            amountExceedUint256Limit
+          )
+      ).to.be.reverted;
+    });
+
+    it('Should revert if the weighted amount passed the max limit of uint256', async function () {
+      const amountExceedUint256Limit = 2n ** 256n;
+
+      await expect(
+        contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(
+            virtualFloorId,
+            outcomeIndex,
+            amountExceedUint256Limit
+          )
+      ).to.be.reverted;
+    });
+
+    it('Should mint token commitment for the user', async function () {
+      const { events } = await (
+        await contract
+          .connect(user1Signer)
+          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
+      ).wait();
+      const userCommitmentEventArgs = findUserCommitmentEventArgs(events);
+
+      const mintedTokenAmount = await contract.balanceOf(
+        user1Signer.address,
+        userCommitmentEventArgs.tokenId
+      );
+      expect(mintedTokenAmount).to.be.eq(amount);
     });
   });
 });

@@ -869,13 +869,15 @@ describe('DoubleDice', function () {
 
       await (await contract.connect(vfCreatorSigner).setResult(virtualFloorId2, 1)).wait();
       await evm.setNextBlockTimestamp('2033-01-10T01:10:00');
-
+      const challengerBalanceBeforeResolution = await tokenUSDC.balanceOf(user3Signer.address);
       const { events } = await (await contract.connect(user3Signer).challengeSetResult(virtualFloorId2, 2)).wait();
       const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      const challengerBalanceAfterResolution = await tokenUSDC.balanceOf(user3Signer.address);
       expect(vfId).to.eq(virtualFloorId2);
       expect(operator).to.eq(user3Signer.address);
       expect(action).to.eq(ResultUpdateAction.SomeoneChallengedSetResult);
       expect(outcomeIndex).to.eq(2);
+      expect(challengerBalanceAfterResolution).to.be.lt(challengerBalanceBeforeResolution);
     });
 
     it('Confirm unchallenged result by anyone after 1 hour', async function () {
@@ -893,14 +895,68 @@ describe('DoubleDice', function () {
       await expect(contract.connect(vfCreatorSigner).finalizeChallenge(virtualFloorId2, 2)).to.be.revertedWith(`AccessControl: account ${vfCreatorSigner.address.toLowerCase()} is missing role 0x0000000000000000000000000000000000000000000000000000000000000000`);
     });
 
-    it('Should finalize set result', async function () {
+    it('Should finalize set result to favor challenger', async function () {
       const checkpoint = await EvmCheckpoint.create();
       await evm.setNextBlockTimestamp('2033-01-11T00:00:00');
+      const challengerBalanceBeforeResolution = await tokenUSDC.balanceOf(user3Signer.address);
+      const VFCreatorBalanceBeforeResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
       const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(virtualFloorId2, 2)).wait();
       const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      const challengerBalanceAfterResolution = await tokenUSDC.balanceOf(user3Signer.address);
+      const VFCreatorBalanceAfterResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
       expect(vfId).to.eq(virtualFloorId2);
       expect(operator).to.eq(ownerSigner.address);
       expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
+      expect(outcomeIndex).to.eq(2);
+      expect(challengerBalanceAfterResolution).to.be.gt(challengerBalanceBeforeResolution);
+      expect(VFCreatorBalanceAfterResolution).to.eq(VFCreatorBalanceBeforeResolution);
+      await checkpoint.revertTo();
+    });
+
+    it('Should finalize set result to favor vf creator', async function () {
+      const checkpoint = await EvmCheckpoint.create();
+      await evm.setNextBlockTimestamp('2033-01-11T00:00:00');
+      const challengerBalanceBeforeResolution = await tokenUSDC.balanceOf(user3Signer.address);
+      const VFCreatorBalanceBeforeResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
+      const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(virtualFloorId2, 1)).wait();
+      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      const challengerBalanceAfterResolution = await tokenUSDC.balanceOf(user3Signer.address);
+      const VFCreatorBalanceAfterResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
+      expect(vfId).to.eq(virtualFloorId2);
+      expect(operator).to.eq(ownerSigner.address);
+      expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
+      expect(outcomeIndex).to.eq(1);
+      expect(challengerBalanceBeforeResolution).to.eq(challengerBalanceAfterResolution);
+      expect(VFCreatorBalanceAfterResolution).to.be.gt(VFCreatorBalanceBeforeResolution);
+      await checkpoint.revertTo();
+    });
+
+    it('Should finalize set result to favor no one', async function () {
+      const checkpoint = await EvmCheckpoint.create();
+      await evm.setNextBlockTimestamp('2033-01-11T00:00:00');
+      const challengerBalanceBeforeResolution = await tokenUSDC.balanceOf(user3Signer.address);
+      const VFCreatorBalanceBeforeResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
+      const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(virtualFloorId2, 0)).wait();
+      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      const challengerBalanceAfterResolution = await tokenUSDC.balanceOf(user3Signer.address);
+      const VFCreatorBalanceAfterResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
+      expect(vfId).to.eq(virtualFloorId2);
+      expect(operator).to.eq(ownerSigner.address);
+      expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
+      expect(outcomeIndex).to.eq(0);
+      expect(challengerBalanceBeforeResolution).to.eq(challengerBalanceAfterResolution);
+      expect(VFCreatorBalanceAfterResolution).to.eq(VFCreatorBalanceBeforeResolution);
+      await checkpoint.revertTo();
+    });
+
+    it('Should let platform admin set result that was not set by vf owner', async function () {
+      const checkpoint = await EvmCheckpoint.create();
+      await evm.setNextBlockTimestamp('2033-01-12T01:10:00');
+      const { events } = await (await contract.connect(ownerSigner).finalizeUnsetResult(virtualFloorId3, 2)).wait();
+      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      expect(vfId).to.eq(virtualFloorId3);
+      expect(operator).to.eq(ownerSigner.address);
+      expect(action).to.eq(ResultUpdateAction.AdminFinalizedUnsetResult);
       expect(outcomeIndex).to.eq(2);
       await checkpoint.revertTo();
     });

@@ -55,22 +55,22 @@ enum VirtualFloorInternalState {
 
 struct VirtualFloor {
 
-    // Storage slot 0: Written to during createVirtualFloor, only read from thereafter
-    uint8 nOutcomes;                      // +  1 byte
-    uint32 tOpen;                         // +  4 bytes
-    uint32 tClose;                        // +  4 bytes 
-    uint32 tResolve;                      // +  4 bytes
-    UFixed32x6 betaOpenMinusBetaClose;    // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000.000000
-    UFixed16x4 creationFeeRate;           // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    UFixed16x4 platformFeeRate;           // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    AddressWhitelistKey _paymentTokenKey; // + 10 bytes
-                                          // = 31 bytes => packed into 1 32-byte slot
+    // Storage slot 0
+    address creator; //   20 bytes
+    uint32 tOpen;    // +  4 bytes
+    uint32 tClose;   // +  4 bytes 
+    uint32 tResolve; // +  4 bytes
+                     // = 32 bytes => packed into 1 32-byte slot
 
-    // Storage slot 1: Slot written to during createVirtualFloor, and updated throughout VF lifecycle
-    address creator;                          //   20 bytes
+    // Storage slot 1
+    UFixed32x6 betaOpenMinusBetaClose;        // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000.000000
+    UFixed16x4 creationFeeRate;               // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
+    UFixed16x4 platformFeeRate;               // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
+    uint8 nOutcomes;                          // +  1 byte
     VirtualFloorInternalState _internalState; // +  1 byte
     uint8 nonzeroOutcomeCount;                // +  1 byte  ; number of outcomes having aggregate commitments > 0
-                                              // = 22 bytes => packed into 1 32-byte slot
+    AddressWhitelistKey _paymentTokenKey;     // + 10 bytes
+                                              // = 21 bytes => packed into 1 32-byte slot
 
     // Storage slot 2: Not written to, but used in calculation of outcome-specific slots
     // Note: A fixed-length array is used to not an entire 32-byte slot to write array-length,

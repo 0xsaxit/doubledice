@@ -390,7 +390,7 @@ abstract contract BaseDoubleDice is
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
             VirtualFloorState state = _vfs[id.extractVirtualFloorId()].state();
-            if (state != VirtualFloorState.Active_Closed_ResolvableLater) {
+            if (!(state == VirtualFloorState.Active_Open_ResolvableLater || state == VirtualFloorState.Active_Closed_ResolvableLater)) {
                 revert CommitmentBalanceTransferRejection(id, state);
             }
         }

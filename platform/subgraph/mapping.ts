@@ -413,7 +413,7 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
     adjustUserConcurrentVirtualFloors($.owner, -1);
 
     switch (event.params.resolutionType) {
-      case VirtualFloorResolutionType.CancelledNoWinners:
+      case VirtualFloorResolutionType.NoWinners:
         $.state = 'CANCELLED_BECAUSE_RESOLVED_NO_WINNERS';
         break;
       case VirtualFloorResolutionType.Winners:

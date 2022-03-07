@@ -37,7 +37,7 @@ describe('Check manual Solidity-enum-type TypeScript analogs against actual valu
   it('VirtualFloorResolutionType', async () => {
     const lib = await new VirtualFloorResolutionTypeWrapper__factory(signer).deploy();
     await lib.deployed();
-    expect(VirtualFloorResolutionType.CancelledNoWinners).to.eq(await lib.CancelledNoWinners());
+    expect(VirtualFloorResolutionType.NoWinners).to.eq(await lib.NoWinners());
     expect(VirtualFloorResolutionType.Winners).to.eq(await lib.Winners());
   });
 

@@ -460,7 +460,7 @@ abstract contract BaseDoubleDice is
             // i.e. to withdraw the current ERC-1155 balance as ERC-20 tokens.
             // Neither the creator nor the platform take any fees in this circumstance.
             vf._internalState = VirtualFloorInternalState.Claimable_Refunds;
-            resolutionType = VirtualFloorResolutionType.CancelledNoWinners;
+            resolutionType = VirtualFloorResolutionType.NoWinners;
             platformFeeAmount = 0;
             creatorFeeAmount = 0;
             totalWinnerProfits = 0;

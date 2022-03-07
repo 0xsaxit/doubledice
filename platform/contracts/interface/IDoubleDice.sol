@@ -71,10 +71,9 @@ enum VirtualFloorState {
 }
 
 enum VirtualFloorResolutionType {
-    CancelledNoWinners,
+    NoWinners,
     Winners
 }
-
 
 error UnauthorizedMsgSender();
 

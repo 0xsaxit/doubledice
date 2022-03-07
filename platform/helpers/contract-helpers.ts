@@ -120,9 +120,9 @@ export class DoubleDicePlatformHelper {
     const rx1 = await (await this.contract.connect(signer).setResult(vfId, ...otherArgs)).wait();
 
     // ToDo: Contract should store tChallengeMax directly, instead of storing setTimestamp
-    const { setTimestamp } = await this.contract.resolutions(vfId);
+    const { tResultChallengeMax } = await this.contract.resolutions(vfId);
     const CHALLENGE_WINDOW_DURATION = await this.contract.CHALLENGE_WINDOW_DURATION();
-    const tChallengeMax = BigNumber.from(setTimestamp).add(CHALLENGE_WINDOW_DURATION.mul(2));
+    const tChallengeMax = BigNumber.from(tResultChallengeMax).add(CHALLENGE_WINDOW_DURATION);
 
     await evm.setNextBlockTimestamp(tChallengeMax);
 

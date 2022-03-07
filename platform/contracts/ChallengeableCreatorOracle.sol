@@ -27,8 +27,8 @@ enum ResolutionState {
 
 struct Resolution {
     ResolutionState state;
-    uint32 setTimestamp;
     uint8 setOutcomeIndex;
+    uint32 tResultChallengeMax;
     uint8 challengeOutcomeIndex;
     address challenger;
 }
@@ -123,7 +123,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         uint256 tResultSetMax = vfParams.tResolve + SET_WINDOW_DURATION;
         if (!(block.timestamp <= tResultSetMax)) revert TooLate();
         if (!(setOutcomeIndex < vfParams.nOutcomes)) revert OutcomeIndexOutOfRange();
-        resolution.setTimestamp = block.timestamp.toUint32();
+        resolution.tResultChallengeMax = (block.timestamp + CHALLENGE_WINDOW_DURATION).toUint32();
         resolution.setOutcomeIndex = setOutcomeIndex;
         resolution.state = ResolutionState.Set;
         emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.CreatorSetResult, setOutcomeIndex);
@@ -137,8 +137,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
     {
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.Set)) revert WrongResolutionState(resolution.state);
-        uint256 tResultChallengeMax = resolution.setTimestamp + CHALLENGE_WINDOW_DURATION;
-        if (!(block.timestamp > tResultChallengeMax)) revert TooEarly();
+        if (!(block.timestamp > resolution.tResultChallengeMax)) revert TooEarly();
         resolution.state = ResolutionState.Complete;
         address creatorFeeBeneficiary = getVirtualFloorCreator(vfId);
         emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.SomeoneConfirmedUnchallengedResult, resolution.setOutcomeIndex);
@@ -154,8 +153,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         CreatedVirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
         if (!(challengeOutcomeIndex < vfParams.nOutcomes)) revert OutcomeIndexOutOfRange();
         if (!(challengeOutcomeIndex != resolution.setOutcomeIndex)) revert ChallengeOutcomeIndexEqualToSet();
-        uint256 tResultChallengeMax = resolution.setTimestamp + CHALLENGE_WINDOW_DURATION;
-        if (!(block.timestamp <= tResultChallengeMax)) revert TooLate();
+        if (!(block.timestamp <= resolution.tResultChallengeMax)) revert TooLate();
         _bondUsdErc20Token.safeTransferFrom(_msgSender(), address(this), _bondAmount());
         resolution.challengeOutcomeIndex = challengeOutcomeIndex;
         resolution.challenger = _msgSender();

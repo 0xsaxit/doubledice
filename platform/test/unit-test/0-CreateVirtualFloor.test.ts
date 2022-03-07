@@ -5,9 +5,11 @@ import { ethers } from 'hardhat';
 import {
   deployDoubleDice,
   deployDummyUSDCoin,
+  DUMMY_METADATA,
   ENCODED_DUMMY_METADATA,
+  EvmCheckpoint,
+  EvmHelper,
   findContractEventArgs,
-  generateRandomVirtualFloorId,
   SignerWithAddress,
   toFp18,
   toTimestamp
@@ -16,6 +18,7 @@ import {
   DoubleDice,
   DummyUSDCoin,
   DummyWrappedBTC,
+  encodeVirtualFloorMetadata,
   VirtualFloorCreationParamsStruct
 } from '../../lib/contracts';
 
@@ -25,15 +28,29 @@ const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
 describe('DoubleDice/Create', function () {
   let ownerSigner: SignerWithAddress;
+  let secondCreator: SignerWithAddress;
   let platformFeeBeneficiarySigner: SignerWithAddress;
   let contract: DoubleDice;
   let token: DummyUSDCoin | DummyWrappedBTC;
-  let paymentTokenAddress: string;
+  let evm: EvmHelper;
+  let checkpoint: EvmCheckpoint;
+  const virtualFloorId = '0x0000000000000000000000000000000000000000000000000123450000000000';
+  const tOpen = toTimestamp('2032-01-01T00:00:00');
+  const tClose = toTimestamp('2032-01-01T12:00:00');
+  const tResolve = toTimestamp('2032-01-02T00:00:00');
+  const nOutcomes = 3;
+  const betaOpen_e18 = BigNumber.from(10)
+    .pow(18)
+    .mul(13); // 1 unit per hour
+  let vfParams: VirtualFloorCreationParamsStruct;
 
-  before(async function () {
+  before(async () => {
+    evm = new EvmHelper(ethers.provider);
+
     [
       ownerSigner,
       platformFeeBeneficiarySigner,
+      secondCreator
     ] = await ethers.getSigners();
 
     // Deploy USDC Token
@@ -69,22 +86,9 @@ describe('DoubleDice/Create', function () {
       expect(
         await contract.isPaymentTokenWhitelisted(token.address)
       ).to.be.true;
-      paymentTokenAddress = token.address;
     }
-  });
 
-  describe('Create Virtual Floor', function () {
-    const virtualFloorId =
-      '0x0000000000000000000000000000000000000000000000000123450000000000';
-    const tOpen = toTimestamp('2022-06-01T12:00:00');
-    const tClose = toTimestamp('2032-01-01T12:00:00');
-    const tResolve = toTimestamp('2032-01-02T00:00:00');
-    const nOutcomes = 3;
-    const betaOpen_e18 = BigNumber.from(10)
-      .pow(18)
-      .mul(13); // 1 unit per hour
-
-    const virtualFloorCreationParams: VirtualFloorCreationParamsStruct = {
+    vfParams = {
       virtualFloorId,
       betaOpen_e18,
       creationFeeRate_e18,
@@ -92,159 +96,108 @@ describe('DoubleDice/Create', function () {
       tClose,
       tResolve,
       nOutcomes,
-      paymentToken: paymentTokenAddress,
+      paymentToken: token.address,
       bonusAmount: 0,
       optionalMinCommitmentAmount: 0,
       optionalMaxCommitmentAmount: 0,
       metadata: ENCODED_DUMMY_METADATA,
     };
 
-    it('Should revert if time closure for vpf used in the past', async function () {
-      const pastTOpenTime = toTimestamp('2020-01-01T11:00:00');
-      const pastClosureTime = toTimestamp('2021-01-01T12:00:00');
-      await expect(
-        contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          tOpen: pastTOpenTime,
-          tClose: pastClosureTime,
-          paymentToken: paymentTokenAddress,
-        })
-      ).to.be.reverted;
+    checkpoint = await EvmCheckpoint.create();
+  });
+
+  describe('tOpen < tClose <= tResolve', () => {
+    beforeEach(async () => {
+      await evm.setNextBlockTimestamp(tOpen);
     });
-
-    it('Should revert if resolve time used in the past', async function () {
-      const pastResolveTime = toTimestamp('2021-01-01T12:00:00');
-      await expect(
-        contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          tResolve: pastResolveTime,
-          paymentToken: paymentTokenAddress,
-        })
-      ).to.be.reverted;
+    describe('tOpen < tClose', () => {
+      it('tClose < tOpen reverts', async () => {
+        await expect(contract.createVirtualFloor({ ...vfParams, tClose: tOpen - 1 })).to.be.revertedWith('InvalidTimeline()');
+      });
+      it('tClose == tOpen reverts', async () => {
+        await expect(contract.createVirtualFloor({ ...vfParams, tClose: tOpen })).to.be.revertedWith('InvalidTimeline()');
+      });
+      it('tClose > tOpen succeeds', async () => {
+        await expect(contract.createVirtualFloor({ ...vfParams, tClose: tOpen + 1 })).to.emit(contract, 'VirtualFloorCreation');
+      });
     });
-
-    it('Should revert if closure and resolve time are the same', async function () {
-      const closureTime = toTimestamp('2021-01-01T12:00:00');
-      const resolveTime = toTimestamp('2021-01-01T12:00:00');
-      await expect(
-        contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          tClose: closureTime,
-          tResolve: resolveTime,
-          paymentToken: paymentTokenAddress,
-        })
-      ).to.be.reverted;
-    });
-
-    it('Should revert if closure time is later than resolve time', async function () {
-      const greaterThanResolveTime = toTimestamp('2032-01-03T00:00:00');
-      await expect(
-        contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          tClose: greaterThanResolveTime,
-          paymentToken: paymentTokenAddress,
-        })
-      ).to.be.reverted;
-    });
-
-    it('Should revert if outcome provided is less than 2', async function () {
-      await expect(
-        contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          nOutcomes: 1,
-          paymentToken: paymentTokenAddress,
-        })
-      ).to.be.revertedWith('NotEnoughOutcomes()');
-    });
-
-    it('Should revert if betaOpen is greater than 1e18', async function () {
-      const betaOpenGreaterThan1e18 = BigNumber.from(1).pow(19);
-
-      const _virtualFloorId = generateRandomVirtualFloorId();
-
-      await expect(
-        contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          virtualFloorId: _virtualFloorId,
-          betaOpen_e18: betaOpenGreaterThan1e18,
-          paymentToken: paymentTokenAddress,
-        })
-      ).to.be.revertedWith('BetaOpenTooSmall()');
-    });
-
-    it('Should revert when beta is equal to 1e18', async function () {
-      const betaOpenGreaterThan1e18 = BigNumber.from(1).pow(18);
-      await expect(
-        contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          betaOpen_e18: betaOpenGreaterThan1e18,
-          paymentToken: paymentTokenAddress,
-        })
-      ).to.be.revertedWith('BetaOpenTooSmall()');
-    });
-
-    // We can not test this on a test evm since transaction get mined almost instantly
-    it.skip('Assert creation to happen up to 10% into the open period', async function () {
-      const _tOpen = toTimestamp('2022-06-01T11:01:00');
-      const _tClose = toTimestamp('2022-06-01T11:02:00');
-
-      await expect(
-        contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          tOpen: _tOpen,
-          tClose: _tClose,
-          paymentToken: paymentTokenAddress,
-        })
-      ).to.be.revertedWith('Error: t >= 10% into open period');
-    });
-
-    it.skip('Should mint 1 virtual Id based token to owner', async function () {
-      console.log(`quota = ${await contract.creationQuotas(ownerSigner.address)}`);
-
-      const { events } = await (
-        await contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          paymentToken: paymentTokenAddress,
-        })
-      ).wait();
-
-      const virtualFloorIdBasedTokenBalance = await contract.balanceOf(
-        ownerSigner.address,
-        virtualFloorId
-      );
-      expect(virtualFloorIdBasedTokenBalance).to.eq(BigNumber.from(1));
-    });
-
-    it('Should create VF if right arguments passed', async function () {
-      const _virtualFloorId = generateRandomVirtualFloorId();
-
-      console.log(`quota = ${await contract.creationQuotas(ownerSigner.address)}`);
-
-      const { events } = await (
-        await contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          virtualFloorId: _virtualFloorId,
-          paymentToken: paymentTokenAddress,
-        })
-      ).wait();
-
-      const virtualFloorCreationEventArgs = findContractEventArgs(
-        events,
-        'VirtualFloorCreation'
-      );
-      expect(virtualFloorCreationEventArgs.virtualFloorId).to.eq(
-        BigNumber.from(_virtualFloorId)
-      );
-    });
-
-    it('Should revert if VF with same id created before', async function () {
-      const params: VirtualFloorCreationParamsStruct = {
-        ...virtualFloorCreationParams,
-        paymentToken: paymentTokenAddress,
-      };
-      await (await contract.createVirtualFloor(params)).wait();
-      await expect(contract.createVirtualFloor(params)).to.be.revertedWith('DuplicateVirtualFloorId()');
+    describe('tClose <= tResolve', () => {
+      it('tResolve < tClose reverts', async () => {
+        await expect(contract.createVirtualFloor({ ...vfParams, tResolve: tClose - 1 })).to.be.revertedWith('InvalidTimeline()');
+      });
+      it('tResolve == tClose succeeds', async () => {
+        await expect(contract.createVirtualFloor({ ...vfParams, tResolve: tClose })).to.emit(contract, 'VirtualFloorCreation');
+      });
+      it('tResolve > tClose succeeds', async () => {
+        await expect(contract.createVirtualFloor({ ...vfParams, tResolve: tClose + 1 })).to.emit(contract, 'VirtualFloorCreation');
+      });
     });
   });
 
+  it('nOutcomes > 2', async () => {
+    await expect(contract.createVirtualFloor({ ...vfParams, nOutcomes: 1 })).to.be.revertedWith('NotEnoughOutcomes()');
+    await expect(contract.createVirtualFloor({
+      ...vfParams,
+      nOutcomes: 2,
+      metadata: encodeVirtualFloorMetadata({
+        ...DUMMY_METADATA,
+        outcomes: { titles: DUMMY_METADATA.outcomes.titles.slice(0, 2) }
+      })
+    })).to.emit(contract, 'VirtualFloorCreation');
+  });
+
+  it('betaOpen >= 1.0', async () => {
+    await expect(contract.createVirtualFloor({ ...vfParams, betaOpen_e18: 999999_999999_999999n })).to.be.revertedWith('BetaOpenTooSmall()');
+    await expect(contract.createVirtualFloor({ ...vfParams, betaOpen_e18: 1_000000_000000_000000n })).to.emit(contract, 'VirtualFloorCreation');
+  });
+
+  it('creationFeeRate <= 1.0', async () => {
+    await expect(contract.createVirtualFloor({ ...vfParams, creationFeeRate_e18: 1_000000_000000_000001n })).to.be.revertedWith('CreationFeeRateTooLarge()');
+    await expect(contract.createVirtualFloor({ ...vfParams, creationFeeRate_e18: 1_000000_000000_000000n })).to.emit(contract, 'VirtualFloorCreation');
+  });
+
+  it('Creation must happen up to 10% into the Running period', async () => {
+
+    const params = {
+      ...vfParams,
+      tOpen: toTimestamp('2032-01-30T00:00:00'),
+      tClose: toTimestamp('2032-01-30T10:00:00'), // 10 hours later
+      tResolve: toTimestamp('2032-01-30T12:00:00')
+    };
+
+    const localCheckpoint = await EvmCheckpoint.create();
+
+    const tCreateMax = toTimestamp('2032-01-30T01:00:00');
+
+    evm.setNextBlockTimestamp(tCreateMax + 1);
+    await expect(contract.createVirtualFloor(params)).to.be.revertedWith('TooLate()');
+    await localCheckpoint.revertTo();
+
+    evm.setNextBlockTimestamp(tCreateMax);
+    const { events } = await (await contract.createVirtualFloor(params)).wait();
+    const { virtualFloorId } = findContractEventArgs(events, 'VirtualFloorCreation');
+    expect(virtualFloorId).to.eq(params.virtualFloorId);
+    await localCheckpoint.revertTo();
+  });
+
+  it('Should assign creator correctly', async () => {
+    await (await contract.connect(ownerSigner).adjustCreationQuotas([{ creator: secondCreator.address, relativeAmount: 1 }])).wait();
+    await (await contract.connect(secondCreator).createVirtualFloor(vfParams)).wait();
+    expect(await contract.getVirtualFloorCreator(virtualFloorId)).to.eq(secondCreator.address);
+  });
+
+  it('Should create VF if right arguments passed', async () => {
+    const { events } = await (await contract.createVirtualFloor(vfParams)).wait();
+    const virtualFloorCreationEventArgs = findContractEventArgs(events, 'VirtualFloorCreation');
+    expect(virtualFloorCreationEventArgs.virtualFloorId).to.eq(virtualFloorId);
+  });
+
+  it('Should revert if VF with same id created before', async () => {
+    await (await contract.createVirtualFloor(vfParams)).wait();
+    await expect(contract.createVirtualFloor(vfParams)).to.be.revertedWith('DuplicateVirtualFloorId()');
+  });
+
+  afterEach(async () => {
+    await checkpoint.revertTo();
+  });
 });

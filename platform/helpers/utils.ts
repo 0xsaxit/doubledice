@@ -113,7 +113,7 @@ export const ENCODED_DUMMY_METADATA = encodeVirtualFloorMetadata(DUMMY_METADATA)
 
 export const timestampMinuteCeil = (timestamp: number) => Math.ceil(timestamp / 60) * 60;
 
-export const toTimestamp = (datetime: string): BigNumber => BigNumber.from(new Date(datetime).getTime() / 1000);
+export const toTimestamp = (datetime: string): number => BigNumber.from(new Date(datetime).getTime() / 1000).toNumber();
 
 export function tokenIdOf({ vfId, outcomeIndex, timeslot }: { vfId: BigNumberish; outcomeIndex: number; timeslot: BigNumberish }): BigNumber {
   return BigNumber.from(ethers.utils.solidityPack(

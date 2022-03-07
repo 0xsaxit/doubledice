@@ -280,7 +280,7 @@ describe('DoubleDice/Commit', function () {
     it('Should generate same token ID if the commitment is before open time', async function () {
       const localCheckpoint = await EvmCheckpoint.create();
 
-      await evm.setNextBlockTimestamp(tOpen.toNumber() - 10 * 60);
+      await evm.setNextBlockTimestamp(tOpen - 10 * 60);
 
       const { events: commitment1Events } = await (
         await contract
@@ -291,7 +291,7 @@ describe('DoubleDice/Commit', function () {
         commitment1Events
       );
 
-      await evm.setNextBlockTimestamp(tOpen.toNumber() - 5 * 60);
+      await evm.setNextBlockTimestamp(tOpen - 5 * 60);
 
       const { events: commitment2Events } = await (
         await contract

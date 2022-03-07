@@ -234,8 +234,8 @@ describe('DoubleDice', function () {
     const betaAt = (datetime: string) => {
       const betaClose = BigNumber.from(10).pow(18);
       const dB = betaOpen.sub(betaClose);
-      const dT = tClose.sub(tOpen);
-      const dt = tClose.sub(toTimestamp(datetime));
+      const dT = BigNumber.from(tClose).sub(tOpen);
+      const dt = BigNumber.from(tClose).sub(toTimestamp(datetime));
       const db = dB.mul(dt).div(dT);
       return betaClose.add(db);
     };

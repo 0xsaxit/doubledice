@@ -40,13 +40,13 @@ export class EvmHelper {
   }
 
   async setNextBlockTimestamp(datetime: string | number | BigNumber): Promise<void> {
-    let timestamp: BigNumber;
+    let timestamp: number;
     if (typeof datetime === 'string') {
       timestamp = toTimestamp(datetime);
     } else {
-      timestamp = BigNumber.from(datetime);
+      timestamp = BigNumber.from(datetime).toNumber();
     }
-    await this.provider.send('evm_setNextBlockTimestamp', [timestamp.toNumber()]);
+    await this.provider.send('evm_setNextBlockTimestamp', [timestamp]);
   }
 
 }

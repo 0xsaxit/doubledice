@@ -474,36 +474,6 @@ describe('DoubleDice', function () {
       ).to.be.revertedWith('PaymentTokenNotWhitelisted()');
     });
 
-    // We can not test this on a test evm since transaction get mined almost instantly
-    it.skip('Assert creation to happen up to 10% into the open period', async function () {
-      const _tOpen = toTimestamp('2022-06-01T11:01:00');
-      const _tClose = toTimestamp('2022-06-01T11:02:00');
-
-      await expect(
-        contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          tOpen: _tOpen,
-          tClose: _tClose,
-          paymentToken: tokenUSDC.address,
-        })
-      ).to.be.revertedWith('TooLate()');
-    });
-
-    it.skip('Should mint 1 virtual Id based token to owner', async function () {
-      const { events } = await (
-        await contract.createVirtualFloor({
-          ...virtualFloorCreationParams,
-          paymentToken: tokenUSDC.address,
-        })
-      ).wait();
-
-      const virtualFloorIdBasedTokenBalance = await contract.balanceOf(
-        ownerSigner.address,
-        virtualFloorId
-      );
-      expect(virtualFloorIdBasedTokenBalance).to.eq(BigNumber.from(1));
-    });
-
     it('Should create VF if right arguments passed', async function () {
       const { events } = await (
         await contract.createVirtualFloor({

@@ -387,6 +387,8 @@ abstract contract BaseDoubleDice is
             return;
         }
 
+        if (paused()) revert CommitmentBalanceTransferWhilePaused();
+
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
             VirtualFloorState state = _vfs[id.extractVirtualFloorId()].state();

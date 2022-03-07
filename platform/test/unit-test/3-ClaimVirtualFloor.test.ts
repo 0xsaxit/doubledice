@@ -231,7 +231,7 @@ describe('DoubleDice/Claim', function () {
     });
 
     it('Should revert if VF is on Running / Closed state', async function () {
-      await expect(contract.connect(user1Signer).claimPayouts(virtualFloorId, [DUMMY_VF_ID])).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Running})`);
+      await expect(contract.connect(user1Signer).claimPayouts(virtualFloorId, [DUMMY_VF_ID])).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
     });
 
     it.skip('Should revert if the passed outcome index is not the winning outcome', async function () {

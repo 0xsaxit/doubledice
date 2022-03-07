@@ -6,12 +6,11 @@ import "../../interface/IDoubleDice.sol";
 
 contract VirtualFloorStateWrapper {
     VirtualFloorState constant public None = VirtualFloorState.None;
-    VirtualFloorState constant public Running = VirtualFloorState.Running;
-    VirtualFloorState constant public ClosedUnresolvable = VirtualFloorState.ClosedUnresolvable;
-    VirtualFloorState constant public ClosedPreResolvable = VirtualFloorState.ClosedPreResolvable;
-    VirtualFloorState constant public ClosedResolvable = VirtualFloorState.ClosedResolvable;
-    VirtualFloorState constant public ResolvedWinners = VirtualFloorState.ResolvedWinners;
-    VirtualFloorState constant public CancelledResolvedNoWinners = VirtualFloorState.CancelledResolvedNoWinners;
-    VirtualFloorState constant public CancelledUnresolvable = VirtualFloorState.CancelledUnresolvable;
-    VirtualFloorState constant public CancelledFlagged = VirtualFloorState.CancelledFlagged;
+    VirtualFloorState constant public Active_Open_MaybeResolvableNever = VirtualFloorState.Active_Open_MaybeResolvableNever;
+    VirtualFloorState constant public Active_Open_ResolvableLater = VirtualFloorState.Active_Open_ResolvableLater;
+    VirtualFloorState constant public Active_Closed_ResolvableNever = VirtualFloorState.Active_Closed_ResolvableNever;
+    VirtualFloorState constant public Active_Closed_ResolvableLater = VirtualFloorState.Active_Closed_ResolvableLater;
+    VirtualFloorState constant public Active_Closed_ResolvableNow = VirtualFloorState.Active_Closed_ResolvableNow;
+    VirtualFloorState constant public Claimable_Payouts = VirtualFloorState.Claimable_Payouts;
+    VirtualFloorState constant public Claimable_Refunds = VirtualFloorState.Claimable_Refunds;
 }

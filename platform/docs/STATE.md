@@ -27,38 +27,41 @@ stateDiagram-v2
 
 ## On-chain `getVirtualFloorState()` return-value
 
+ResolvableNever
+ResolvableLater
+ResolvableNow
+
+
+
 ```mermaid
 stateDiagram-v2
-    state RunningOrClosed_Closed <<choice>>
     state resolutionType <<choice>>
     [*] --> None
 
-    None --> RunningOrClosed_Running: createVirtualFloor()
+    None --> Active_Open_MaybeResolvableNever: createVirtualFloor()
 
-    RunningOrClosed_* --> CancelledFlagged: cancelFlagged()
+    Active_* --> Claimable_Refunds: cancelFlagged()
 
-    RunningOrClosed_Running --> RunningOrClosed_Closed: t ≥ tClose
-    RunningOrClosed_Closed --> RunningOrClosed_ClosedUnresolvable: has commits to < 2 outcomes
-    RunningOrClosed_Closed --> RunningOrClosed_ClosedPreResolvable: has commits to ≥ 2 outcomes
+    Active_Open_MaybeResolvableNever --> Active_Open_ResolvableLater: commit() to ≥ 2 outcomes
 
-
-    RunningOrClosed_ClosedUnresolvable --> CancelledUnresolvable: cancelUnresolvable()
-    RunningOrClosed_ClosedPreResolvable --> RunningOrClosed_ClosedResolvable: t ≥ tResolve
+    Active_Open_MaybeResolvableNever --> Active_Closed_ResolvableNever: t ≥ tClose
+    Active_Open_ResolvableLater --> Active_Closed_ResolvableLater: t ≥ tClose
 
 
-
-    RunningOrClosed_ClosedResolvable --> resolutionType: _resolve()
-    resolutionType --> CancelledResolvedNoWinners: CancelledNoWinners
-    resolutionType --> ResolvedWinners: Winners
+    Active_Closed_ResolvableNever --> Claimable_Refunds: cancelUnresolvable()
+    Active_Closed_ResolvableLater --> Active_Closed_ResolvableNow: t ≥ tResolve
 
 
-    CancelledFlagged --> [*]
-    CancelledUnresolvable --> [*]
-    CancelledResolvedNoWinners --> [*]
-    ResolvedWinners --> [*]
+
+    Active_Closed_ResolvableNow --> resolutionType: _resolve()
+    resolutionType --> Claimable_Refunds: NoWinners
+    resolutionType --> Claimable_Payouts: Winners
+
+    Claimable_Refunds --> [*]
+    Claimable_Payouts --> [*]
 ```
 
-All `RunningOrClosed_*` states are represented with a single on-chain `internalState` of `RunningOrClosed`, but the `getVirtualFloorState()` function combines `internalState` with other inputs to determine the actual state.
+All `Active_*` states are represented with a single on-chain `internalState` of `RunningOrClosed`, but the `getVirtualFloorState()` function combines `internalState` with other inputs to determine the actual state.
 
 ## ChallengeableCreatorOracle
 

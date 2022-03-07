@@ -32,24 +32,9 @@ struct OutcomeTotals {
 
 enum VirtualFloorInternalState {
     None,
-
-    /// @dev Running if t < tClose else Closed
-    /// Running means that the VirtualFloor is accepting commitments
-    /// Closed means that the VirtualFloor is no longer accepting commitments,
-    /// but the associated event has not yet been resolved.
-    RunningOrClosed,
-
-    ResolvedWinners,
-
-    /// @dev The VF was resolved, but to an outcome that had 0 commitments
-    CancelledResolvedNoWinners,
-
-    /// @dev At tClose there were commitments to less than 2 outcomes,
-    /// so the VF could not possibly be concluded.
-    CancelledUnresolvable,
-
-    /// @dev The VF was flagged by the community and cancelled by the admin
-    CancelledFlagged
+    Active,            // formerly RunningOrClosed
+    Claimable_Payouts, // formerly ResolvedWinners
+    Claimable_Refunds  // formerly CancelledResolvedNoWinners | CancelledUnresolvable | CancelledFlagged
 }
 
 struct VirtualFloor {
@@ -250,7 +235,7 @@ abstract contract BaseDoubleDice is
         if (!(vf._internalState == VirtualFloorInternalState.None)) revert DuplicateVirtualFloorId();
         if (!isPaymentTokenWhitelisted(params.paymentToken)) revert PaymentTokenNotWhitelisted();
 
-        vf._internalState = VirtualFloorInternalState.RunningOrClosed;
+        vf._internalState = VirtualFloorInternalState.Active;
         vf.creator = _msgSender();
         vf.betaOpenMinusBetaClose = params.betaOpen_e18.sub(_BETA_CLOSE).toUFixed32x6();
         vf.creationFeeRate = params.creationFeeRate_e18.toUFixed16x4();
@@ -318,8 +303,7 @@ abstract contract BaseDoubleDice is
     {
         VirtualFloor storage vf = _vfs[vfId];
 
-        VirtualFloorState state = vf.state();
-        if (!(state == VirtualFloorState.Running)) revert WrongVirtualFloorState(state);
+        if (!vf.isOpen()) revert WrongVirtualFloorState(vf.state());
 
         if (!(outcomeIndex < vf.nOutcomes)) revert OutcomeIndexOutOfRange();
 
@@ -406,7 +390,7 @@ abstract contract BaseDoubleDice is
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
             VirtualFloorState state = _vfs[id.extractVirtualFloorId()].state();
-            if (state != VirtualFloorState.ClosedPreResolvable) {
+            if (state != VirtualFloorState.Active_Closed_ResolvableLater) {
                 revert CommitmentBalanceTransferRejection(id, state);
             }
         }
@@ -426,8 +410,8 @@ abstract contract BaseDoubleDice is
     {
         VirtualFloor storage vf = _vfs[vfId];
         VirtualFloorState state = vf.state();
-        if (!(state == VirtualFloorState.ClosedUnresolvable)) revert WrongVirtualFloorState(state);
-        vf._internalState = VirtualFloorInternalState.CancelledUnresolvable;
+        if (!(state == VirtualFloorState.Active_Closed_ResolvableNever)) revert WrongVirtualFloorState(state);
+        vf._internalState = VirtualFloorInternalState.Claimable_Refunds;
         emit VirtualFloorCancellationUnresolvable(vfId);
         _onVirtualFloorConclusion(vfId);
     }
@@ -437,8 +421,8 @@ abstract contract BaseDoubleDice is
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         VirtualFloor storage vf = _vfs[vfId];
-        if (!(vf._internalState == VirtualFloorInternalState.RunningOrClosed)) revert WrongVirtualFloorState(vf.state());
-        vf._internalState = VirtualFloorInternalState.CancelledFlagged;
+        if (!(vf._internalState == VirtualFloorInternalState.Active)) revert WrongVirtualFloorState(vf.state());
+        vf._internalState = VirtualFloorInternalState.Claimable_Refunds;
         emit VirtualFloorCancellationFlagged(vfId, reason);
         _onVirtualFloorConclusion(vfId);
     }
@@ -447,7 +431,7 @@ abstract contract BaseDoubleDice is
         VirtualFloor storage vf = _vfs[vfId];
 
         VirtualFloorState state = vf.state();
-        if (!(vf.state() == VirtualFloorState.ClosedResolvable)) revert WrongVirtualFloorState(state);
+        if (!(vf.state() == VirtualFloorState.Active_Closed_ResolvableNow)) revert WrongVirtualFloorState(state);
 
         if (!(winningOutcomeIndex < vf.nOutcomes)) revert OutcomeIndexOutOfRange();
 
@@ -475,7 +459,7 @@ abstract contract BaseDoubleDice is
             // to reclaim the equivalent original ERC-20 token amount,
             // i.e. to withdraw the current ERC-1155 balance as ERC-20 tokens.
             // Neither the creator nor the platform take any fees in this circumstance.
-            vf._internalState = VirtualFloorInternalState.CancelledResolvedNoWinners;
+            vf._internalState = VirtualFloorInternalState.Claimable_Refunds;
             resolutionType = VirtualFloorResolutionType.CancelledNoWinners;
             platformFeeAmount = 0;
             creatorFeeAmount = 0;
@@ -483,7 +467,7 @@ abstract contract BaseDoubleDice is
 
             vf.paymentToken.safeTransfer(vf.creator, vf.bonusAmount);
         } else {
-            vf._internalState = VirtualFloorInternalState.ResolvedWinners;
+            vf._internalState = VirtualFloorInternalState.Claimable_Payouts;
             resolutionType = VirtualFloorResolutionType.Winners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
@@ -532,7 +516,10 @@ abstract contract BaseDoubleDice is
         whenNotPaused
     {
         VirtualFloor storage vf = _vfs[vfId];
-        if (!vf.isCancelled()) revert WrongVirtualFloorState(vf.state());
+        {
+            VirtualFloorState state = vf.state();
+            if (!(state == VirtualFloorState.Claimable_Refunds)) revert WrongVirtualFloorState(state);
+        }
         address msgSender = _msgSender();
         uint256 totalPayout = 0;
         uint256[] memory amounts = new uint256[](tokenIds.length);
@@ -558,7 +545,10 @@ abstract contract BaseDoubleDice is
         whenNotPaused
     {
         VirtualFloor storage vf = _vfs[vfId];
-        if (!vf.isWon()) revert WrongVirtualFloorState(vf.state());
+        {
+            VirtualFloorState state = vf.state();
+            if (!(state == VirtualFloorState.Claimable_Payouts)) revert WrongVirtualFloorState(state);
+        }
         address msgSender = _msgSender();
         uint256 totalPayout = 0;
         uint256[] memory amounts = new uint256[](tokenIds.length);

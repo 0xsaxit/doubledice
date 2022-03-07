@@ -613,7 +613,7 @@ describe('DoubleDice', function () {
         contract
           .connect(user1Signer)
           .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
-      ).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.ClosedUnresolvable})`);
+      ).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Closed_ResolvableNever})`);
       await checkpoint.revertTo();
     });
 
@@ -837,7 +837,7 @@ describe('DoubleDice', function () {
     });
 
     it('Should revert if resolve time has not reached', async function () {
-      await expect(contract.connect(vfCreatorSigner).setResult(virtualFloorId, 0)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Running})`);
+      await expect(contract.connect(vfCreatorSigner).setResult(virtualFloorId, 0)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
     });
 
     it('Should set the VF result correctly with outcomes', async function () {

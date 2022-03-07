@@ -19,28 +19,28 @@ library VirtualFloors {
         VirtualFloorInternalState _internalState = vf._internalState;
         if (_internalState == VirtualFloorInternalState.None) {
             return VirtualFloorState.None;
-        } else if (_internalState == VirtualFloorInternalState.RunningOrClosed) {
+        } else if (_internalState == VirtualFloorInternalState.Active) {
             if (block.timestamp < vf.tClose) {
-                return VirtualFloorState.Running;
+                if (vf.nonzeroOutcomeCount >= 2) {
+                    return VirtualFloorState.Active_Open_ResolvableLater;
+                } else {
+                    return VirtualFloorState.Active_Open_MaybeResolvableNever;
+                }
             } else {
                 if (vf.nonzeroOutcomeCount >= 2) {
                     if (block.timestamp < vf.tResolve) {
-                        return VirtualFloorState.ClosedPreResolvable;
+                        return VirtualFloorState.Active_Closed_ResolvableLater;
                     } else {
-                        return VirtualFloorState.ClosedResolvable;
+                        return VirtualFloorState.Active_Closed_ResolvableNow;
                     }
                 } else {
-                    return VirtualFloorState.ClosedUnresolvable;
+                    return VirtualFloorState.Active_Closed_ResolvableNever;
                 }
             }
-        } else if (_internalState == VirtualFloorInternalState.ResolvedWinners) {
-            return VirtualFloorState.ResolvedWinners;
-        } else if (_internalState == VirtualFloorInternalState.CancelledResolvedNoWinners) {
-            return VirtualFloorState.CancelledResolvedNoWinners;
-        } else if (_internalState == VirtualFloorInternalState.CancelledUnresolvable) {
-            return VirtualFloorState.CancelledUnresolvable;
-        } else /*if (_internalState == VirtualFloorInternalState.CancelledFlagged)*/ {
-            return VirtualFloorState.CancelledFlagged;
+        } else if (_internalState == VirtualFloorInternalState.Claimable_Payouts) {
+            return VirtualFloorState.Claimable_Payouts;
+        } else /*if (_internalState == VirtualFloorInternalState.Claimable_Refunds)*/ {
+            return VirtualFloorState.Claimable_Refunds;
         }
     }
 
@@ -73,14 +73,10 @@ library VirtualFloors {
         }
     }
 
-    function isCancelled(VirtualFloor storage vf) internal view returns (bool) {
-        return vf._internalState == VirtualFloorInternalState.CancelledUnresolvable
-            || vf._internalState == VirtualFloorInternalState.CancelledResolvedNoWinners
-            || vf._internalState == VirtualFloorInternalState.CancelledFlagged;
-    }
-
-    function isWon(VirtualFloor storage vf) internal view returns (bool) {
-        return vf._internalState == VirtualFloorInternalState.ResolvedWinners;
+    /// @dev Equivalent to state == Active_Open_ResolvableLater || state == Active_Open_MaybeResolvableNever,
+    /// but ~300 gas cheaper.
+    function isOpen(VirtualFloor storage vf) internal view returns (bool) {
+        return vf._internalState == VirtualFloorInternalState.Active && block.timestamp < vf.tClose;
     }
 
 }

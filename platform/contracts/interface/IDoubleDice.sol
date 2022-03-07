@@ -61,17 +61,19 @@ struct CreatedVirtualFloorParams {
 
 enum VirtualFloorState {
     None,
-    Running,
-    ClosedUnresolvable,
-    ClosedPreResolvable,
-    ClosedResolvable,
-    ResolvedWinners,
-    CancelledResolvedNoWinners,
-    CancelledUnresolvable,
-    CancelledFlagged
+    Active_Open_MaybeResolvableNever, // formerly Running
+    Active_Open_ResolvableLater,      // formerly Running
+    Active_Closed_ResolvableNever,    // formerly ClosedUnresolvable
+    Active_Closed_ResolvableLater,    // formerly ClosedPreResolvable
+    Active_Closed_ResolvableNow,      // formerly ClosedResolvable
+    Claimable_Payouts,                // formerly ResolvedWinners
+    Claimable_Refunds                 // formerly CancelledResolvedNoWinners | CancelledUnresolvable | CancelledFlagged
 }
 
-enum VirtualFloorResolutionType { CancelledNoWinners, Winners }
+enum VirtualFloorResolutionType {
+    CancelledNoWinners,
+    Winners
+}
 
 
 error UnauthorizedMsgSender();

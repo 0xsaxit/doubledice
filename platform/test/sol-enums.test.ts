@@ -23,15 +23,15 @@ describe('Check manual Solidity-enum-type TypeScript analogs against actual valu
   it('VirtualFloorState', async () => {
     const lib = await new VirtualFloorStateWrapper__factory(signer).deploy();
     await lib.deployed();
+
     expect(VirtualFloorState.None).to.eq(await lib.None());
-    expect(VirtualFloorState.Running).to.eq(await lib.Running());
-    expect(VirtualFloorState.ClosedUnresolvable).to.eq(await lib.ClosedUnresolvable());
-    expect(VirtualFloorState.ClosedPreResolvable).to.eq(await lib.ClosedPreResolvable());
-    expect(VirtualFloorState.ClosedResolvable).to.eq(await lib.ClosedResolvable());
-    expect(VirtualFloorState.ResolvedWinners).to.eq(await lib.ResolvedWinners());
-    expect(VirtualFloorState.CancelledResolvedNoWinners).to.eq(await lib.CancelledResolvedNoWinners());
-    expect(VirtualFloorState.CancelledUnresolvable).to.eq(await lib.CancelledUnresolvable());
-    expect(VirtualFloorState.CancelledFlagged).to.eq(await lib.CancelledFlagged());
+    expect(VirtualFloorState.Active_Open_MaybeResolvableNever).to.eq(await lib.Active_Open_MaybeResolvableNever());
+    expect(VirtualFloorState.Active_Open_ResolvableLater).to.eq(await lib.Active_Open_ResolvableLater());
+    expect(VirtualFloorState.Active_Closed_ResolvableNever).to.eq(await lib.Active_Closed_ResolvableNever());
+    expect(VirtualFloorState.Active_Closed_ResolvableLater).to.eq(await lib.Active_Closed_ResolvableLater());
+    expect(VirtualFloorState.Active_Closed_ResolvableNow).to.eq(await lib.Active_Closed_ResolvableNow());
+    expect(VirtualFloorState.Claimable_Payouts).to.eq(await lib.Claimable_Payouts());
+    expect(VirtualFloorState.Claimable_Refunds).to.eq(await lib.Claimable_Refunds());
   });
 
   it('VirtualFloorResolutionType', async () => {

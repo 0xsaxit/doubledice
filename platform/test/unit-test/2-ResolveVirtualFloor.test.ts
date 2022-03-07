@@ -193,7 +193,7 @@ describe('DoubleDice/Resolve', function () {
       await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId2, 0, 1)).wait();
       await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId2, 1, 1)).wait();
 
-      await expect(contract.setResult(virtualFloorId2, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Running})`);
+      await expect(contract.setResult(virtualFloorId2, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
     });
 
     it('Should revert if the provided outcome index is out of the VF outcomes', async function () {
@@ -209,7 +209,7 @@ describe('DoubleDice/Resolve', function () {
 
       await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId2, 1);
 
-      await expect(contract.setResult(virtualFloorId2, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.ResolvedWinners})`);
+      await expect(contract.setResult(virtualFloorId2, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Claimable_Payouts})`);
       await checkpoint.revertTo();
     });
 
@@ -225,7 +225,7 @@ describe('DoubleDice/Resolve', function () {
       await evm.setNextBlockTimestamp(tResolve);
       await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 2);
 
-      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.CancelledResolvedNoWinners);
+      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.Claimable_Refunds);
       await checkpoint.revertTo();
     });
 
@@ -239,11 +239,11 @@ describe('DoubleDice/Resolve', function () {
 
       await evm.setNextBlockTimestamp(tResolve);
 
-      await expect(contract.setResult(allWinnersVf, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.ClosedUnresolvable})`);
+      await expect(contract.setResult(allWinnersVf, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Closed_ResolvableNever})`);
 
       await (await contract.cancelVirtualFloorUnresolvable(allWinnersVf)).wait();
 
-      expect(await contract.getVirtualFloorState(allWinnersVf)).to.be.eq(VirtualFloorState.CancelledUnresolvable);
+      expect(await contract.getVirtualFloorState(allWinnersVf)).to.be.eq(VirtualFloorState.Claimable_Refunds);
       await checkpoint.revertTo();
     });
 
@@ -264,7 +264,7 @@ describe('DoubleDice/Resolve', function () {
         platformFeeBeneficiarySigner.address
       );
 
-      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.ResolvedWinners);
+      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.Claimable_Payouts);
 
       expect(balanceOfFeeBeneficaryAfter.toNumber()).to.be.gt(
         balanceOfFeeBeneficaryBefore.toNumber()
@@ -281,7 +281,7 @@ describe('DoubleDice/Resolve', function () {
       await evm.setNextBlockTimestamp(tResolve);
       await (await contract.setResult(virtualFloorId, 1)).wait();
 
-      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.ResolvedWinners);
+      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.Claimable_Payouts);
 
       // console.log("user1CommitmentEvent", virtualFloor);
 

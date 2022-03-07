@@ -190,7 +190,7 @@ describe('DoubleDice/Commit', function () {
         contract
           .connect(user1Signer)
           .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
-      ).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.ClosedUnresolvable})`);
+      ).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Closed_ResolvableNever})`);
       await checkpoint.revertTo();
     });
 

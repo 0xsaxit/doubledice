@@ -492,7 +492,7 @@ abstract contract BaseDoubleDice is
             unchecked { // because platformFeeRate <= 1.0
                 creatorFeeAmount = totalFeeAmount - platformFeeAmount;
             }
-            // _msgSender() owns the virtual-floor
+
             vf.paymentToken.safeTransfer(creatorFeeBeneficiary, creatorFeeAmount);
         }
 

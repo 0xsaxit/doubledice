@@ -276,26 +276,5 @@ describe('DoubleDice/Resolve', function () {
       await checkpoint.revertTo();
     });
 
-    it.skip('Should calculate beta right (WIP)', async () => {
-      const checkpoint = await EvmCheckpoint.create();
-      await evm.setNextBlockTimestamp(tResolve);
-      await (await contract.setResult(virtualFloorId, 1)).wait();
-
-      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.Claimable_Payouts);
-
-      // console.log("user1CommitmentEvent", virtualFloor);
-
-      // const vfAggregateCommitments = await contract.getVirtualFloorOutcomeTotals(virtualFloorId, 0);
-      // console.log("vfAggregateCommitments", vfAggregateCommitments);
-      // const beta = virtualFloor.betaOpen_e18.mul(virtualFloor.tClose - user1CommitmentEvent.args.timeslot);
-      // console.log("beta", beta.add(BigNumber.from(1e13)));
-      // const weightedAmount = beta.mul(user1CommitmentEvent.args.amount);
-      // console.log("weightedAmount", weightedAmount);
-      // console.log("weightedAmount", user1CommitmentEvent.args);
-      // console.log("difference", vfAggregateCommitments.weightedAmount.sub(weightedAmount).sub(1e13) );
-      // uint256 profit = (weightedAmount * virtualFloor.winnerProfits) / virtualFloor.aggregateCommitments[virtualFloor.outcome].weightedAmount;
-      await checkpoint.revertTo();
-    });
-
   });
 });

@@ -234,16 +234,18 @@ describe('DoubleDice/Claim', function () {
       await expect(contract.connect(user1Signer).claimPayouts(virtualFloorId, [DUMMY_VF_ID])).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
     });
 
-    it.skip('Should revert if the passed outcome index is not the winning outcome', async function () {
+    it('Should claim 0 payout if the passed outcome index is not the winning outcome', async function () {
       const checkpoint = await EvmCheckpoint.create();
       await evm.setNextBlockTimestamp(tResolve);
 
       await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 1);
-      await expect(
-        contract.connect(user1Signer).claimPayouts(virtualFloorId, [
-          tokenIdOf({ vfId: virtualFloorId, outcomeIndex: 0, timeslot: toTimestamp('2032-01-01T02:00:00') })
-        ])
-      ).to.be.revertedWith('NOT_WINNING_OUTCOME');
+      const tokenId = tokenIdOf({ vfId: virtualFloorId, outcomeIndex: 0, timeslot: toTimestamp('2032-01-01T02:00:00') });
+
+      const balanceBeforeClaim = await token.balanceOf(user1Signer.address);
+      await expect(contract.connect(user1Signer).claimPayouts(virtualFloorId, [tokenId])).to.emit(token, 'Transfer');
+      const balanceAfterClaim = await token.balanceOf(user1Signer.address);
+      expect(balanceAfterClaim).to.eq(balanceBeforeClaim);
+
       await checkpoint.revertTo();
     });
 
@@ -264,13 +266,11 @@ describe('DoubleDice/Claim', function () {
 
       const balanceAfterClaim = await token.balanceOf(user2Signer.address);
       expect(balanceAfterClaim).to.be.gt(0);
-      expect(balanceAfterClaim.sub(balanceBeforeClaim)).to.be.eq(
-        user2CommitmentEventArgs.amount
-      );
+      expect(balanceAfterClaim.sub(balanceBeforeClaim)).to.be.eq(user2CommitmentEventArgs.amount);
       await checkpoint.revertTo();
     });
 
-    it.skip('Original owner of a commitment should not be able to claim a commitment that was transferred to 2nd owner', async () => {
+    it('Original owner of a commitment should not be able to claim a commitment that was transferred to 2nd owner', async () => {
       const checkpoint = await EvmCheckpoint.create();
       const vfAggregateCommitments = await contract.getVirtualFloorOutcomeTotals(virtualFloorId, 2);
       expect(vfAggregateCommitments.amount).to.be.eq(0);
@@ -282,18 +282,21 @@ describe('DoubleDice/Claim', function () {
           user4Signer.address,
           user2CommitmentEventArgs.tokenId,
           user2CommitmentEventArgs.amount,
-          '0x0000000000000000000000000000000000000000000000000000000000000000'
+          '0x'
         );
 
       await evm.setNextBlockTimestamp(tResolve);
       await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 2);
 
-      await expect(
-        contract.connect(user2Signer).claimPayouts(virtualFloorId, [user2CommitmentEventArgs.tokenId])).to.be.revertedWith('ZERO_BALANCE');
+      const paymentTokenBalanceBefore = await token.balanceOf(user2Signer.address);
+      expect(contract.connect(user2Signer).claimPayouts(virtualFloorId, [user2CommitmentEventArgs.tokenId]));
+      const paymentTokenBalanceAfter = await token.balanceOf(user2Signer.address);
+      expect(paymentTokenBalanceAfter).to.eq(paymentTokenBalanceBefore);
+
       await checkpoint.revertTo();
     });
 
-    it.skip('Should be able to claim a transferred cancelled commitment same amount as the committed amount', async function () {
+    it('Should be able to claim a transferred cancelled commitment same amount as the committed amount', async function () {
       const checkpoint = await EvmCheckpoint.create();
       const vfAggregateCommitments = await contract.getVirtualFloorOutcomeTotals(
         virtualFloorId,
@@ -310,7 +313,7 @@ describe('DoubleDice/Claim', function () {
           user4Signer.address,
           user2CommitmentEventArgs.tokenId,
           user2CommitmentEventArgs.amount,
-          '0x0000000000000000000000000000000000000000000000000000000000000000'
+          '0x'
         );
 
       await evm.setNextBlockTimestamp(tResolve);

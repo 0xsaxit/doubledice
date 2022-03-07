@@ -30,9 +30,11 @@ struct OutcomeTotals {
 
 enum VirtualFloorInternalState {
     None,
-    Active,            // formerly RunningOrClosed
-    Claimable_Payouts, // formerly ResolvedWinners
-    Claimable_Refunds  // formerly CancelledResolvedNoWinners | CancelledUnresolvable | CancelledFlagged
+    Active,                              // formerly RunningOrClosed
+    Claimable_Payouts,                   // formerly ResolvedWinners
+    Claimable_Refunds_ResolvedNoWinners, // formerly CancelledResolvedNoWinners
+    Claimable_Refunds_ResolvableNever,   // formerly CancelledUnresolvable
+    Claimable_Refunds_Flagged            // formerly CancelledFlagged
 }
 
 struct VirtualFloor {
@@ -410,7 +412,7 @@ abstract contract BaseDoubleDice is
         VirtualFloor storage vf = _vfs[vfId];
         VirtualFloorState state = vf.state();
         if (!(state == VirtualFloorState.Active_Closed_ResolvableNever)) revert WrongVirtualFloorState(state);
-        vf._internalState = VirtualFloorInternalState.Claimable_Refunds;
+        vf._internalState = VirtualFloorInternalState.Claimable_Refunds_ResolvableNever;
         emit VirtualFloorCancellationUnresolvable(vfId);
         _onVirtualFloorConclusion(vfId);
     }
@@ -421,7 +423,7 @@ abstract contract BaseDoubleDice is
     {
         VirtualFloor storage vf = _vfs[vfId];
         if (!(vf._internalState == VirtualFloorInternalState.Active)) revert WrongVirtualFloorState(vf.state());
-        vf._internalState = VirtualFloorInternalState.Claimable_Refunds;
+        vf._internalState = VirtualFloorInternalState.Claimable_Refunds_Flagged;
         emit VirtualFloorCancellationFlagged(vfId, reason);
         _onVirtualFloorConclusion(vfId);
     }
@@ -458,7 +460,7 @@ abstract contract BaseDoubleDice is
             // to reclaim the equivalent original ERC-20 token amount,
             // i.e. to withdraw the current ERC-1155 balance as ERC-20 tokens.
             // Neither the creator nor the platform take any fees in this circumstance.
-            vf._internalState = VirtualFloorInternalState.Claimable_Refunds;
+            vf._internalState = VirtualFloorInternalState.Claimable_Refunds_ResolvedNoWinners;
             resolutionType = VirtualFloorResolutionType.NoWinners;
             platformFeeAmount = 0;
             creatorFeeAmount = 0;
@@ -514,10 +516,7 @@ abstract contract BaseDoubleDice is
         whenNotPaused
     {
         VirtualFloor storage vf = _vfs[vfId];
-        {
-            VirtualFloorState state = vf.state();
-            if (!(state == VirtualFloorState.Claimable_Refunds)) revert WrongVirtualFloorState(state);
-        }
+        if (!vf.isClaimableRefunds()) revert WrongVirtualFloorState(vf.state());
         address msgSender = _msgSender();
         uint256 totalPayout = 0;
         uint256[] memory amounts = new uint256[](tokenIds.length);

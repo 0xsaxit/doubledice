@@ -192,7 +192,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
     /// after being flagged by the community, and a challenger has paid a challenge-bond,
     /// this function may be called by *anyone*, and it will refund the bond to the the challenger.
     function _onVirtualFloorConclusion(uint256 vfId) internal virtual override {
-        if (getVirtualFloorState(vfId) == VirtualFloorState.Claimable_Refunds) {
+        if (getVirtualFloorState(vfId) == VirtualFloorState.Claimable_Refunds_Flagged) {
             Resolution storage resolution = resolutions[vfId];
             if (resolution.state == ResolutionState.Challenged) {
                 resolution.state = ResolutionState.ChallengeCancelled;

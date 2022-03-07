@@ -12,5 +12,7 @@ contract VirtualFloorStateWrapper {
     VirtualFloorState constant public Active_Closed_ResolvableLater = VirtualFloorState.Active_Closed_ResolvableLater;
     VirtualFloorState constant public Active_Closed_ResolvableNow = VirtualFloorState.Active_Closed_ResolvableNow;
     VirtualFloorState constant public Claimable_Payouts = VirtualFloorState.Claimable_Payouts;
-    VirtualFloorState constant public Claimable_Refunds = VirtualFloorState.Claimable_Refunds;
+    VirtualFloorState constant public Claimable_Refunds_ResolvedNoWinners = VirtualFloorState.Claimable_Refunds_ResolvedNoWinners;
+    VirtualFloorState constant public Claimable_Refunds_ResolvableNever = VirtualFloorState.Claimable_Refunds_ResolvableNever;
+    VirtualFloorState constant public Claimable_Refunds_Flagged = VirtualFloorState.Claimable_Refunds_Flagged;
 }

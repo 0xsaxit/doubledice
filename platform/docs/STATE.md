@@ -1,37 +1,6 @@
 # Virtual-floor state diagrams
 
-## On-chain `VirtualFloor.internalState` stored value
-
-```mermaid
-stateDiagram-v2
-    state resolutionType <<choice>>
-
-    [*] --> None
-
-    None --> RunningOrClosed: createVirtualFloor
-
-    RunningOrClosed --> CancelledFlagged: cancelFlagged\n🔒 platformAdmin\n⏲️ any time
-
-    RunningOrClosed --> CancelledUnresolvable: cancelUnresolvable\n🔓 anyone\n⏲️ tClose ≤ t\nhas commits to < 2 outcomes
-
-    RunningOrClosed --> resolutionType: _resolve(f)\n🔒 internal\n⏲️ tResolve ≤ t\nhas commits to ≥ 2 outcomes
-    resolutionType --> CancelledResolvedNoWinners: CancelledNoWinners
-    resolutionType --> ResolvedWinners: Winners
-
-    CancelledFlagged --> [*]
-    CancelledUnresolvable --> [*]
-    CancelledResolvedNoWinners --> [*]
-    ResolvedWinners --> [*]
-```
-
-
 ## On-chain `getVirtualFloorState()` return-value
-
-ResolvableNever
-ResolvableLater
-ResolvableNow
-
-
 
 ```mermaid
 stateDiagram-v2
@@ -40,7 +9,7 @@ stateDiagram-v2
 
     None --> Active_Open_MaybeResolvableNever: createVirtualFloor()
 
-    Active_* --> Claimable_Refunds: cancelFlagged()
+    Active_* --> Claimable_Refunds_Flagged: cancelFlagged()
 
     Active_Open_MaybeResolvableNever --> Active_Open_ResolvableLater: commit() to ≥ 2 outcomes
 
@@ -48,16 +17,16 @@ stateDiagram-v2
     Active_Open_ResolvableLater --> Active_Closed_ResolvableLater: t ≥ tClose
 
 
-    Active_Closed_ResolvableNever --> Claimable_Refunds: cancelUnresolvable()
+    Active_Closed_ResolvableNever --> Claimable_Refunds_ResolvableNever: cancelUnresolvable()
     Active_Closed_ResolvableLater --> Active_Closed_ResolvableNow: t ≥ tResolve
 
-
-
     Active_Closed_ResolvableNow --> resolutionType: _resolve()
-    resolutionType --> Claimable_Refunds: NoWinners
+    resolutionType --> Claimable_Refunds_ResolvedNoWinners: NoWinners
     resolutionType --> Claimable_Payouts: Winners
 
-    Claimable_Refunds --> [*]
+    Claimable_Refunds_Flagged --> [*]
+    Claimable_Refunds_ResolvableNever --> [*]
+    Claimable_Refunds_ResolvedNoWinners --> [*]
     Claimable_Payouts --> [*]
 ```
 

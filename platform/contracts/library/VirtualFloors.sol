@@ -39,8 +39,12 @@ library VirtualFloors {
             }
         } else if (_internalState == VirtualFloorInternalState.Claimable_Payouts) {
             return VirtualFloorState.Claimable_Payouts;
-        } else /*if (_internalState == VirtualFloorInternalState.Claimable_Refunds)*/ {
-            return VirtualFloorState.Claimable_Refunds;
+        } else if (_internalState == VirtualFloorInternalState.Claimable_Refunds_ResolvedNoWinners) {
+            return VirtualFloorState.Claimable_Refunds_ResolvedNoWinners;
+        } else if (_internalState == VirtualFloorInternalState.Claimable_Refunds_ResolvableNever) {
+            return VirtualFloorState.Claimable_Refunds_ResolvableNever;
+        } else /*if (_internalState == VirtualFloorInternalState.Claimable_Refunds_Flagged)*/ {
+            return VirtualFloorState.Claimable_Refunds_Flagged;
         }
     }
 
@@ -77,6 +81,12 @@ library VirtualFloors {
     /// but ~300 gas cheaper.
     function isOpen(VirtualFloor storage vf) internal view returns (bool) {
         return vf._internalState == VirtualFloorInternalState.Active && block.timestamp < vf.tClose;
+    }
+
+    function isClaimableRefunds(VirtualFloor storage vf) internal view returns (bool) {
+        return vf._internalState == VirtualFloorInternalState.Claimable_Refunds_ResolvedNoWinners
+            || vf._internalState == VirtualFloorInternalState.Claimable_Refunds_ResolvableNever
+            || vf._internalState == VirtualFloorInternalState.Claimable_Refunds_Flagged;
     }
 
 }

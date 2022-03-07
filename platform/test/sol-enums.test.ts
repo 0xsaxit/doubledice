@@ -31,7 +31,9 @@ describe('Check manual Solidity-enum-type TypeScript analogs against actual valu
     expect(VirtualFloorState.Active_Closed_ResolvableLater).to.eq(await lib.Active_Closed_ResolvableLater());
     expect(VirtualFloorState.Active_Closed_ResolvableNow).to.eq(await lib.Active_Closed_ResolvableNow());
     expect(VirtualFloorState.Claimable_Payouts).to.eq(await lib.Claimable_Payouts());
-    expect(VirtualFloorState.Claimable_Refunds).to.eq(await lib.Claimable_Refunds());
+    expect(VirtualFloorState.Claimable_Refunds_ResolvedNoWinners).to.eq(await lib.Claimable_Refunds_ResolvedNoWinners());
+    expect(VirtualFloorState.Claimable_Refunds_ResolvableNever).to.eq(await lib.Claimable_Refunds_ResolvableNever());
+    expect(VirtualFloorState.Claimable_Refunds_Flagged).to.eq(await lib.Claimable_Refunds_Flagged());
   });
 
   it('VirtualFloorResolutionType', async () => {

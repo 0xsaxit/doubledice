@@ -225,7 +225,7 @@ describe('DoubleDice/Resolve', function () {
       await evm.setNextBlockTimestamp(tResolve);
       await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 2);
 
-      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.Claimable_Refunds);
+      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.Claimable_Refunds_ResolvedNoWinners);
       await checkpoint.revertTo();
     });
 
@@ -243,7 +243,7 @@ describe('DoubleDice/Resolve', function () {
 
       await (await contract.cancelVirtualFloorUnresolvable(allWinnersVf)).wait();
 
-      expect(await contract.getVirtualFloorState(allWinnersVf)).to.be.eq(VirtualFloorState.Claimable_Refunds);
+      expect(await contract.getVirtualFloorState(allWinnersVf)).to.be.eq(VirtualFloorState.Claimable_Refunds_ResolvableNever);
       await checkpoint.revertTo();
     });
 

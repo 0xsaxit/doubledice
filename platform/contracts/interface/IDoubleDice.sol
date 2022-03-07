@@ -20,16 +20,28 @@ struct EncodedVirtualFloorMetadata {
 }
 
 struct VirtualFloorCreationParams {
+
+    /// @notice Lower 5 bytes must be 0x00_00_00_00_00. Upper 27 bytes must be unique.
+    /// Since all VF-related functions accept this id as an argument,
+    /// it pays to choose an id with more zero-bytes, as these waste less intrinsic gas,
+    /// and the savings will add up in the long run.
+    /// Suggestion: This id could be of the form 0xVV_VV_VV_VV_00_00_00_00_00
     uint256 virtualFloorId;
+
+    /// @notice Should be >= 1.0
+    /// Should be scaled by 1e18
     UFixed256x18 betaOpen_e18;
 
-    /// @dev Purposely called "creation-fee" not "creator-fee",
-    /// as the "creation-fee" will be split between "creator" and "platform".
+    /// @notice Should be <= 1.0
+    /// E.g. 2.5% is represented as 0.025, which is passed as 0_025000_000000_000000
+    /// creationFee = creatorFee + platformFee
+    /// ToDo: Name differently, because this is only charged if VF wins, not only if created
     UFixed256x18 creationFeeRate_e18;
 
     uint32 tOpen;
     uint32 tClose;
     uint32 tResolve;
+
     uint8 nOutcomes;
     IERC20Upgradeable paymentToken;
 
@@ -172,13 +184,7 @@ interface IDoubleDice is
         uint256 creatorFeeAmount
     );
 
-    /// @notice Create a new virtual-floor.
-    /// @dev `virtualFloorId` must start 0x00 (1)
-    /// Since the virtualFloorId is passed as an argument to all functions on this contract,
-    /// choosing initially a `virtualFloorId` whose 32-byte representation contains many zeros
-    /// will result in cheaper calls overall.
-    /// Using a uint32 for this id will satisfy (1), and will also lower the cost of each call
-    /// by (32 bytes - 8 bytes) * (16 gas/nonzerobyte - 4 gas/zerobtye) = 288 gas/call
+
     function createVirtualFloor(VirtualFloorCreationParams calldata params) external;
 
     function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;

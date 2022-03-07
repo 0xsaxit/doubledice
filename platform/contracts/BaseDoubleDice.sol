@@ -23,8 +23,6 @@ uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 255;
 
 UFixed256x18 constant _BETA_CLOSE = UFIXED256X18_ONE;
 
-// ToDo: Can we optimize this by using uint128 and packing both values into 1 slot,
-// or will amountTimesBeta_e18 then not have enough precision?
 struct OutcomeTotals {
     uint256 amount;
     UFixed256x18 amountTimesBeta_e18;
@@ -261,7 +259,6 @@ abstract contract BaseDoubleDice is
         uint256 min;
         uint256 max;
         {
-            // ToDo: Does it save gas to skip if == 0 ?
             // First store raw values ...
             vf._optionalMinCommitmentAmount = params.optionalMinCommitmentAmount.toUint128();
             vf._optionalMaxCommitmentAmount = params.optionalMaxCommitmentAmount.toUint128();
@@ -478,7 +475,6 @@ abstract contract BaseDoubleDice is
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
             uint256 totalFeePlusTotalWinnerProfits = totalCommitmentsToAllOutcomesPlusBonus - totalCommitmentsToWinningOutcome;
 
-            // ToDo: Replace Math.min with `a < b ? a : b` and check gas usage
             uint256 totalFeeAmount = MathUpgradeable.min(maxTotalFeeAmount, totalFeePlusTotalWinnerProfits);
 
             unchecked { // because b - min(a, b) >= 0

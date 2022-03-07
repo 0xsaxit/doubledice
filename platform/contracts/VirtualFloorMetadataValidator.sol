@@ -94,13 +94,6 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
 
         if (!(!metadata.description.isEmpty())) revert EmptyDescription();
 
-        // ToDo: Here we should proceed to validate individual array item metadata,
-        // but this is going to waste even more gas.
-        // For now we skip it, just in case we come up with a better solution.
-        // An alternative solution could be to validate nothing here, and then simply perform the validation in the
-        // graph-indexer (mapping.ts) and simply do not index virtual-floors created with invalid metadata.
-        // If we adopt this strategy, we could drop even the few checks made above.
-
         if (!(!metadata.discordChannelId.isEmpty())) revert EmptyDiscordChannelId();
     }
 

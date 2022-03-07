@@ -136,6 +136,8 @@ error CommitmentBalanceTransferRejection(uint256 id, VirtualFloorState state);
 /// @notice One of the token ids passed to a claim does not correspond to the passed virtualFloorId
 error MismatchedVirtualFloorId(uint256 tokenId);
 
+error ResolveWhilePaused();
+
 
 interface IDoubleDice is
     IAccessControlUpgradeable,

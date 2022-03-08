@@ -11,6 +11,13 @@ import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+
+
+// DOUBLEDICE FORK IS IDENTICAL TO ORIGINAL IMPLEMENTATION IN openzeppelin/contracts-upgradeable@4.5.2,
+// BUT WITH VISIBILITY OF `_balances` ALTERED FROM `private` TO `internal`.
+
+
+
 /**
  * @dev Implementation of the basic standard multi-token.
  * See https://eips.ethereum.org/EIPS/eip-1155
@@ -18,7 +25,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
  *
  * _Available since v3.1._
  */
-contract ForkedERC1155UpgradeableV4_4_1 is Initializable, ContextUpgradeable, ERC165Upgradeable, IERC1155Upgradeable, IERC1155MetadataURIUpgradeable {
+contract ForkedERC1155UpgradeableV4_5_2 is Initializable, ContextUpgradeable, ERC165Upgradeable, IERC1155Upgradeable, IERC1155MetadataURIUpgradeable {
     using AddressUpgradeable for address;
 
     // Mapping from token ID to account balances

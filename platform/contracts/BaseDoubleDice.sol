@@ -4,7 +4,7 @@ pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "./ForkedERC1155UpgradeableV4_4_1.sol";
+import "./ForkedERC1155UpgradeableV4_5_2.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
@@ -77,7 +77,7 @@ struct VirtualFloor {
 
 abstract contract BaseDoubleDice is
     IDoubleDice,
-    ForkedERC1155UpgradeableV4_4_1,
+    ForkedERC1155UpgradeableV4_5_2,
     AccessControlUpgradeable,
     PausableUpgradeable,
     ExtraStorageGap,
@@ -578,11 +578,11 @@ abstract contract BaseDoubleDice is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(IERC165Upgradeable, ForkedERC1155UpgradeableV4_4_1, AccessControlUpgradeable)
+        override(IERC165Upgradeable, ForkedERC1155UpgradeableV4_5_2, AccessControlUpgradeable)
         virtual // Leave door open for extending contracts to support further interfaces
         returns (bool)
     {
-        return ForkedERC1155UpgradeableV4_4_1.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
+        return ForkedERC1155UpgradeableV4_5_2.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
     }
 
 

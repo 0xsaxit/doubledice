@@ -167,8 +167,6 @@ abstract contract BaseDoubleDice is
 
     // ---------- Public getters ----------
 
-    uint256 constant public TIMESLOT_DURATION = 60 seconds;
-
     function platformFeeBeneficiary() public view returns (address) {
         return _platformFeeBeneficiary;
     }
@@ -311,21 +309,13 @@ abstract contract BaseDoubleDice is
 
         vf.paymentToken.safeTransferFrom(_msgSender(), address(this), amount);
 
-        // Assign all commitments that happen within the same `_TIMESLOT_DURATION`, to the same "timeslot."
-        // These commitments will all be assigned the same associated beta value.
-        // If `_TIMESLOT_DURATION` is set to 1 minute, then the following line converts
-        // all 2022-01-11T15:47:XX to 2022-01-11T15:47:00,
-        // and this rounded-down timestamp is used as the "timeslot identifier".
-        uint256 timeslot = block.timestamp - (block.timestamp % TIMESLOT_DURATION);
-
         // Commitments made at t < tOpen will all be accumulated into the same timeslot == tOpen,
         // and will therefore be assigned the same beta == betaOpen.
         // This means that all commitments to a specific outcome that happen at t <= tOpen
-        // (actually up to t < tOpen + _TIMESLOT_DURATION)
         // will be minted as balances on the the same ERC-1155 tokenId, which means that
         // these balances will be exchangeable/tradeable/fungible between themselves,
         // but they will not be fungible with commitments to the same outcome that arrive later.
-        timeslot = MathUpgradeable.max(vf.tOpen, timeslot);
+        uint256 timeslot = MathUpgradeable.max(vf.tOpen, block.timestamp);
 
         UFixed256x18 beta_e18 = vf.betaOf(timeslot);
         OutcomeTotals storage outcomeTotals = vf.outcomeTotals[outcomeIndex];

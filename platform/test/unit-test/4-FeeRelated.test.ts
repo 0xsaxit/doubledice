@@ -199,7 +199,6 @@ describe('DoubleDice/FeeRelated', function () {
       await evm.setNextBlockTimestamp('2022-06-01T10:00:00');
       // winners commitment
       const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user1Signer, amountToCommit);
-      console.log('Timeslot duration', await contract.TIMESLOT_DURATION());
       await evm.setNextBlockTimestamp('2028-06-01T10:00:00');
       const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, amountToCommit);
       await evm.setNextBlockTimestamp('2029-06-01T10:00:00');

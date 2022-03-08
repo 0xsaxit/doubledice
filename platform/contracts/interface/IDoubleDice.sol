@@ -203,12 +203,6 @@ interface IDoubleDice is
     function claimPayouts(uint256 vfId, uint256[] calldata tokenIds) external;
 
 
-    /// @notice The timeline is split into a number of non-overlapping consecutive timeslots of this duration.
-    /// Token amounts committed to a specific outcome of a specific virtual-floor within a specific timeslot
-    /// are only fungible between themselves.
-    function TIMESLOT_DURATION() external view returns (uint256);
-
-
     function platformFeeRate_e18() external view returns (UFixed256x18);
 
     function platformFeeBeneficiary() external view returns (address);

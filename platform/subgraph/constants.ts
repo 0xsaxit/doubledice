@@ -10,4 +10,4 @@ export const SET_WINDOW_DURATION = ONE_HOUR;
 export const CHALLENGE_WINDOW_DURATION = ONE_HOUR;
 
 // Mirrors DoubleDice.sol#TIMESLOT_DURATION
-export const TIMESLOT_DURATION = 60;
+export const TIMESLOT_DURATION = 1;

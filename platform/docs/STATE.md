@@ -1,37 +1,5 @@
 # Virtual-floor state diagrams
 
-## On-chain `getVirtualFloorState()` return-value
-
-```mermaid
-stateDiagram-v2
-    state resolutionType <<choice>>
-    [*] --> None
-
-    None --> Active_Open_MaybeResolvableNever: createVirtualFloor()
-
-    Active_* --> Claimable_Refunds_Flagged: cancelFlagged()
-
-    Active_Open_MaybeResolvableNever --> Active_Open_ResolvableLater: commit() to ≥ 2 outcomes
-
-    Active_Open_MaybeResolvableNever --> Active_Closed_ResolvableNever: t ≥ tClose
-    Active_Open_ResolvableLater --> Active_Closed_ResolvableLater: t ≥ tClose
-
-
-    Active_Closed_ResolvableNever --> Claimable_Refunds_ResolvableNever: cancelUnresolvable()
-    Active_Closed_ResolvableLater --> Active_Closed_ResolvableNow: t ≥ tResolve
-
-    Active_Closed_ResolvableNow --> resolutionType: _resolve()
-    resolutionType --> Claimable_Refunds_ResolvedNoWinners: NoWinners
-    resolutionType --> Claimable_Payouts: Winners
-
-    Claimable_Refunds_Flagged --> [*]
-    Claimable_Refunds_ResolvableNever --> [*]
-    Claimable_Refunds_ResolvedNoWinners --> [*]
-    Claimable_Payouts --> [*]
-```
-
-All `Active_*` states are represented with a single on-chain `internalState` of `RunningOrClosed`, but the `getVirtualFloorState()` function combines `internalState` with other inputs to determine the actual state.
-
 ## ChallengeableCreatorOracle
 
 We now explode the `RunningOrClosed_ClosedResolvable` state into further sub-states, as stored on the `ChallengeableCreatorOracle` contract:

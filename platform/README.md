@@ -292,6 +292,7 @@ graph TD
   resolutionType -->|Winners| Claimable_Payouts
 
   subgraph Active
+    Active_*
     subgraph Active_Open
       Active_Open_MaybeResolvableNever
       Active_Open_ResolvableLater
@@ -346,7 +347,7 @@ This final `BaseDoubleDice` state-diagram shows **all** possible actions that ma
 
 ### ChallengeableCreatorOracle
 
-`Resolution.state` diagram
+Once a VF enters the `VirtualFloorState.Active_Closed_ResolvableNow` state at the `BaseDoubleDice` level, it becomes possible for the `Resolution.state` held in `ChallengeableCreatorOracle` to traverse the following state-diagram:
 
 ```mermaid
 stateDiagram-v2
@@ -354,6 +355,7 @@ stateDiagram-v2
     [*] --> None
     None --> Set: setResult(s)\n🔒 vfCreator\n⏲️ t ≤ tResultSetMax
     Set --> Challenged: challengeSetResult(c), c ≠ s\n🔓 challenger (anyone)\n⏲️ t ≤ tResultChallengeMax\nchallenger pays $100 bond
+    Challenged --> ChallengeCancelled: cancelFlagged()
     Challenged --> if_state: finalizeChallenge(f)\n🔒 platformAdmin
     if_state --> Complete: f = s\nrake ➡️ vfCreator\nbond ➡️ platform
     if_state --> Complete: f = c\nrake ➡️ platform\nbond ➡️ challenger
@@ -363,15 +365,88 @@ stateDiagram-v2
     Complete --> [*]
 ```
 
+This state-diagram can be abstracted to:
+
 ```mermaid
 stateDiagram-v2
     [*] --> None
     None --> Set: setResult()
     Set --> Challenged: challengeSetResult()
     Challenged --> Complete: finalizeChallenge()
+    Challenged --> ChallengeCancelled: cancelFlagged()
     Set --> Complete: confirmUnchallengedResult()
     None --> Complete: finalizeUnsetResult()
     Complete --> [*]
+```
+
+Finally, the `Resolution.state` state-diagram is substituted into the `VirtualFloor.state()` diagram:
+
+```mermaid
+graph TD
+  Active_*(("all<br>Active_*<br>except<br>[ResultChallenged]")) -------->|"cancelFlagged()"| Claimable_Refunds_Flagged__ResultNone
+  None -->|"createVirtualFloor()"| Active_Open_MaybeResolvableNever
+  Active_Open_MaybeResolvableNever ---->|"t ≥ tClose"| Active_Closed_ResolvableNever
+  Active_Closed_ResolvableNever ---->|"cancelUnresolvable()"| Claimable_Refunds_ResolvableNever
+  nonzeroOutcomeCount -->|"nonzeroOutcomeCount < 2"| Active_Open_MaybeResolvableNever
+  Active_Open_MaybeResolvableNever -->|"commit()"| nonzeroOutcomeCount{"?"}
+  nonzeroOutcomeCount -->|"nonzeroOutcomeCount ≥ 2"| Active_Open_ResolvableLater
+  Active_Open_ResolvableLater -->|"t ≥ tClose"| Active_Closed_ResolvableLater
+  Active_Closed_ResolvableLater -->|"t ≥ tResolve"| Active_Closed_ResolvableNow__ResultNone
+
+    Active_Closed_ResolvableNow__ResultNone -->|"finalizeUnsetResult()"| resolutionType
+    Active_Closed_ResolvableNow__ResultNone -->|"setResult()"| Active_Closed_ResolvableNow__ResultSet
+    Active_Closed_ResolvableNow__ResultSet -->|"confirmUnchallengedResult()"| resolutionType
+    Active_Closed_ResolvableNow__ResultSet -->|"challengeSetResult()"| Active_Closed_ResolvableNow__ResultChallenged
+    Active_Closed_ResolvableNow__ResultChallenged -->|"finalizeChallenge()"| resolutionType{"?"}
+    Active_Closed_ResolvableNow__ResultChallenged -->|"cancelFlagged()"| Claimable_Refunds_Flagged__ResultChallengeCancelled
+  resolutionType -->|NoWinners| Claimable_Refunds_ResolvedNoWinners
+  resolutionType -->|Winners| Claimable_Payouts
+
+  subgraph Active
+    Active_*
+    subgraph Active_Open
+      Active_Open_MaybeResolvableNever
+      Active_Open_ResolvableLater
+      nonzeroOutcomeCount
+    end
+    subgraph Active_Closed
+      Active_Closed_ResolvableNever
+      Active_Closed_ResolvableLater
+      subgraph Active_Closed_ResolvableNow
+        Active_Closed_ResolvableNow__ResultNone["Active_Closed_ResolvableNow<br>[ResultNone]"]
+        Active_Closed_ResolvableNow__ResultSet["Active_Closed_ResolvableNow<br>[ResultSet]"]
+        Active_Closed_ResolvableNow__ResultChallenged["Active_Closed_ResolvableNow<br>[ResultChallenged]"]
+      end
+    end
+  end
+  subgraph Claimable
+      Claimable_Refunds_Flagged__ResultNone["Claimable_Refunds_Flagged<br>[ResultNone]"]
+      Claimable_Refunds_ResolvableNever["Claimable_Refunds_ResolvableNever<br>[ResultNone]"]
+      Claimable_Refunds_ResolvedNoWinners["Claimable_Refunds_ResolvedNoWinners<br>[ResultComplete]"]
+      Claimable_Payouts["Claimable_Payouts<br>[ResultComplete]"]
+      Claimable_Refunds_Flagged__ResultChallengeCancelled["Claimable_Refunds_Flagged<br>[ResultChallengeCancelled]"]
+  end
+
+  %% Actions that can happen in a state, but that do not change the VF's state
+  Active_Open_ResolvableLater -.->|"commit()"| Active_Open_ResolvableLater
+  Active_Open_ResolvableLater -.->|"safeTransferFrom()"| Active_Open_ResolvableLater
+  Active_Closed_ResolvableLater -.->|"safeTransferFrom()"| Active_Closed_ResolvableLater
+  Claimable_Refunds_Flagged__ResultChallengeCancelled -.->|"claimRefunds()"| Claimable_Refunds_Flagged__ResultChallengeCancelled
+  Claimable_Refunds_Flagged__ResultNone -.->|"claimRefunds()"| Claimable_Refunds_Flagged__ResultNone
+  Claimable_Refunds_ResolvableNever -.->|"claimRefunds()"| Claimable_Refunds_ResolvableNever
+  Claimable_Refunds_ResolvedNoWinners -.->|"claimRefunds()"| Claimable_Refunds_ResolvedNoWinners
+  Claimable_Payouts -.->|"claimPayouts()"| Claimable_Payouts
+
+  class None none
+  class Active_Open_MaybeResolvableNever,Active_Closed_ResolvableNever,Active_Open_ResolvableLater,Active_Closed_ResolvableLater,Active_Closed_ResolvableNow__ResultNone,Active_Closed_ResolvableNow__ResultSet,Active_Closed_ResolvableNow__ResultChallenged,Active_* active
+  class Claimable_Refunds_Flagged__ResultChallengeCancelled,Claimable_Refunds_Flagged__ResultNone,Claimable_Refunds_ResolvableNever,Claimable_Refunds_ResolvedNoWinners claimable_refunds
+  class Claimable_Payouts claimable_payouts
+  class resolvable_later Active_Open_ResolvableLater,Active_Closed_ResolvableLater
+
+  classDef none stroke-width:4px,stroke-dasharray:5 5
+  classDef active stroke-width:4px,stroke:orange
+  classDef claimable_refunds stroke-width:4px,stroke:red
+  classDef claimable_payouts stroke-width:4px,stroke:green
 ```
 
 ### CreationQuotas
@@ -380,6 +455,8 @@ stateDiagram-v2
 
 - Metadata framework
 - Versioning
+- Metadata is only decoded & handled in MetadataValidator; changing format should not affect anything
+- Can only revert createVirtualFloor
 
 ## Commitment receipts as ERC-1155 token balances
 
@@ -392,3 +469,7 @@ stateDiagram-v2
 - FixedPointTypes
 - Event design
 - Explain ABI vs storage types (all public fixed-point are x18, narrow types are considered optimizations and almost never exposed externally)
+- Gasless
+- How to extend
+  - Price ranges example
+  - Chainlink oracle example

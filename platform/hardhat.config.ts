@@ -8,6 +8,10 @@ import 'hardhat-gas-reporter';
 import { HardhatUserConfig } from 'hardhat/types';
 import 'solidity-coverage';
 
+// // Commented out by default to avoid cyclic dependency (script relies on TypeChain, and TypeChain relies on this file)
+// import './scripts/decode-doubledice-custom-error';
+
+
 const dotenvResult = dotenv.config();
 if (dotenvResult.error) {
   throw dotenvResult.error;

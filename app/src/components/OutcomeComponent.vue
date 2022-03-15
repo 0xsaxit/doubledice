@@ -145,7 +145,7 @@ export default class OutcomeComponent extends Vue {
         console.error(e)
       }
     } finally {
-      // this.$emit('balanceChange')
+      this.$emit('balanceChange')
     }
   }
 
@@ -165,26 +165,6 @@ export default class OutcomeComponent extends Vue {
         return '?'
     }
   }
-
-  // getOutcomeTotalWeightedSupply(virtualFloor: VirtualFloor): BigDecimal {
-  //   const t0 = new BigDecimal(virtualFloor.tClose)
-  //   const betaGradient = new BigDecimal(virtualFloor.betaGradient)
-  //   return sum(
-  //     this.outcome.outcomeTimeslots.map(outcomeTimeslot => {
-  //       const t = new BigDecimal(outcomeTimeslot.timeslot.minTimestamp)
-  //       const beta = t0.minus(t).multipliedBy(betaGradient)
-  //       const tmp = beta.multipliedBy(outcomeTimeslot.totalSupply)
-
-  //       // let userBalance = new BigNumber(0)
-  //       // if (outcomeTimeslot.userOutcomeTimeslots.length) {
-  //       //   const [{ balance }] = outcomeTimeslot.userOutcomeTimeslots
-  //       //   userBalance = new BigNumber(balance)
-  //       // }
-
-  //       return tmp
-  //     })
-  //   )
-  // }
 }
 </script>
 

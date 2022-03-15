@@ -126,9 +126,8 @@
 import { EthereumProvider, EthereumProviderHelper } from '@/mm'
 import { formatTimestamp, getSystemTimestamp } from '@/utils'
 // eslint-disable-next-line camelcase
-import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser, ERC20PresetMinterPauser__factory } from '@doubledice/platform/lib/contracts'
+import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser } from '@doubledice/platform/lib/contracts'
 import {
-  Category as CategoryEntity,
   PaymentToken as PaymentTokenEntity,
   VirtualFloor as VirtualFloorEntity
 } from '@doubledice/platform/lib/graph'
@@ -228,10 +227,6 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
     PaymentTokenComponent,
     CategoriesComponent
   },
-  // watch: {
-  //   async latestBlockTimestamp(value: number) {
-  //   }
-  // },
   apollo: {
     virtualFloors: {
       query: VIRTUAL_FLOORS_QUERY,
@@ -277,16 +272,6 @@ export default class App extends Vue {
   nextBlockTimestamp = 0
 
   latestBlockTimestamp = 0
-
-  // get latestBlockTimestamp(): number {
-  //   return this.latestBlockTimestampInternal
-  // }
-
-  // set latestBlockTimestamp(value: number) {
-  //   this.latestBlockTimestampInternal = value
-  //   this.estimatedNextBlockTimestamp = value
-  //   this.systemTimestampAtLastUpdate = getSystemTimestamp()
-  // }
 
   isFastforwarding = false
 
@@ -398,14 +383,6 @@ h3 {
   margin: 40px 0 0;
 }
 
-/* ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-} */
 a {
   color: #42b983;
 }

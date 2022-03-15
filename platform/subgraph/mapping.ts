@@ -5,12 +5,14 @@ import {
   Address,
   BigDecimal,
   BigInt,
+  ethereum,
   log
 } from '@graphprotocol/graph-ts';
 import {
   CreationQuotaAdjustments as CreationQuotaAdjustmentsEvent,
   PaymentTokenWhitelistUpdate as PaymentTokenWhitelistUpdateEvent,
   ResultUpdate as ResultUpdateEvent,
+  TransferBatch as TransferBatchEvent,
   TransferSingle as TransferSingleEvent,
   UserCommitment as UserCommitmentEvent,
   VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
@@ -273,82 +275,102 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
 }
 
 export function handleTransferSingle(event: TransferSingleEvent): void {
-
   if (event.params.from.equals(Address.zero()) || event.params.to.equals(Address.zero())) {
     log.warning(
-      'Ignoring TransferSingle(id={}, from={}, to={}) because it is mint or burn',
-      [event.params.id.toHex(), event.params.from.toHex(), event.params.to.toHex()]
+      'Ignoring TransferSingle(from={}, to={}, id={}) because it is mint or burn',
+      [event.params.from.toHex(), event.params.to.toHex(), event.params.id.toHex()]
     );
     return;
   }
+  handleTransfers(event, event.params.from, event.params.to, [event.params.id], [event.params.value]);
+}
 
-  let amount: BigDecimal;
-
-  let beta: BigDecimal;
-  let outcomeId: string;
-  const outcomeTimeslotId = event.params.id.toHex();
-  {
-    const outcomeTimeslot = loadExistentEntity<OutcomeTimeslot>(OutcomeTimeslot.load, outcomeTimeslotId);
-    outcomeId = outcomeTimeslot.outcome;
-    const outcome = loadExistentEntity<Outcome>(Outcome.load, outcomeId);
-    const virtualFloor = loadExistentEntity<VirtualFloor>(VirtualFloor.load, outcome.virtualFloor);
-    const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, virtualFloor.paymentToken);
-    amount = paymentTokenAmountToBigDecimal(event.params.value, paymentToken.decimals);
-    beta = outcomeTimeslot.beta;
+export function handleTransferBatch(event: TransferBatchEvent): void {
+  if (event.params.from.equals(Address.zero()) || event.params.to.equals(Address.zero())) {
+    log.warning(
+      'Ignoring TransferBatch(from={}, to={}) because it is mint or burn',
+      [event.params.from.toHex(), event.params.to.toHex()]
+    );
+    return;
   }
+  handleTransfers(event, event.params.from, event.params.to, event.params.ids, event.params.values);
+}
 
-  const fromUserId = event.params.from.toHex();
+function handleTransfers(event: ethereum.Event, from: Address, to: Address, ids: BigInt[], values: BigInt[]): void {
+  assert(ids.length == values.length);
+
+  const fromUserId = from.toHex();
   {
     loadOrCreateEntity<User>(User.load, fromUserId);
   }
 
-  const toUserId = event.params.to.toHex();
+  const toUserId = to.toHex();
   {
     loadOrCreateEntity<User>(User.load, toUserId);
   }
 
-  const toUserOutcomeTimeslotId = `${outcomeTimeslotId}-${toUserId}`;
-  {
-    const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, toUserOutcomeTimeslotId);
-    $.balance -= amount;
-    $.save();
-  }
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    const value = values[i];
 
-  const fromUserOutcomeTimeslotId = `${outcomeTimeslotId}-${fromUserId}`;
-  {
-    const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, fromUserOutcomeTimeslotId);
-    $.balance += amount;
-    $.save();
-  }
+    let amount: BigDecimal;
 
-  const postOfEventInTx = event.transactionLogIndex;
-  const outcomeTimeslotTransferId = `${outcomeTimeslotId}-${event.transaction.hash.toHex()}-${postOfEventInTx}`;
-  {
-    const $ = createNewEntity<OutcomeTimeslotTransfer>(OutcomeTimeslotTransfer.load, outcomeTimeslotTransferId);
-    $.outcomeTimeslot = outcomeTimeslotId;
-    $.from = event.params.from.toHex();
-    $.to = event.params.to.toHex();
-    $.timestamp = event.block.timestamp;
-    // $.logIndex = event.logIndex.toI32();
-    $.amount = amount;
-    $.save();
-  }
+    let beta: BigDecimal;
+    let outcomeId: string;
+    const outcomeTimeslotId = id.toHex();
+    {
+      const outcomeTimeslot = loadExistentEntity<OutcomeTimeslot>(OutcomeTimeslot.load, outcomeTimeslotId);
+      outcomeId = outcomeTimeslot.outcome;
+      const outcome = loadExistentEntity<Outcome>(Outcome.load, outcomeId);
+      const virtualFloor = loadExistentEntity<VirtualFloor>(VirtualFloor.load, outcome.virtualFloor);
+      const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, virtualFloor.paymentToken);
+      amount = paymentTokenAmountToBigDecimal(value, paymentToken.decimals);
+      beta = outcomeTimeslot.beta;
+    }
+
+    const toUserOutcomeTimeslotId = `${outcomeTimeslotId}-${toUserId}`;
+    {
+      const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, toUserOutcomeTimeslotId);
+      $.balance -= amount;
+      $.save();
+    }
+
+    const fromUserOutcomeTimeslotId = `${outcomeTimeslotId}-${fromUserId}`;
+    {
+      const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, fromUserOutcomeTimeslotId);
+      $.balance += amount;
+      $.save();
+    }
+
+    const posOfEventInTx = event.transactionLogIndex;
+    const outcomeTimeslotTransferId = `${outcomeTimeslotId}-${event.transaction.hash.toHex()}-${posOfEventInTx}-${i}`;
+    {
+      const $ = createNewEntity<OutcomeTimeslotTransfer>(OutcomeTimeslotTransfer.load, outcomeTimeslotTransferId);
+      $.outcomeTimeslot = outcomeTimeslotId;
+      $.from = fromUserId;
+      $.to = toUserId;
+      $.timestamp = event.block.timestamp;
+      $.amount = amount;
+      $.save();
+    }
 
 
-  const fromUserOutcomeId = `${outcomeId}-${fromUserId}`;
-  {
-    const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, fromUserOutcomeId);
-    $.totalBalance -= amount;
-    $.totalWeightedBalance -= beta * amount;
-    $.save();
-  }
+    const fromUserOutcomeId = `${outcomeId}-${fromUserId}`;
+    {
+      const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, fromUserOutcomeId);
+      $.totalBalance -= amount;
+      $.totalWeightedBalance -= beta * amount;
+      $.save();
+    }
 
-  const toUserOutcomeId = `${outcomeId}-${toUserId}`;
-  {
-    const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, toUserOutcomeId);
-    $.totalBalance += amount;
-    $.totalWeightedBalance += beta * amount;
-    $.save();
+    const toUserOutcomeId = `${outcomeId}-${toUserId}`;
+    {
+      const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, toUserOutcomeId);
+      $.totalBalance += amount;
+      $.totalWeightedBalance += beta * amount;
+      $.save();
+    }
+
   }
 }
 

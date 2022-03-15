@@ -98,13 +98,13 @@ abstract contract BaseDoubleDice is
 
     // ---------- Storage ----------
 
+    mapping(uint256 => VirtualFloor) private _vfs;
+
     address private _platformFeeBeneficiary;
 
     UFixed16x4 private _platformFeeRate;
 
     string private _contractURI;
-
-    mapping(uint256 => VirtualFloor) private _vfs;
 
     mapping(IERC20Upgradeable => bool) private _paymentTokenWhitelist;
 
@@ -113,8 +113,8 @@ abstract contract BaseDoubleDice is
 
     struct BaseDoubleDiceInitParams {
         string tokenMetadataUriTemplate;
-        UFixed256x18 platformFeeRate_e18;
         address platformFeeBeneficiary;
+        UFixed256x18 platformFeeRate_e18;
         string contractURI;
     }
 
@@ -128,8 +128,8 @@ abstract contract BaseDoubleDice is
         __Pausable_init();
         __ReentrancyGuard_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setPlatformFeeRate(params.platformFeeRate_e18);
         _setPlatformFeeBeneficiary(params.platformFeeBeneficiary);
+        _setPlatformFeeRate(params.platformFeeRate_e18);
         _setContractURI(params.contractURI);
     }
 

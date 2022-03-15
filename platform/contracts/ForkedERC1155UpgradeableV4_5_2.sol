@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (token/ERC1155/ERC1155.sol)
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
@@ -14,7 +14,8 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 
 // DOUBLEDICE FORK IS IDENTICAL TO ORIGINAL IMPLEMENTATION IN openzeppelin/contracts-upgradeable@4.5.2,
-// BUT WITH VISIBILITY OF `_balances` ALTERED FROM `private` TO `internal`.
+// BUT WITH VISIBILITY OF `_balances` ALTERED FROM `private` TO `internal`,
+// AND WITH `pragma solidity ^0.8.0` RESTRICTED TO `pragma solidity 0.8.12`
 
 
 

@@ -19,6 +19,10 @@
       <td>{{ accountAddress }}</td>
     </tr>
     <tr>
+      <th>VF quota</th>
+      <td>{{ quotaText }}</td>
+    </tr>
+    <tr>
       <th>
         Does connected account
         <br />own DD contract?
@@ -129,6 +133,7 @@ import { formatTimestamp, getSystemTimestamp } from '@/utils'
 import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser } from '@doubledice/platform/lib/contracts'
 import {
   PaymentToken as PaymentTokenEntity,
+  User as UserEntity,
   VirtualFloor as VirtualFloorEntity
 } from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
@@ -143,6 +148,14 @@ import VirtualFloorComponent from './components/VirtualFloorComponent.vue'
 BigDecimal.config({ DECIMAL_PLACES: 18 })
 
 const MAIN_CONTRACT_ADDRESS = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
+
+const USER_QUERY = gql`query {
+  user(id: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266") {
+    id
+    maxConcurrentVirtualFloors
+    concurrentVirtualFloors
+  }
+}`
 
 const VIRTUAL_FLOORS_QUERY = gql`query {
   virtualFloors(
@@ -236,6 +249,14 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
       },
       pollInterval: 1 * 1000
     },
+    user: {
+      query: USER_QUERY,
+      variables: {
+        minTimestamp: 1638356708,
+        theUser: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
+      },
+      pollInterval: 1 * 1000
+    },
     paymentTokens: {
       query: gql`query {
         paymentTokens {
@@ -252,6 +273,8 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
 })
 export default class App extends Vue {
   virtualFloors!: VirtualFloorEntity[]
+
+  user!: UserEntity
 
   paymentTokens!: PaymentTokenEntity[]
 
@@ -374,6 +397,10 @@ export default class App extends Vue {
   async refreshBalances(): Promise<void> {
     console.log('Refreshing balances...')
     this.$forceUpdate()
+  }
+
+  get quotaText(): string {
+    return `${this.user.concurrentVirtualFloors} of ${this.user.maxConcurrentVirtualFloors} active VFs`
   }
 }
 </script>

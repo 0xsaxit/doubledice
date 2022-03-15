@@ -4,6 +4,7 @@ pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./ForkedERC1155UpgradeableV4_5_2.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
@@ -80,6 +81,7 @@ abstract contract BaseDoubleDice is
     ForkedERC1155UpgradeableV4_5_2,
     AccessControlUpgradeable,
     PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
     ExtraStorageGap,
     MultipleInheritanceOptimization
 {
@@ -121,6 +123,7 @@ abstract contract BaseDoubleDice is
         __ERC1155_init(params.tokenMetadataUriTemplate);
         __AccessControl_init();
         __Pausable_init();
+        __ReentrancyGuard_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setPlatformFeeRate(params.platformFeeRate_e18);
         _setPlatformFeeBeneficiary(params.platformFeeBeneficiary);
@@ -297,6 +300,7 @@ abstract contract BaseDoubleDice is
     function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount)
         public
         whenNotPaused
+        nonReentrant
     {
         VirtualFloor storage vf = _vfs[vfId];
 

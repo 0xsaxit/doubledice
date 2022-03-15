@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.12;
 
-import "./BaseDoubleDice.sol";
+import "../BaseDoubleDice.sol";
 
 contract SimpleOracle is BaseDoubleDice {
 

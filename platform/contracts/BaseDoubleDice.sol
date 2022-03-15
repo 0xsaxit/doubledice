@@ -524,7 +524,7 @@ abstract contract BaseDoubleDice is
             }
         }
         emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
-        vf.paymentToken.transfer(msgSender, totalPayout);
+        vf.paymentToken.safeTransfer(msgSender, totalPayout);
     }
 
     /// @notice Claim payouts from a VF that has been resolved with winners.
@@ -559,7 +559,7 @@ abstract contract BaseDoubleDice is
             }
         }
         emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
-        vf.paymentToken.transfer(msgSender, totalPayout);
+        vf.paymentToken.safeTransfer(msgSender, totalPayout);
     }
 
 

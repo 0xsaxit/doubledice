@@ -199,10 +199,6 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
         totalWeightedBalance
       }
       outcomeTimeslots {
-        timeslot {
-          id
-          minTimestamp
-        }
         totalSupply
         userOutcomeTimeslots(where: { user: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" }) {
           user { id }

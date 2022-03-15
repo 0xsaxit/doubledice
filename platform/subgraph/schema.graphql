@@ -52,7 +52,6 @@ type VirtualFloor @entity {
   outcomes: [Outcome!]! @derivedFrom(field: "virtualFloor")
   opponents: [Opponent!]! @derivedFrom(field: "virtualFloor")
   resultSources: [ResultSource!]! @derivedFrom(field: "virtualFloor")
-  virtualFloorTimeslots: [VirtualFloorTimeslot!]! @derivedFrom(field: "virtualFloor")
 
   # properties (event)
   paymentToken: PaymentToken!
@@ -137,19 +136,6 @@ type Outcome @entity {
   totalWeightedSupply: BigDecimal!
 }
 
-type Timeslot @entity {
-  id: ID!
-
-  # children
-  outcomeTimeslots: [OutcomeTimeslot!]! @derivedFrom(field: "timeslot")
-  userOutcomeTimeslots: [UserOutcomeTimeslot!]! @derivedFrom(field: "timeslot")
-  virtualFloorTimeslots: [VirtualFloorTimeslot!]! @derivedFrom(field: "timeslot")
-
-  # properties
-  minTimestamp: BigInt!
-  maxTimestamp: BigInt!
-}
-
 type User @entity {
   id: ID!
 
@@ -183,7 +169,7 @@ type OutcomeTimeslot @entity {
 
   # parents
   outcome: Outcome!
-  timeslot: Timeslot!
+  timeslot: BigInt!
 
   # children
   userOutcomeTimeslots: [UserOutcomeTimeslot!]! @derivedFrom(field: "outcomeTimeslot")
@@ -200,7 +186,7 @@ type UserOutcomeTimeslot @entity {
   # parents
   user: User!
   outcome: Outcome!
-  timeslot: Timeslot!
+  timeslot: BigInt!
   outcomeTimeslot: OutcomeTimeslot!
 
   # # children
@@ -209,14 +195,6 @@ type UserOutcomeTimeslot @entity {
 
   # properties
   balance: BigDecimal!
-}
-
-type VirtualFloorTimeslot @entity {
-  id: ID!
-
-  #parents
-  virtualFloor: VirtualFloor!
-  timeslot: Timeslot!
 }
 
 type OutcomeTimeslotTransfer @entity {

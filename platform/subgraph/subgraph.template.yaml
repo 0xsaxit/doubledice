@@ -23,12 +23,10 @@ dataSources:
         - PaymentToken
         - ResultSource
         - Subcategory
-        - Timeslot
         - User
         - UserOutcome
         - UserOutcomeTimeslot
         - VirtualFloor
-        - VirtualFloorTimeslot
       abis:
         - name: DoubleDice
           file: ../generated/abi/DoubleDice.no-custom-errors.json

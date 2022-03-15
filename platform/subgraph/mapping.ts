@@ -30,18 +30,16 @@ import {
   PaymentToken,
   ResultSource,
   Subcategory,
-  Timeslot,
   User,
   UserOutcome,
   UserOutcomeTimeslot,
-  VirtualFloor,
-  VirtualFloorTimeslot
+  VirtualFloor
 } from '../generated/schema';
 import {
   ResultUpdateAction,
   VirtualFloorResolutionType
 } from '../lib/helpers/sol-enums';
-import { CHALLENGE_WINDOW_DURATION, SET_WINDOW_DURATION, TIMESLOT_DURATION } from './constants';
+import { CHALLENGE_WINDOW_DURATION, SET_WINDOW_DURATION } from './constants';
 import { createNewEntity, loadExistentEntity, loadOrCreateEntity } from './entities';
 import { decodeMetadata } from './metadata';
 import { paymentTokenAmountToBigDecimal, toDecimal } from './utils';
@@ -188,7 +186,6 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
 export function handleUserCommitment(event: UserCommitmentEvent): void {
   let amount: BigDecimal;
-  const timeslotMinTimestamp = event.params.timeslot;
 
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
@@ -210,32 +207,12 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
     $.save();
   }
 
-  const timeslotId = timeslotMinTimestamp.toHex(); // ToDo: To 32 bytes
-  {
-    const $ = loadOrCreateEntity<Timeslot>(Timeslot.load, timeslotId);
-    /* if (isNew) */ {
-      $.minTimestamp = timeslotMinTimestamp;
-      $.maxTimestamp = timeslotMinTimestamp + BigInt.fromU32(TIMESLOT_DURATION - 1);
-      $.save();
-    }
-  }
-
-  const virtualFloorTimeslotId = `${virtualFloorId}-${timeslotId}`;
-  {
-    const $ = loadOrCreateEntity<VirtualFloorTimeslot>(VirtualFloorTimeslot.load, virtualFloorTimeslotId);
-    /* if (isNew) */ {
-      $.virtualFloor = virtualFloorId;
-      $.timeslot = timeslotId;
-      $.save();
-    }
-  }
-
   const outcomeTimeslotId = event.params.tokenId.toHex(); // ToDo: To 32 bytes
   {
     const $ = loadOrCreateEntity<OutcomeTimeslot>(OutcomeTimeslot.load, outcomeTimeslotId);
     /* if (isNew) */ {
       $.outcome = outcomeId;
-      $.timeslot = timeslotId;
+      $.timeslot = event.params.timeslot;
       $.beta = beta;
     }
     $.totalSupply += amount;
@@ -274,7 +251,7 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
     /* if (isNew) */ {
       $.user = userId;
       $.outcome = outcomeId;
-      $.timeslot = timeslotId;
+      $.timeslot = event.params.timeslot;
       $.outcomeTimeslot = outcomeTimeslotId;
     }
     $.balance += amount;

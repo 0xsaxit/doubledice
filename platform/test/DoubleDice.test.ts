@@ -71,7 +71,8 @@ describe('DoubleDice', function () {
         {
           tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
           platformFeeRate_e18: toFp18(0.25),
-          platformFeeBeneficiary: feeBeneficiarySigner.address
+          platformFeeBeneficiary: feeBeneficiarySigner.address,
+          contractURI: 'http://localhost:8080/contract-metadata.json'
         },
         tokenUSDC.address,
       ]

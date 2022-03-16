@@ -17,6 +17,7 @@ const {
   CHAIN_ID,
   OWNER_ADDRESS,
   INIT_TOKEN_METADATA_URI_TEMPLATE,
+  INIT_CONTRACT_URI,
   INIT_PLATFORM_FEE_RATE,
   INIT_PLATFORM_FEE_BENEFICIARY,
   DEPLOYED_USDC_ADDRESS = null,
@@ -30,6 +31,7 @@ async function main() {
   assert(INIT_TOKEN_METADATA_URI_TEMPLATE);
   assert(INIT_PLATFORM_FEE_RATE);
   assert(INIT_PLATFORM_FEE_BENEFICIARY);
+  assert(INIT_CONTRACT_URI);
 
   const { chainId } = await ethers.provider.getNetwork();
   assert(parseInt(CHAIN_ID) === chainId, `${CHAIN_ID} !== ${chainId}; wrong .env config?`);
@@ -58,6 +60,7 @@ async function main() {
         tokenMetadataUriTemplate: INIT_TOKEN_METADATA_URI_TEMPLATE,
         platformFeeRate_e18: toFp18(INIT_PLATFORM_FEE_RATE),
         platformFeeBeneficiary: INIT_PLATFORM_FEE_BENEFICIARY,
+        contractURI: INIT_CONTRACT_URI,
       },
       tokenUSDC.address,
     ]

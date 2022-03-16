@@ -102,6 +102,8 @@ abstract contract BaseDoubleDice is
 
     UFixed16x4 private _platformFeeRate;
 
+    string private _contractURI;
+
     mapping(uint256 => VirtualFloor) private _vfs;
 
     mapping(IERC20Upgradeable => bool) private _paymentTokenWhitelist;
@@ -113,6 +115,7 @@ abstract contract BaseDoubleDice is
         string tokenMetadataUriTemplate;
         UFixed256x18 platformFeeRate_e18;
         address platformFeeBeneficiary;
+        string contractURI;
     }
 
     function __BaseDoubleDice_init(BaseDoubleDiceInitParams calldata params)
@@ -127,6 +130,7 @@ abstract contract BaseDoubleDice is
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
         _setPlatformFeeRate(params.platformFeeRate_e18);
         _setPlatformFeeBeneficiary(params.platformFeeBeneficiary);
+        _setContractURI(params.contractURI);
     }
 
 
@@ -142,6 +146,10 @@ abstract contract BaseDoubleDice is
 
     function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setPlatformFeeRate(platformFeeRate_e18_);
+    }
+
+    function setContractURI(string memory contractURI_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setContractURI(contractURI_);
     }
 
     function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -162,6 +170,11 @@ abstract contract BaseDoubleDice is
         emit PlatformFeeRateUpdate(platformFeeRate);
     }
 
+    function _setContractURI(string memory contractURI_) internal {
+        _contractURI = contractURI_;
+        emit ContractURIUpdate(contractURI_);
+    }
+
     function _updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) internal {
         _paymentTokenWhitelist[token] = isWhitelisted;
         emit PaymentTokenWhitelistUpdate(token, isWhitelisted);
@@ -179,6 +192,12 @@ abstract contract BaseDoubleDice is
     /// E.g. 1.25% would be returned as 0.0125e18
     function platformFeeRate_e18() external view returns (UFixed256x18) {
         return _platformFeeRate.toUFixed256x18();
+    }
+
+    /// @notice Returns a URL for the OpenSea storefront-level metadata for this contract
+    /// @dev See https://docs.opensea.io/docs/contract-level-metadata
+    function contractURI() external view returns (string memory) {
+        return _contractURI;
     }
 
     function isPaymentTokenWhitelisted(IERC20Upgradeable token) public view returns (bool) {

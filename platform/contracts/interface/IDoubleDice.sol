@@ -229,6 +229,10 @@ interface IDoubleDice is
 
     function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18) external;
 
+    event ContractURIUpdate(string contractURI);
+
+    function setContractURI(string memory contractURI) external;
+
     event PaymentTokenWhitelistUpdate(IERC20Upgradeable indexed token, bool whitelisted);
 
     function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external;

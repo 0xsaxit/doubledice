@@ -608,9 +608,11 @@ abstract contract BaseDoubleDice is
 
     // ---------- Lifecycle hooks ----------
 
+    // solhint-disable-next-line no-empty-blocks
     function _onVirtualFloorCreation(VirtualFloorCreationParams calldata params) internal virtual {
     }
 
+    // solhint-disable-next-line no-empty-blocks
     function _onVirtualFloorConclusion(uint256 vfId) internal virtual {        
     }
 

@@ -26,7 +26,8 @@
     "codegen": "hardhat compile && npm run graph:codegen && npm run graph:generate-ts-bindings",
     "postinstall": "npm run codegen",
     "pregen-sol-interface": "npx hardhat compile",
-    "gen-sol-interface": "cat ./generated/abi/DoubleDice.json | abi-to-sol --validate --solidity-version=0.8.12 IDoubleDiceComplete > ./generated/IDoubleDiceComplete.sol"
+    "gen-sol-interface": "cat ./generated/abi/DoubleDice.json | abi-to-sol --validate --solidity-version=0.8.12 IDoubleDiceComplete > ./generated/IDoubleDiceComplete.sol",
+    "lint:sol": "solhint contracts/**.sol"
   },
   "main": "./lib/index.ts",
   "files": [
@@ -54,6 +55,7 @@
     "hardhat": "2.9.1",
     "hardhat-abi-exporter": "2.8.0",
     "hardhat-gas-reporter": "1.0.8",
+    "solhint": "3.3.7",
     "solidity-coverage": "0.7.20",
     "typechain": "7.0.0"
   },

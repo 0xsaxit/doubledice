@@ -86,3 +86,27 @@ export async function deployDoubleDice({
 
   return contract;
 }
+
+export async function upgradeDoubleDice({
+  deployer,
+  deployArgs,
+  deployedTransparentUpgradeableProxyAddress,
+  deployedProxyAdminAddress,
+}: {
+  deployer: SignerWithAddress;
+  deployArgs: Parameters<DoubleDice__factory['deploy']>;
+  deployedTransparentUpgradeableProxyAddress: string;
+  deployedProxyAdminAddress: string;
+}): Promise<void> {
+  const impl = await new DoubleDice__factory(deployer).deploy(...deployArgs);
+  process.stdout.write(`Deploying DoubleDice impl to: ${impl.address}...\n`);
+  await impl.deployed();
+  process.stdout.write('Deployed.\n\n');
+
+  process.stdout.write(`Calling ProxyAdmin(${deployedProxyAdminAddress}),\n`);
+  process.stdout.write(`  to upgrade TransparentUpgradeableProxyAddress(${deployedTransparentUpgradeableProxyAddress}),\n`);
+  process.stdout.write(`  to just-deployed impl DoubleDice(${impl.address})...\n`);
+  const proxyAdmin = ProxyAdmin__factory.connect(deployedProxyAdminAddress, deployer);
+  await (await proxyAdmin.upgrade(deployedTransparentUpgradeableProxyAddress, impl.address)).wait();
+  process.stdout.write('Upgraded.\n');
+}

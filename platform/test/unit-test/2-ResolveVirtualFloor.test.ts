@@ -10,10 +10,10 @@ import {
   ENCODED_DUMMY_METADATA,
   EvmCheckpoint,
   EvmHelper,
-  generateRandomVirtualFloorId,
-  SignerWithAddress,
+  generateRandomVirtualFloorId, SignerWithAddress,
   toFp18,
   toTimestamp,
+  UNSPECIFIED_COMMITMENT_DEADLINE,
   UserCommitment
 } from '../../helpers';
 import {
@@ -172,13 +172,13 @@ describe('DoubleDice/Resolve', function () {
         })
       ).wait();
 
-      user1CommitmentEventArgs = await helper.commitToVirtualFloor(virtualFloorId, 0, user1Signer, $(10));
-      user2CommitmentEventArgs = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, $(10));
-      user3CommitmentEventArgs = await helper.commitToVirtualFloor(virtualFloorId, 1, user3Signer, $(10));
+      user1CommitmentEventArgs = await helper.commitToVirtualFloor(virtualFloorId, 0, user1Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
+      user2CommitmentEventArgs = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
+      user3CommitmentEventArgs = await helper.commitToVirtualFloor(virtualFloorId, 1, user3Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
 
-      await helper.commitToVirtualFloor(allWinnersVf, 1, user1Signer, $(10));
-      await helper.commitToVirtualFloor(allWinnersVf, 1, user2Signer, $(10));
-      await helper.commitToVirtualFloor(allWinnersVf, 1, user3Signer, $(10));
+      await helper.commitToVirtualFloor(allWinnersVf, 1, user1Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
+      await helper.commitToVirtualFloor(allWinnersVf, 1, user2Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
+      await helper.commitToVirtualFloor(allWinnersVf, 1, user3Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
     });
 
     it('Should revert if VF / market does not exist', async function () {
@@ -190,8 +190,8 @@ describe('DoubleDice/Resolve', function () {
 
       // Commit to 2 outcomes so that VF resolution fails because too early,
       // and not because it is unresolvable.
-      await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId2, 0, 1)).wait();
-      await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId2, 1, 1)).wait();
+      await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId2, 0, 1, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+      await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId2, 1, 1, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
 
       await expect(contract.setResult(virtualFloorId2, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
     });

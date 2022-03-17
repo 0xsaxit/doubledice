@@ -87,12 +87,13 @@ export class DoubleDicePlatformHelper {
     virtualFloorId: BigNumberish,
     outcomeIndex: number,
     userSigner: SignerWithAddress,
-    amount: BigNumberish
+    amount: BigNumberish,
+    deadline: BigNumberish,
   ): Promise<UserCommitment> {
     const { events } = await (
       await this.contract
         .connect(userSigner)
-        .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount)
+        .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, deadline)
     ).wait();
 
     return (findUserCommitmentEventArgs(

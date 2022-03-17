@@ -47,7 +47,7 @@
 import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
 import { Outcome as OutcomeEntity, VirtualFloor as VirtualFloorEntity, VirtualFloorInternalState } from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
-import { BigNumber } from 'ethers'
+import { BigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 
@@ -107,7 +107,7 @@ export default class OutcomeComponent extends Vue {
   async commit(): Promise<void> {
     const amount = BigNumber.from(10).pow(this.virtualFloor.paymentToken.decimals).mul(1)
     try {
-      const tx = await this.contract.commitToVirtualFloor(this.virtualFloor.id, this.outcome.index, amount)
+      const tx = await this.contract.commitToVirtualFloor(this.virtualFloor.id, this.outcome.index, amount, ethers.constants.MaxUint256)
       const { hash } = tx
       const txUrl = `https://polygonscan.com/tx/${hash}`
       console.log(`Sent ${txUrl}`)

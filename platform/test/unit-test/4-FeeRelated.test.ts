@@ -14,6 +14,7 @@ import {
   SignerWithAddress,
   toFp18,
   toTimestamp,
+  UNSPECIFIED_COMMITMENT_DEADLINE,
   UserCommitment
 } from '../../helpers';
 import {
@@ -143,11 +144,11 @@ describe('DoubleDice/FeeRelated', function () {
       });
 
       // winners commitment
-      const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user1Signer, amountToCommit);
-      const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, amountToCommit);
+      const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user1Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
+      const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
 
       // loser commitment
-      await helper.commitToVirtualFloor(virtualFloorId, 0, user3Signer, amountToCommit);
+      await helper.commitToVirtualFloor(virtualFloorId, 0, user3Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
 
       await evm.setNextBlockTimestamp(tResolve);
 
@@ -198,11 +199,11 @@ describe('DoubleDice/FeeRelated', function () {
       // set to open time
       await evm.setNextBlockTimestamp('2022-06-01T10:00:00');
       // winners commitment
-      const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user1Signer, amountToCommit);
+      const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user1Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
       await evm.setNextBlockTimestamp('2028-06-01T10:00:00');
-      const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, amountToCommit);
+      const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
       await evm.setNextBlockTimestamp('2029-06-01T10:00:00');
-      const user3CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user3Signer, amountToCommit);
+      const user3CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user3Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
 
       console.log('user1 commitment', user1CommitmentEventArgs.timeslot.toNumber());
       console.log('user2 commitment', user2CommitmentEventArgs.timeslot.toNumber());
@@ -212,7 +213,7 @@ describe('DoubleDice/FeeRelated', function () {
       console.log('beta commitment', user3CommitmentEventArgs.beta_e18);
 
       // loser commitment
-      await helper.commitToVirtualFloor(virtualFloorId, 0, user4Signer, amountToCommit);
+      await helper.commitToVirtualFloor(virtualFloorId, 0, user4Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
 
 
       expect(user3CommitmentEventArgs.tokenId).to.not.be.eq(user1CommitmentEventArgs.tokenId);

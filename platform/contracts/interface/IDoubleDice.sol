@@ -138,6 +138,8 @@ error MismatchedVirtualFloorId(uint256 tokenId);
 
 error ResolveWhilePaused();
 
+error CommitmentDeadlineExpired();
+
 
 interface IDoubleDice is
     IAccessControlUpgradeable,
@@ -191,7 +193,7 @@ interface IDoubleDice is
 
     function createVirtualFloor(VirtualFloorCreationParams calldata params) external;
 
-    function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount) external;
+    function commitToVirtualFloor(uint256 virtualFloorId, uint8 outcomeIndex, uint256 amount, uint256 deadline) external;
 
     function cancelVirtualFloorFlagged(uint256 virtualFloorId, string calldata reason) external;
 

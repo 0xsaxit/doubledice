@@ -311,11 +311,21 @@ abstract contract BaseDoubleDice is
         _onVirtualFloorCreation(params);
     }
 
-    function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount)
+    function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount, uint256 optionalDeadline)
         public
         whenNotPaused
         nonReentrant
     {
+        // Note: if-condition is a minor gas optimization; it costs ~20 gas more to perform the if-test,
+        // but it is ~400 gas cheaper if the deadline is left specified.
+        if (optionalDeadline != UNSPECIFIED_ZERO) {
+            // CR-01: To avoid a scenario where a commitment is mined so late that it might no longer favourable
+            // to the committer to make that commitment, it is possible to specify the maximum time
+            // until which the commitment may be mined.
+            // solhint-disable-next-line not-rely-on-time
+            if (!(block.timestamp <= optionalDeadline)) revert CommitmentDeadlineExpired();
+        }
+
         VirtualFloor storage vf = _vfs[vfId];
 
         if (!vf.isOpen()) revert WrongVirtualFloorState(vf.state());

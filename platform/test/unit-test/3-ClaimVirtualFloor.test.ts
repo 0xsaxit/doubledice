@@ -13,7 +13,11 @@ import {
   findUserCommitmentEventArgs,
   generateRandomVirtualFloorId,
   SignerWithAddress,
-  toFp18, tokenIdOf, toTimestamp, UserCommitment
+  toFp18,
+  tokenIdOf,
+  toTimestamp,
+  UNSPECIFIED_COMMITMENT_DEADLINE,
+  UserCommitment
 } from '../../helpers';
 import {
   DoubleDice,
@@ -183,7 +187,7 @@ describe('DoubleDice/Claim', function () {
       const { events: user1CommittedEvents } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, 0, $(10))
+          .commitToVirtualFloor(virtualFloorId, 0, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       user1CommitmentEventArgs = findUserCommitmentEventArgs(
         user1CommittedEvents
@@ -191,7 +195,7 @@ describe('DoubleDice/Claim', function () {
       const { events: user2CommittedEvents } = await (
         await contract
           .connect(user2Signer)
-          .commitToVirtualFloor(virtualFloorId, 1, $(10))
+          .commitToVirtualFloor(virtualFloorId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       user2CommitmentEventArgs = findUserCommitmentEventArgs(
         user2CommittedEvents
@@ -199,7 +203,7 @@ describe('DoubleDice/Claim', function () {
       const { events: user3CommittedEvents } = await (
         await contract
           .connect(user3Signer)
-          .commitToVirtualFloor(virtualFloorId, 1, $(10))
+          .commitToVirtualFloor(virtualFloorId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       user3CommitmentEventArgs = findUserCommitmentEventArgs(
         user3CommittedEvents
@@ -208,7 +212,7 @@ describe('DoubleDice/Claim', function () {
       const { events: user1AllWinCommittedEvents } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(allWinnersVf, 1, $(10))
+          .commitToVirtualFloor(allWinnersVf, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       allWinnersVfCommitmentEventArgs[0] = findUserCommitmentEventArgs(
         user1AllWinCommittedEvents
@@ -216,12 +220,12 @@ describe('DoubleDice/Claim', function () {
       await (
         await contract
           .connect(user2Signer)
-          .commitToVirtualFloor(allWinnersVf, 1, $(10))
+          .commitToVirtualFloor(allWinnersVf, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       await (
         await contract
           .connect(user3Signer)
-          .commitToVirtualFloor(allWinnersVf, 1, $(10))
+          .commitToVirtualFloor(allWinnersVf, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
     });
 

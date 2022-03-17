@@ -126,3 +126,5 @@ export const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumbe
   BigNumber.from(1000000)
     .mul(dollars)
     .add(millionths);
+
+export const UNSPECIFIED_COMMITMENT_DEADLINE = 0;

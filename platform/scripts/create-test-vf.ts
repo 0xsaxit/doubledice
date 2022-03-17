@@ -1,7 +1,7 @@
 import { BigNumber } from '@ethersproject/bignumber';
 import assert from 'assert';
 import { ethers } from 'hardhat';
-import { DUMMY_METADATA } from '../helpers';
+import { DUMMY_METADATA, UNSPECIFIED_COMMITMENT_DEADLINE } from '../helpers';
 import { DoubleDice__factory, DummyUSDCoin__factory, encodeVirtualFloorMetadata } from '../lib/contracts';
 import { validateRoomEventInfo } from '../lib/metadata';
 
@@ -61,10 +61,10 @@ async function main() {
   console.log(`balanceOf(1) = ${await token.balanceOf(user1.address)}`);
   console.log(`balanceOf(2) = ${await token.balanceOf(user2.address)}`);
 
-  const { events: events1 } = await (await platform.connect(user1).commitToVirtualFloor(vfId, 0, 100000_000000_000000n)).wait();
-  const { events: events2 } = await (await platform.connect(user1).commitToVirtualFloor(vfId, 1, 200000_000000_000000n)).wait();
-  const { events: events3 } = await (await platform.connect(user2).commitToVirtualFloor(vfId, 1, 300000_000000_000000n)).wait();
-  const { events: events4 } = await (await platform.connect(user2).commitToVirtualFloor(vfId, 2, 400000_000000_000000n)).wait();
+  const { events: events1 } = await (await platform.connect(user1).commitToVirtualFloor(vfId, 0, 100000_000000_000000n, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+  const { events: events2 } = await (await platform.connect(user1).commitToVirtualFloor(vfId, 1, 200000_000000_000000n, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+  const { events: events3 } = await (await platform.connect(user2).commitToVirtualFloor(vfId, 1, 300000_000000_000000n, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+  const { events: events4 } = await (await platform.connect(user2).commitToVirtualFloor(vfId, 2, 400000_000000_000000n, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
 
   const { args: { id: id1 } } = events1!.find(({ event }) => event === 'TransferSingle') as any;
   const { args: { id: id2 } } = events2!.find(({ event }) => event === 'TransferSingle') as any;

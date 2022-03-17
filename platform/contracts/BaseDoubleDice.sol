@@ -256,6 +256,10 @@ abstract contract BaseDoubleDice is
             // amount committed to the VF
             vf.nonzeroOutcomeCount += 1;
 
+            // nonReentrant
+            // Since createVirtualFloor is guarded by require(_internalState == None)
+            // and _internalState has now been moved to Active,
+            // the following external safeTransferFrom call cannot re-enter createVirtualFloor.
             params.paymentToken.safeTransferFrom(_msgSender(), address(this), params.bonusAmount);
         }
 
@@ -292,8 +296,12 @@ abstract contract BaseDoubleDice is
             metadata: metadata
         });
 
-        // Hooks might want to read VF values from storage,
-        // so hook-call must happen last.
+        // nonReentrant
+        // Since createVirtualFloor is guarded by require(_internalState == None)
+        // and _internalState has now been moved to Active,
+        // any external calls made by _onVirtualFloorCreation cannot re-enter createVirtualFloor.
+        //
+        // Hooks might want to read VF values from storage, so hook-call must happen last.
         _onVirtualFloorCreation(params);
     }
 
@@ -408,6 +416,11 @@ abstract contract BaseDoubleDice is
         if (!(state == VirtualFloorState.Active_Closed_ResolvableNever)) revert WrongVirtualFloorState(state);
         vf._internalState = VirtualFloorInternalState.Claimable_Refunds_ResolvableNever;
         emit VirtualFloorCancellationUnresolvable(vfId);
+
+        // nonReentrant
+        // Since cancelVirtualFloorUnresolvable is guarded by require(_internalState == Active)
+        // and _internalState has now been moved to Claimable_Refunds_ResolvableNever,
+        // any external calls made by _onVirtualFloorConclusion cannot re-enter cancelVirtualFloorUnresolvable.
         _onVirtualFloorConclusion(vfId);
     }
 
@@ -419,6 +432,11 @@ abstract contract BaseDoubleDice is
         if (!(vf._internalState == VirtualFloorInternalState.Active)) revert WrongVirtualFloorState(vf.state());
         vf._internalState = VirtualFloorInternalState.Claimable_Refunds_Flagged;
         emit VirtualFloorCancellationFlagged(vfId, reason);
+
+        // nonReentrant
+        // Since cancelVirtualFloorFlagged is guarded by require(_internalState == Active)
+        // and _internalState has now been moved to Claimable_Refunds_Flagged,
+        // any external calls made by _onVirtualFloorConclusion cannot re-enter cancelVirtualFloorFlagged.
         _onVirtualFloorConclusion(vfId);
     }
 
@@ -528,6 +546,10 @@ abstract contract BaseDoubleDice is
             }
         }
         emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
+
+        // nonReentrant
+        // Since at this point in claimRefunds the ERC-1155 balances have already been drained,
+        // the following external safeTransfer call cannot re-enter claimRefunds.
         vf.paymentToken.safeTransfer(msgSender, totalPayout);
     }
 
@@ -563,6 +585,10 @@ abstract contract BaseDoubleDice is
             }
         }
         emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
+
+        // nonReentrant
+        // Since at this point in claimPayouts the ERC-1155 balances have already been drained,
+        // the following external safeTransfer call cannot re-enter claimPayouts.
         vf.paymentToken.safeTransfer(msgSender, totalPayout);
     }
 

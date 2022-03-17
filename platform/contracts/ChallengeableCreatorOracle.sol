@@ -106,8 +106,13 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         uint256 tResultSetMax = vfParams.tResolve + SET_WINDOW_DURATION;
         if (!(block.timestamp > tResultSetMax)) revert TooEarly();
         resolution.state = ResolutionState.Complete;
-        _resolve(vfId, finalOutcomeIndex, platformFeeBeneficiary());
         emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.AdminFinalizedUnsetResult, finalOutcomeIndex);
+
+        // nonReentrant
+        // Since finalizeUnsetResult is guarded by require(state == None)
+        // and state has now been moved to Complete,
+        // any external calls made by _resolve cannot re-enter finalizeUnsetResult.
+        _resolve(vfId, finalOutcomeIndex, platformFeeBeneficiary());
     }
 
     function setResult(uint256 vfId, uint8 setOutcomeIndex)
@@ -141,6 +146,11 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         resolution.state = ResolutionState.Complete;
         address creatorFeeBeneficiary = getVirtualFloorCreator(vfId);
         emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.SomeoneConfirmedUnchallengedResult, resolution.setOutcomeIndex);
+
+        // nonReentrant
+        // Since confirmUnchallengedResult is guarded by require(state == Set)
+        // and state has now been moved to Complete,
+        // any external calls made by _resolve cannot re-enter confirmUnchallengedResult.
         _resolve(vfId, resolution.setOutcomeIndex, creatorFeeBeneficiary);
     }
 
@@ -154,11 +164,16 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         if (!(challengeOutcomeIndex < vfParams.nOutcomes)) revert OutcomeIndexOutOfRange();
         if (!(challengeOutcomeIndex != resolution.setOutcomeIndex)) revert ChallengeOutcomeIndexEqualToSet();
         if (!(block.timestamp <= resolution.tResultChallengeMax)) revert TooLate();
-        _bondUsdErc20Token.safeTransferFrom(_msgSender(), address(this), _bondAmount());
         resolution.challengeOutcomeIndex = challengeOutcomeIndex;
         resolution.challenger = _msgSender();
         resolution.state = ResolutionState.Challenged;
         emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.SomeoneChallengedSetResult, challengeOutcomeIndex);
+
+        // nonReentrant
+        // Since challengeSetResult is guarded by require(state == Set)
+        // and state has now been moved to Challenged,
+        // the following external safeTransferFrom call cannot re-enter challengeSetResult.
+        _bondUsdErc20Token.safeTransferFrom(_msgSender(), address(this), _bondAmount());
     }
 
     function finalizeChallenge(uint256 vfId, uint8 finalOutcomeIndex)
@@ -184,8 +199,14 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         }
         resolution.state = ResolutionState.Complete;
         emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.AdminFinalizedChallenge, finalOutcomeIndex);
-        _resolve(vfId, finalOutcomeIndex, creatorFeeBeneficiary);
+
+        // nonReentrant
+        // Since finalizeChallenge is guarded by require(state == Challenged)
+        // and state has now been moved to Complete,
+        // the external safeTransfer call, as well as any external calls made by _resolve,
+        // cannot re-enter finalizeChallenge.
         _bondUsdErc20Token.safeTransfer(challengeBondBeneficiary, _bondAmount());
+        _resolve(vfId, finalOutcomeIndex, creatorFeeBeneficiary);
     }
 
     /// @notice If the underlying VF has been cancelled by a DoubleDice admin

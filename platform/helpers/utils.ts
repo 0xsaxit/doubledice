@@ -104,6 +104,7 @@ export const DUMMY_METADATA: RoomEventInfo = {
     ]
   },
   discordChannelId: '123456789',
+  extraData: '0x',
 };
 
 export const generateRandomVirtualFloorId = () =>

@@ -29,6 +29,7 @@ struct VirtualFloorMetadataV1 {
     VirtualFloorMetadataOutcomes outcomes;
     VirtualFloorMetadataResultSources resultSources;
     string discordChannelId;
+    bytes extraData;
 }
 
 

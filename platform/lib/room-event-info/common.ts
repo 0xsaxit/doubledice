@@ -76,7 +76,14 @@ const schema: JSONSchemaType<RoomEventInfo> = {
       },
       additionalProperties: false,
     },
-    discordChannelId: { type: 'string', minLength: 1 },
+    discordChannelId: {
+      type: 'string',
+      minLength: 1,
+    },
+    extraData: {
+      type: 'string',
+      pattern: '^0x([0-9a-fA-F]{2})*$',
+    },
   },
   additionalProperties: false,
 };

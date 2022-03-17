@@ -238,7 +238,8 @@ export default class NewVirtualFloor extends Vue {
       opponents: this.opponents,
       outcomes: this.outcomes,
       resultSources: this.resultSources,
-      discordChannelId: '12345'
+      discordChannelId: '12345',
+      extraData: '0x'
     }
 
     if (!validateRoomEventInfo(metadata)) {

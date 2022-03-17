@@ -228,6 +228,12 @@ abstract contract BaseDoubleDice is
         params.validatePure();
 
         // Validation against block
+
+        // CR-01: If block.timestamp is just a few seconds before tCreateMax,
+        // manipulating block.timestamp by a few seconds to be > tCreateMax
+        // would cause this transaction to fail,
+        // and the creator would have to re-attempt the transaction.
+        // solhint-disable-next-line not-rely-on-time
         if (!(block.timestamp <= params.tCreateMax())) revert TooLate();
 
         VirtualFloor storage vf = _vfs[params.virtualFloorId];
@@ -327,6 +333,10 @@ abstract contract BaseDoubleDice is
         // will be minted as balances on the the same ERC-1155 tokenId, which means that
         // these balances will be exchangeable/tradeable/fungible between themselves,
         // but they will not be fungible with commitments to the same outcome that arrive later.
+        //
+        // CR-01: Manipulating block.timestamp to be a few seconds later would
+        // result in a fractionally lower beta.
+        // solhint-disable-next-line not-rely-on-time
         uint256 timeslot = MathUpgradeable.max(vf.tOpen, block.timestamp);
 
         UFixed256x18 beta_e18 = vf.betaOf(timeslot);

@@ -26,6 +26,8 @@ chai.use(chaiSubset);
 
 const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
+const MIN_POSSIBLE_T_RESOLVE_MINUS_T_CLOSE = 10 * 60;
+
 describe('DoubleDice/Create', function () {
   let ownerSigner: SignerWithAddress;
   let secondCreator: SignerWithAddress;
@@ -125,11 +127,14 @@ describe('DoubleDice/Create', function () {
       it('tResolve < tClose reverts', async () => {
         await expect(contract.createVirtualFloor({ ...vfParams, tResolve: tClose - 1 })).to.be.revertedWith('InvalidTimeline()');
       });
-      it('tResolve == tClose succeeds', async () => {
-        await expect(contract.createVirtualFloor({ ...vfParams, tResolve: tClose })).to.emit(contract, 'VirtualFloorCreation');
+      it('tResolve < tClose + MIN_POSSIBLE_T_RESOLVE_MINUS_T_CLOSE reverts', async () => {
+        await expect(contract.createVirtualFloor({ ...vfParams, tResolve: tClose + MIN_POSSIBLE_T_RESOLVE_MINUS_T_CLOSE - 1 })).to.be.revertedWith('InvalidTimeline()');
       });
-      it('tResolve > tClose succeeds', async () => {
-        await expect(contract.createVirtualFloor({ ...vfParams, tResolve: tClose + 1 })).to.emit(contract, 'VirtualFloorCreation');
+      it('tResolve == tClose + MIN_POSSIBLE_T_RESOLVE_MINUS_T_CLOSE succeeds', async () => {
+        await expect(contract.createVirtualFloor({ ...vfParams, tResolve: tClose + MIN_POSSIBLE_T_RESOLVE_MINUS_T_CLOSE })).to.emit(contract, 'VirtualFloorCreation');
+      });
+      it('tResolve > tClose + MIN_POSSIBLE_T_RESOLVE_MINUS_T_CLOSE succeeds', async () => {
+        await expect(contract.createVirtualFloor({ ...vfParams, tResolve: tClose + MIN_POSSIBLE_T_RESOLVE_MINUS_T_CLOSE + 1 })).to.emit(contract, 'VirtualFloorCreation');
       });
     });
   });

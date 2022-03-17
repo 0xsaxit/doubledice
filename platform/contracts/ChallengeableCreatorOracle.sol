@@ -98,7 +98,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
     /// as underlying platform.resolve call will fail anyway if conditions are not correct.
     function finalizeUnsetResult(uint256 vfId, uint8 finalOutcomeIndex)
         external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(OPERATOR_ROLE)
     {
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.None)) revert WrongResolutionState(resolution.state);
@@ -215,7 +215,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
 
     function finalizeChallenge(uint256 vfId, uint8 finalOutcomeIndex)
         external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(OPERATOR_ROLE)
     {
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.Challenged)) revert WrongResolutionState(resolution.state);

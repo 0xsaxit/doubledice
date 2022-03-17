@@ -183,6 +183,10 @@ abstract contract BaseDoubleDice is
 
     // ---------- Public getters ----------
 
+    /// @dev The term ADMIN reserves a special significance within the AccessControl framework,
+    /// so we avoid using it in the role name.
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+
     function platformFeeBeneficiary() public view returns (address) {
         return _platformFeeBeneficiary;
     }
@@ -465,7 +469,7 @@ abstract contract BaseDoubleDice is
 
     function cancelVirtualFloorFlagged(uint256 vfId, string calldata reason)
         public
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(OPERATOR_ROLE)
     {
         VirtualFloor storage vf = _vfs[vfId];
         if (!(vf._internalState == VirtualFloorInternalState.Active)) revert WrongVirtualFloorState(vf.state());

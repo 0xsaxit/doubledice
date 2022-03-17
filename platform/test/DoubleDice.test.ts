@@ -861,7 +861,8 @@ describe('DoubleDice', function () {
     });
 
     it('Should revert if vf creator tries to finalize result', async function () {
-      await expect(contract.connect(vfCreatorSigner).finalizeChallenge(virtualFloorId2, 2)).to.be.revertedWith(`AccessControl: account ${vfCreatorSigner.address.toLowerCase()} is missing role 0x0000000000000000000000000000000000000000000000000000000000000000`);
+      const OPERATOR_ROLE = await contract.OPERATOR_ROLE();
+      await expect(contract.connect(vfCreatorSigner).finalizeChallenge(virtualFloorId2, 2)).to.be.revertedWith(`AccessControl: account ${vfCreatorSigner.address.toLowerCase()} is missing role ${OPERATOR_ROLE}`);
     });
 
     it('Should finalize set result to favor challenger', async function () {

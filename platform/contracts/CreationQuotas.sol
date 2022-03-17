@@ -40,7 +40,7 @@ contract CreationQuotas is BaseDoubleDice {
 
     function adjustCreationQuotas(QuotaAdjustment[] calldata adjustments)
         external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(OPERATOR_ROLE)
     {
         for (uint256 i = 0; i < adjustments.length; i++) {
             QuotaAdjustment calldata adjustment = adjustments[i];

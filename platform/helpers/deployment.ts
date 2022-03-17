@@ -78,6 +78,9 @@ export async function deployDoubleDice({
   const proxyAddress = await deployProxy(deployer, impl.address, encodedInitializerData);
   const contract = DoubleDice__factory.connect(proxyAddress, deployer);
 
+  console.log(`Granting OPERATOR_ROLE to admin ${deployer.address}`);
+  await (await contract.grantRole(await contract.OPERATOR_ROLE(), deployer.address)).wait();
+
   console.log(`Granting quota of 100 rooms to admin ${deployer.address}`);
   await (await contract.adjustCreationQuotas([{ creator: deployer.address, relativeAmount: 100 }])).wait();
 

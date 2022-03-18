@@ -147,7 +147,7 @@ describe('DoubleDice/Create', function () {
       nOutcomes: 2,
       metadata: encodeVirtualFloorMetadata({
         ...DUMMY_METADATA,
-        outcomes: { titles: DUMMY_METADATA.outcomes.titles.slice(0, 2) }
+        outcomes: DUMMY_METADATA.outcomes.slice(0, 2)
       })
     })).to.emit(contract, 'VirtualFloorCreation');
   });

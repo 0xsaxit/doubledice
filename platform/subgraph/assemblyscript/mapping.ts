@@ -141,13 +141,16 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   {
     const opponents = metadata.opponents;
-    for (let opponentIndex = 0; opponentIndex < opponents.titles.length; opponentIndex++) {
+    for (let opponentIndex = 0; opponentIndex < opponents.length; opponentIndex++) {
+      const opponent = opponents[opponentIndex];
+      const title = opponent.title;
+      const image = opponent.image;
       const opponentId = `${virtualFloorId}-${opponentIndex}`;
       {
         const $ = createNewEntity<Opponent>(Opponent.load, opponentId);
         $.virtualFloor = virtualFloorId;
-        $.title = opponents.titles[opponentIndex];
-        $.image = opponents.images[opponentIndex];
+        $.title = title;
+        $.image = image;
         $.save();
       }
     }
@@ -155,13 +158,16 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   {
     const resultSources = metadata.resultSources;
-    for (let resultSourceIndex = 0; resultSourceIndex < resultSources.titles.length; resultSourceIndex++) {
+    for (let resultSourceIndex = 0; resultSourceIndex < resultSources.length; resultSourceIndex++) {
+      const resultSource = resultSources[resultSourceIndex];
+      const title = resultSource.title;
+      const url = resultSource.url;
       const resultSourceId = `${virtualFloorId}-${resultSourceIndex}`;
       {
         const $ = createNewEntity<ResultSource>(ResultSource.load, resultSourceId);
         $.virtualFloor = virtualFloorId;
-        $.title = resultSources.titles[resultSourceIndex];
-        $.url = resultSources.urls[resultSourceIndex];
+        $.title = title;
+        $.url = url;
         $.save();
       }
     }
@@ -170,15 +176,18 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   {
     const outcomes = metadata.outcomes;
     assert(
-      outcomes.titles.length == event.params.nOutcomes,
-      `outcomeValues.length = ${outcomes.titles.length.toString()} != event.params.nOutcomes = ${event.params.nOutcomes.toString()}`
-    );
+      outcomes.length == event.params.nOutcomes,
+      'outcomeValues.length = ' + outcomes.length.toString()
+      + ' != event.params.nOutcomes = ' + event.params.nOutcomes.toString());
+
     for (let outcomeIndex = 0; outcomeIndex < event.params.nOutcomes; outcomeIndex++) {
+      const outcome = outcomes[outcomeIndex];
+      const title = outcome.title;
       const outcomeId = `${virtualFloorId}-${outcomeIndex}`;
       {
         const $ = createNewEntity<Outcome>(Outcome.load, outcomeId);
         $.virtualFloor = virtualFloorId;
-        $.title = outcomes.titles[outcomeIndex];
+        $.title = title;
         $.index = outcomeIndex;
         $.save();
       }

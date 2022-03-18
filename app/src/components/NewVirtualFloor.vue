@@ -184,7 +184,7 @@ export default class NewVirtualFloor extends Vue {
   }
 
   get title(): string {
-    return this.internalTitle || this.opponents.titles.map((title) => title).join(' vs ')
+    return this.internalTitle || this.opponents.map(({ title }) => title).join(' vs ')
   }
 
   internalDescription: RoomEventInfo['description'] = NOT_UNDEFINED_STRING
@@ -194,7 +194,7 @@ export default class NewVirtualFloor extends Vue {
   }
 
   get description(): string {
-    const opponentNames = this.opponents.titles.map((title) => title)
+    const opponentNames = this.opponents.map(({ title }) => title)
     const opponents = opponentNames.length >= 2 ? opponentNames.join(' & ') : ''
     const date = new Date(this.tResolve).toDateString()
     return this.internalDescription || (opponents ? `Match on ${date} between ${opponents}` : '')
@@ -211,14 +211,14 @@ export default class NewVirtualFloor extends Vue {
   subcategory: RoomEventInfo['subcategory'] = 'football'
 
   get nOutcomes(): number {
-    return this.outcomes.titles.length
+    return this.outcomes.length
   }
 
-  opponents: RoomEventInfo['opponents'] = { titles: [], images: [] }
+  opponents: RoomEventInfo['opponents'] = []
 
-  outcomes: RoomEventInfo['outcomes'] = { titles: [] }
+  outcomes: RoomEventInfo['outcomes'] = []
 
-  resultSources: RoomEventInfo['resultSources'] = { titles: [], urls: [] }
+  resultSources: RoomEventInfo['resultSources'] = []
 
   async created(): Promise<void> {
     const tOpen = this.nextBlockTimestamp - (this.nextBlockTimestamp % 60)

@@ -5,18 +5,18 @@ pragma solidity 0.8.12;
 import "./BaseDoubleDice.sol";
 import "./library/Utils.sol";
 
-struct VirtualFloorMetadataOpponents {
-    string[] titles;
-    string[] images;
+struct VirtualFloorMetadataOpponent {
+    string title;
+    string image;
 }
 
-struct VirtualFloorMetadataOutcomes {
-    string[] titles;
+struct VirtualFloorMetadataOutcome {
+    string title;
 }
 
-struct VirtualFloorMetadataResultSources {
-    string[] titles;
-    string[] urls;
+struct VirtualFloorMetadataResultSource {
+    string title;
+    string url;
 }
 
 struct VirtualFloorMetadataV1 {
@@ -25,9 +25,9 @@ struct VirtualFloorMetadataV1 {
     string title;
     string description;
     bool isListed;
-    VirtualFloorMetadataOpponents opponents;
-    VirtualFloorMetadataOutcomes outcomes;
-    VirtualFloorMetadataResultSources resultSources;
+    VirtualFloorMetadataOpponent[] opponents;
+    VirtualFloorMetadataOutcome[] outcomes;
+    VirtualFloorMetadataResultSource[] resultSources;
     string discordChannelId;
     bytes extraData;
 }
@@ -70,10 +70,6 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
 
         (VirtualFloorMetadataV1 memory metadata) = abi.decode(params.metadata.data, (VirtualFloorMetadataV1));
 
-        // Temporary until workaround is removed
-        if (!(metadata.opponents.titles.length == metadata.opponents.images.length)) revert MetadataOpponentArrayLengthMismatch();
-        if (!(metadata.resultSources.titles.length == metadata.resultSources.urls.length)) revert ResultSourcesArrayLengthMismatch();
-
         // `nOutcomes` could simply be taken to be `metadata.outcomes.length` and this `require` could then be dropped.
         // But for now we choose to make a clear distinction between "essential" data (that needs to be stored on-chain)
         // and "non-essential" data (data that we want to commit to and that is required in the frontend,
@@ -81,11 +77,11 @@ contract VirtualFloorMetadataValidator is BaseDoubleDice {
         // To this end, we group all non-essential data in the `metadata` parameter,
         // we require a separate `nOutcomes` "essential" argument to be passed,
         // and we enforce consistency with this check.
-        if (!(metadata.outcomes.titles.length == params.nOutcomes)) revert InvalidOutcomesArrayLength();
+        if (!(metadata.outcomes.length == params.nOutcomes)) revert InvalidOutcomesArrayLength();
 
-        if (!(metadata.opponents.titles.length >= 1)) revert TooFewOpponents();
+        if (!(metadata.opponents.length >= 1)) revert TooFewOpponents();
 
-        if (!(metadata.resultSources.titles.length >= 1)) revert TooFewResultSources();
+        if (!(metadata.resultSources.length >= 1)) revert TooFewResultSources();
 
         if (!(!metadata.category.isEmpty())) revert EmptyCategory();
 

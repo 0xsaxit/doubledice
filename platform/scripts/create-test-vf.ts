@@ -43,7 +43,7 @@ async function main() {
     tOpen,
     tClose,
     tResolve,
-    nOutcomes: roomEventInfo.outcomes.titles.length,
+    nOutcomes: roomEventInfo.outcomes.length,
     paymentToken: TOKEN_CONTRACT_ADDRESS,
     bonusAmount: 0,
     optionalMinCommitmentAmount: 0,

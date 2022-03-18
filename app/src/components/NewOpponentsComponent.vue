@@ -1,11 +1,11 @@
 <template>
   <form :onsubmit="add" :onreset="clear">
-    <span v-for="(opponent, index) in zippedModelValue" :key="index">
+    <span v-for="(opponent, index) in modelValue" :key="index">
       <img
         style="height: 64px; margin:10px"
-        :src="opponent[1]"
-        :title="opponent[0]"
-        :alt="opponent[0]"
+        :src="opponent.image"
+        :title="opponent.title"
+        :alt="opponent.title"
       />
     </span>
     <table>
@@ -32,7 +32,6 @@
 </template>
 
 <script lang="ts">
-import { zipArrays2 } from '@/utils'
 import { RoomEventInfo } from '@doubledice/platform/lib/contracts'
 import { ethers } from 'ethers'
 import { PropType } from 'vue'
@@ -57,22 +56,18 @@ const genDummyEntry = (index0: number) => {
 export default class NewOpponentsComponent extends Vue {
   modelValue!: RoomEventInfo['opponents']
 
-  get zippedModelValue(): [string, string][] {
-    return zipArrays2(this.modelValue.titles, this.modelValue.images)
-  }
-
   newTitle = ''
 
   newImage = ''
 
   mounted(): void {
-    [this.newTitle, this.newImage] = genDummyEntry(this.modelValue.titles.length)
+    [this.newTitle, this.newImage] = genDummyEntry(this.modelValue.length)
   }
 
   add(): boolean {
-    const updated: RoomEventInfo['opponents'] = { titles: [...this.modelValue.titles, this.newTitle], images: [...this.modelValue.images, this.newImage] }
+    const updated: RoomEventInfo['opponents'] = [...this.modelValue, { title: this.newTitle, image: this.newImage }]
     this.$emit('update:modelValue', updated);
-    [this.newTitle, this.newImage] = genDummyEntry(updated.titles.length)
+    [this.newTitle, this.newImage] = genDummyEntry(updated.length)
     return false
   }
 

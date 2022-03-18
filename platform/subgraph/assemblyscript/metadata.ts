@@ -10,7 +10,7 @@ import {
   VirtualFloorMetadataV1Struct
 } from '../../generated/DoubleDice/IMetadataVersionsMock';
 
-const METADATA_V1_ABI = '(string,string,string,string,bool,(string[],string[]),(string[]),(string[],string[]),string)';
+const METADATA_V1_ABI = '(string,string,string,string,bool,(string,string)[],(string)[],(string,string)[],string)';
 
 export function decodeMetadata(wrappedMetadata: VirtualFloorCreationMetadataStruct): VirtualFloorMetadataV1Struct {
   const encoded = wrappedMetadata.data;

@@ -1,4 +1,3 @@
-import assert from 'assert';
 import { BytesLike } from 'ethers';
 import { SignerWithAddress } from '.';
 import {
@@ -23,14 +22,7 @@ export const deployProxy = async (
   deployerSigner: SignerWithAddress,
   deployedImplAddress: string,
   encodedInitializerData: BytesLike,
-  forceNonce = false
 ): Promise<string> => {
-
-  if (forceNonce) {
-    // Deployer account should have deployed only impl, so tx-count should be 1
-    const deployerTxCount = await deployerSigner.getTransactionCount();
-    assert(deployerTxCount == 1, `Nonce for deployer ${deployerSigner.address} = ${deployerTxCount} != 1`);
-  }
 
   const proxyAdmin = await new ProxyAdmin__factory(deployerSigner).deploy();
   process.stdout.write(`Deploying ProxyAdmin to: ${proxyAdmin.address}...\n`);

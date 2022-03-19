@@ -19,10 +19,10 @@ import {
   VirtualFloorCancellationUnresolvable as VirtualFloorCancellationUnresolvableEvent,
   VirtualFloorCreation as VirtualFloorCreationEvent,
   VirtualFloorResolution as VirtualFloorResolutionEvent
-} from '../generated/DoubleDice/DoubleDice';
+} from '../../generated/DoubleDice/DoubleDice';
 import {
   IERC20Metadata
-} from '../generated/DoubleDice/IERC20Metadata';
+} from '../../generated/DoubleDice/IERC20Metadata';
 import {
   Category,
   Opponent,
@@ -36,11 +36,11 @@ import {
   UserOutcome,
   UserOutcomeTimeslot,
   VirtualFloor
-} from '../generated/schema';
+} from '../../generated/schema';
 import {
   ResultUpdateAction,
   VirtualFloorResolutionType
-} from '../lib/helpers/sol-enums';
+} from '../../lib/helpers/sol-enums';
 import { CHALLENGE_WINDOW_DURATION, SET_WINDOW_DURATION } from './constants';
 import { createNewEntity, loadExistentEntity, loadOrCreateEntity } from './entities';
 import { decodeMetadata } from './metadata';

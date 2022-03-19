@@ -1,7 +1,7 @@
 specVersion: 0.0.2
 description: DoubleDice platform
 schema:
-  file: ./schema.graphql
+  file: ../schema.graphql
 dataSources:
   - kind: ethereum/contract
     name: DoubleDice
@@ -29,9 +29,9 @@ dataSources:
         - VirtualFloor
       abis:
         - name: DoubleDice
-          file: ../generated/abi/DoubleDice.no-custom-errors.json
+          file: ./DoubleDice.no-custom-errors.json
         - name: IERC20Metadata
-          file: ../generated/abi/IERC20Metadata.json
+          file: ../../generated/abi/IERC20Metadata.json
         - name: IMetadataVersionsMock
           file: ../generated/abi/IVirtualFloorMetadataVersionsMock.json
       eventHandlers:
@@ -55,4 +55,4 @@ dataSources:
           handler: handleCreationQuotaAdjustments
         - event: ResultUpdate(indexed uint256,address,uint8,uint8)
           handler: handleResultUpdate
-      file: ./mapping.ts
+      file: ../assemblyscript/mapping.ts

@@ -9,8 +9,5 @@ build/
 !.env.local
 !.env.template
 
-abi/DoubleDice.no-custom-errors.json
-subgraph/subgraph.envsubbed.yaml
-
 coverage.json
 coverage/

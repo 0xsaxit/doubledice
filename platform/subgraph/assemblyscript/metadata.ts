@@ -5,10 +5,10 @@ import {
 } from '@graphprotocol/graph-ts';
 import {
   VirtualFloorCreationMetadataStruct
-} from '../generated/DoubleDice/DoubleDice';
+} from '../../generated/DoubleDice/DoubleDice';
 import {
   VirtualFloorMetadataV1Struct
-} from '../generated/DoubleDice/IMetadataVersionsMock';
+} from '../../generated/DoubleDice/IMetadataVersionsMock';
 
 const METADATA_V1_ABI = '(string,string,string,string,bool,(string[],string[]),(string[]),(string[],string[]),string)';
 

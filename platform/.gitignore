@@ -6,6 +6,8 @@ generated/
 build/
 .env
 .env.*
+!.env.local
+!.env.template
 
 abi/DoubleDice.no-custom-errors.json
 subgraph/subgraph.envsubbed.yaml

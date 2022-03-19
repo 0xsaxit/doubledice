@@ -18,40 +18,56 @@ import {
 // https://github.com/OpenZeppelin/openzeppelin-upgrades/issues/477
 // This replacement can be dropped as soon as there is support
 
-export const deployProxy = async (
-  deployerSigner: SignerWithAddress,
-  deployedImplAddress: string,
-  encodedInitializerData: BytesLike,
-): Promise<string> => {
+export const deployProxy = async ({
+  name,
+  proxyAdminAddress,
+  deployer,
+  deployedImplAddress,
+  encodedInitializerData,
+}: {
+  name: string;
+  proxyAdminAddress?: string,
+  deployer: SignerWithAddress;
+  deployedImplAddress: string;
+  encodedInitializerData: BytesLike;
+}): Promise<string> => {
+  if (proxyAdminAddress) {
+    process.stdout.write(`Using ProxyAdmin already deployed at ${proxyAdminAddress}\n`);
+  } else {
+    const proxyAdmin = await new ProxyAdmin__factory(deployer).deploy();
+    process.stdout.write(`Deploying ProxyAdmin to: ${proxyAdmin.address}...\n`);
+    process.stdout.write(`Sent transaction: ${proxyAdmin.deployTransaction.hash}\n`);
+    await proxyAdmin.deployed();
+    proxyAdminAddress = proxyAdmin.address;
+  }
 
-  const proxyAdmin = await new ProxyAdmin__factory(deployerSigner).deploy();
-  process.stdout.write(`Deploying ProxyAdmin to: ${proxyAdmin.address}...\n`);
-  await proxyAdmin.deployed();
-
-  const proxy = await new TransparentUpgradeableProxy__factory(deployerSigner).deploy(
+  const proxy = await new TransparentUpgradeableProxy__factory(deployer).deploy(
     deployedImplAddress,
-    proxyAdmin.address,
+    proxyAdminAddress,
     encodedInitializerData
   );
 
-  process.stdout.write(`Deploying DoubleDice proxy to: ${proxy.address}...\n`);
+  process.stdout.write(`Deploying ${name} proxy to: ${proxy.address}...\n`);
+  process.stdout.write(`Sent transaction: ${proxy.deployTransaction.hash}\n`);
   await proxy.deployed();
 
   return proxy.address;
 };
 
 export async function deployDummyUSDCoin(deployer: SignerWithAddress): Promise<DummyUSDCoin> {
-  const tokenContract1 = await new DummyUSDCoin__factory(deployer).deploy();
-  process.stdout.write(`Deploying USDC contract to: ${tokenContract1.address}...\n`);
-  await tokenContract1.deployed();
-  return tokenContract1;
+  const contract = await new DummyUSDCoin__factory(deployer).deploy();
+  process.stdout.write(`Deploying USDC contract to: ${contract.address}...\n`);
+  process.stdout.write(`Sent transaction: ${contract.deployTransaction.hash}\n`);
+  await contract.deployed();
+  return contract;
 }
 
 export async function deployDummyWrappedBTC(deployer: SignerWithAddress): Promise<DummyWrappedBTC> {
-  const tokenContract2 = await new DummyWrappedBTC__factory(deployer).deploy();
-  process.stdout.write(`Deploying WBTC contract to: ${tokenContract2.address}...\n`);
-  await tokenContract2.deployed();
-  return tokenContract2;
+  const contract = await new DummyWrappedBTC__factory(deployer).deploy();
+  process.stdout.write(`Deploying WBTC contract to: ${contract.address}...\n`);
+  process.stdout.write(`Sent transaction: ${contract.deployTransaction.hash}\n`);
+  await contract.deployed();
+  return contract;
 }
 
 export async function deployDoubleDice({
@@ -64,16 +80,17 @@ export async function deployDoubleDice({
   initializeArgs: [Parameters<DoubleDice['initialize']>[0], Parameters<DoubleDice['initialize']>[1]]; // No TypeScript magic can do this for now
 }): Promise<DoubleDice> {
   const impl = await new DoubleDice__factory(deployer).deploy(...deployArgs);
-  console.log(`Deploying DoubleDice impl to: ${impl.address}...`);
+  process.stdout.write(`Deploying DoubleDice impl to: ${impl.address}...\n`);
+  process.stdout.write(`Sent transaction: ${impl.deployTransaction.hash}\n`);
   await impl.deployed();
   const encodedInitializerData = impl.interface.encodeFunctionData('initialize', initializeArgs);
-  const proxyAddress = await deployProxy(deployer, impl.address, encodedInitializerData);
+  const proxyAddress = await deployProxy({ name: 'DoubleDice', deployer: deployer, deployedImplAddress: impl.address, encodedInitializerData });
   const contract = DoubleDice__factory.connect(proxyAddress, deployer);
 
-  console.log(`Granting OPERATOR_ROLE to admin ${deployer.address}`);
+  process.stdout.write(`Granting OPERATOR_ROLE to admin ${deployer.address}\n`);
   await (await contract.grantRole(await contract.OPERATOR_ROLE(), deployer.address)).wait();
 
-  console.log(`Granting quota of 100 rooms to admin ${deployer.address}`);
+  process.stdout.write(`Granting quota of 100 rooms to admin ${deployer.address}\n`);
   await (await contract.adjustCreationQuotas([{ creator: deployer.address, relativeAmount: 100 }])).wait();
 
   return contract;
@@ -92,6 +109,7 @@ export async function upgradeDoubleDice({
 }): Promise<void> {
   const impl = await new DoubleDice__factory(deployer).deploy(...deployArgs);
   process.stdout.write(`Deploying DoubleDice impl to: ${impl.address}...\n`);
+  process.stdout.write(`Sent transaction: ${impl.deployTransaction.hash}\n`);
   await impl.deployed();
   process.stdout.write('Deployed.\n\n');
 

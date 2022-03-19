@@ -7,6 +7,8 @@ import {
   DummyUSDCoin__factory,
   DummyWrappedBTC,
   DummyWrappedBTC__factory,
+  GraphHelper,
+  GraphHelper__factory,
   ProxyAdmin__factory,
   TransparentUpgradeableProxy__factory
 } from '../lib/contracts';
@@ -94,6 +96,27 @@ export async function deployDoubleDice({
   await (await contract.adjustCreationQuotas([{ creator: deployer.address, relativeAmount: 100 }])).wait();
 
   return contract;
+}
+
+export async function deployGraphHelper({
+  deployer,
+  proxyAdminAddress,
+}: {
+  deployer: SignerWithAddress;
+  proxyAdminAddress?: string;
+}): Promise<GraphHelper> {
+  const graphHelperImpl = await new GraphHelper__factory(deployer).deploy();
+  process.stdout.write(`Deploying GraphHelper impl to: ${graphHelperImpl.address}...\n`);
+  process.stdout.write(`Sent transaction: ${graphHelperImpl.deployTransaction.hash}\n`);
+  await graphHelperImpl.deployed();
+  const proxyAddress = await deployProxy({
+    name: 'GraphHelper',
+    proxyAdminAddress,
+    deployer,
+    deployedImplAddress: graphHelperImpl.address,
+    encodedInitializerData: '0x',
+  });
+  return GraphHelper__factory.connect(proxyAddress, deployer);
 }
 
 export async function upgradeDoubleDice({

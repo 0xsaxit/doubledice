@@ -1,24 +1,20 @@
 import {
-  Bytes,
-  ethereum,
-  log
+  Address,
+  Bytes, log
 } from '@graphprotocol/graph-ts';
 import {
   VirtualFloorCreationMetadataStruct
 } from '../../generated/DoubleDice/DoubleDice';
 import {
-  VirtualFloorMetadataV1Struct
-} from '../../generated/DoubleDice/IMetadataVersionsMock';
+  GraphHelper,
+  GraphHelper__decodeVirtualFloorMetadataV1ResultDecodedStruct
+} from '../../generated/DoubleDice/GraphHelper';
+import { GRAPH_HELPER_ADDRESS } from '../generated/env';
 
-const METADATA_V1_ABI = '(string,string,string,string,bool,(string,string)[],(string)[],(string,string)[],string)';
-
-export function decodeMetadata(wrappedMetadata: VirtualFloorCreationMetadataStruct): VirtualFloorMetadataV1Struct {
-  const encoded = wrappedMetadata.data;
-
+export function decodeMetadata(wrappedMetadata: VirtualFloorCreationMetadataStruct): GraphHelper__decodeVirtualFloorMetadataV1ResultDecodedStruct {
   if (wrappedMetadata.version == Bytes.fromHexString('0x0000000000000000000000000000000000000000000000000000000000000001')) {
-    const decodedV1: ethereum.Value = assert(ethereum.decode(METADATA_V1_ABI, encoded));
-    const metadataV1 = changetype<VirtualFloorMetadataV1Struct>(decodedV1.toTuple());
-    return metadataV1;
+    const helper = GraphHelper.bind(Address.fromString(GRAPH_HELPER_ADDRESS));
+    return helper.decodeVirtualFloorMetadataV1(wrappedMetadata.data);
   } else {
     log.critical('Metadata version {} not supported', [wrappedMetadata.version.toHex()]);
     throw new Error(`Error: Metadata version ${wrappedMetadata.version.toHex()} not supported`);

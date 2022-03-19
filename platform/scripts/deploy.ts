@@ -1,9 +1,11 @@
 import assert from 'assert';
+import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 import {
   deployDoubleDice,
   deployDummyUSDCoin,
   deployDummyWrappedBTC,
+  deployGraphHelper,
   toFp18
 } from '../helpers';
 import {
@@ -20,8 +22,9 @@ const {
   INIT_CONTRACT_URI,
   INIT_PLATFORM_FEE_RATE,
   INIT_PLATFORM_FEE_BENEFICIARY,
-  DEPLOYED_USDC_ADDRESS = null,
-  DEPLOYED_WBTC_ADDRESS = null
+  DEPLOYED_USDC_ADDRESS = '',
+  DEPLOYED_WBTC_ADDRESS = '',
+  SKIP_DEPLOY_GRAPH_HELPER = ''
 } = process.env;
 
 async function main() {
@@ -71,6 +74,17 @@ async function main() {
 
   console.log(`Whitelisting WBTC@${tokenWBTC.address} on DoubleDice contract`);
   await ((await contract.updatePaymentTokenWhitelist(tokenWBTC.address, true)).wait());
+
+  // Read ProxyAdmin address off the DD contract
+  // See https://eips.ethereum.org/EIPS/eip-1967#admin-address
+  const ADMIN_SLOT = ethers.utils.hexZeroPad(BigNumber.from(ethers.utils.keccak256(ethers.utils.toUtf8Bytes('eip1967.proxy.admin'))).sub(1).toHexString(), 32);
+  const storedAdminSlotValue = await ethers.provider.getStorageAt(contract.address, ADMIN_SLOT);
+  const fixedStoredAdminSlotValue = ethers.utils.hexZeroPad(storedAdminSlotValue, 32); // should be a bytes32, but sometimes it isn't, so we fix it
+  const proxyAdminAddress = ethers.utils.hexDataSlice(fixedStoredAdminSlotValue, 12);
+
+  if (!(/^(true|yes|1)$/i.test(SKIP_DEPLOY_GRAPH_HELPER))) {
+    await deployGraphHelper({ deployer, proxyAdminAddress });
+  }
 }
 
 main()

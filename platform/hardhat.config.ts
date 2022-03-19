@@ -32,10 +32,10 @@ const config: HardhatUserConfig = {
     only: [
       ':DoubleDice$',
       ':DummyUSDCoin$',
+      ':GraphHelper$',
       ':IDoubleDice$',
       ':IDoubleDiceAdmin$',
       ':IERC20Metadata$',
-      ':IVirtualFloorMetadataVersionsMock$',
     ],
     runOnCompile: true,
   },

@@ -27,6 +27,7 @@ dataSources:
         - UserOutcome
         - UserOutcomeTimeslot
         - VirtualFloor
+        - VirtualFloorsAggregate
       abis:
         - name: DoubleDice
           file: ./DoubleDice.no-custom-errors.json

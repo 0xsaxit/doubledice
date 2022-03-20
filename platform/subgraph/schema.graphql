@@ -229,3 +229,11 @@ type PaymentToken @entity {
   symbol: String!
   decimals: Int!
 }
+
+type VirtualFloorsAggregate @entity {
+  id: ID!
+
+  """The total number of VFs ever created."""
+  totalVirtualFloorsCreated: Int!
+
+}

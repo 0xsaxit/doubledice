@@ -35,13 +35,14 @@ import {
   User,
   UserOutcome,
   UserOutcomeTimeslot,
-  VirtualFloor
+  VirtualFloor,
+  VirtualFloorsAggregate
 } from '../../generated/schema';
 import {
   ResultUpdateAction,
   VirtualFloorResolutionType
 } from '../../lib/helpers/sol-enums';
-import { CHALLENGE_WINDOW_DURATION, SET_WINDOW_DURATION } from './constants';
+import { CHALLENGE_WINDOW_DURATION, SET_WINDOW_DURATION, SINGLETON_AGGREGATE_ENTITY_ID } from './constants';
 import { createNewEntity, loadExistentEntity, loadOrCreateEntity } from './entities';
 import { decodeMetadata } from './metadata';
 import { paymentTokenAmountToBigDecimal, toDecimal } from './utils';
@@ -67,6 +68,11 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
 
 
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
+  log.warning('VirtualFloorCreation(id = {} = {})', [event.params.virtualFloorId.toString(), event.params.virtualFloorId.toHex()]);
+
+  const aggregate = loadOrCreateEntity<VirtualFloorsAggregate>(VirtualFloorsAggregate.load, SINGLETON_AGGREGATE_ENTITY_ID);
+  aggregate.totalVirtualFloorsCreated += 1;
+  aggregate.save()
 
   const metadata = decodeMetadata(event.params.metadata);
 

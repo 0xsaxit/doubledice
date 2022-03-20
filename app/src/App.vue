@@ -23,6 +23,10 @@
       <td>{{ quotaText }}</td>
     </tr>
     <tr>
+      <th>Total VFs created</th>
+      <td>{{ totalVirtualFloorsCreated }}</td>
+    </tr>
+    <tr>
       <th>
         Does connected account
         <br />own DD contract?
@@ -134,7 +138,8 @@ import { DoubleDice, DoubleDice__factory, ERC20PresetMinterPauser } from '@doubl
 import {
   PaymentToken as PaymentTokenEntity,
   User as UserEntity,
-  VirtualFloor as VirtualFloorEntity
+  VirtualFloor as VirtualFloorEntity,
+  VirtualFloorsAggregate as VirtualFloorsAggregateEntity
 } from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
 import { ethers, providers } from 'ethers'
@@ -241,6 +246,14 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
     CategoriesComponent
   },
   apollo: {
+    virtualFloorsAggregate: {
+      query: gql`query {
+        virtualFloorsAggregate(id: "singleton") {
+          totalVirtualFloorsCreated
+        }
+      }`,
+      pollInterval: 1 * 1000
+    },
     virtualFloors: {
       query: VIRTUAL_FLOORS_QUERY,
       variables: {
@@ -272,6 +285,8 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
   }
 })
 export default class App extends Vue {
+  virtualFloorsAggregate!: VirtualFloorsAggregateEntity | null
+
   virtualFloors!: VirtualFloorEntity[]
 
   user!: UserEntity
@@ -401,6 +416,11 @@ export default class App extends Vue {
 
   get quotaText(): string {
     return `${this.user.concurrentVirtualFloors} of ${this.user.maxConcurrentVirtualFloors} active VFs`
+  }
+
+  get totalVirtualFloorsCreated(): number {
+    const { totalVirtualFloorsCreated } = this.virtualFloorsAggregate || { totalVirtualFloorsCreated: 0 }
+    return totalVirtualFloorsCreated
   }
 }
 </script>

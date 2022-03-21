@@ -91,6 +91,7 @@
         <th>Subcategory</th>
         <td>
           <select v-model="subcategory">
+            <option value="test">Test</option>
             <option value="football">Football</option>
             <option value="other">Other</option>
           </select>
@@ -217,7 +218,7 @@ export default class NewVirtualFloor extends Vue {
 
   category: RoomEventInfo['category'] = 'sports'
 
-  subcategory: RoomEventInfo['subcategory'] = 'football'
+  subcategory: RoomEventInfo['subcategory'] = 'test'
 
   get nOutcomes(): number {
     return this.outcomes.length

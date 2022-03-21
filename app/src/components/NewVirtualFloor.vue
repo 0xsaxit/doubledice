@@ -33,6 +33,13 @@
         </td>
       </tr>
       <tr>
+        <th>bonusAmount</th>
+        <td>
+          <span>{{ selectedPaymentToken?.symbol }}&nbsp;</span>
+          <input v-model.number="bonusAmount" type="number" step="0.01" min="0.00" />
+        </td>
+      </tr>
+      <tr>
         <th>tOpen</th>
         <td>
           <input v-model="tOpen" type="datetime-local" />
@@ -134,7 +141,7 @@ import { validateRoomEventInfo } from '@doubledice/platform/lib/metadata'
 import { BigNumber as EthersBigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
-import { tryCatch } from '../utils'
+import { toFixedPointEthersBigNumber, tryCatch } from '../utils'
 import NewOpponentsComponent from './NewOpponentsComponent.vue'
 import NewOutcomesComponent from './NewOutcomesComponent.vue'
 import NewResultSourcesComponent from './NewResultSourcesComponent.vue'
@@ -170,6 +177,8 @@ export default class NewVirtualFloor extends Vue {
   betaOpen = 10
 
   creationFeeRatePercent = 2.5
+
+  bonusAmount = 0.0
 
   tOpen = NOT_UNDEFINED_STRING
 
@@ -280,7 +289,7 @@ export default class NewVirtualFloor extends Vue {
       tResolve,
       nOutcomes,
       paymentToken,
-      bonusAmount: 0,
+      bonusAmount: toFixedPointEthersBigNumber(this.bonusAmount, this.selectedPaymentToken!.decimals),
       optionalMinCommitmentAmount: 0,
       optionalMaxCommitmentAmount: 0,
       metadata: encodeVirtualFloorMetadata(metadata)

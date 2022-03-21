@@ -1,4 +1,5 @@
 import { BigNumber as BigDecimal } from 'bignumber.js'
+import { BigNumber as BigInteger } from 'ethers'
 
 export const flatten = <T>(arrays: T[][]): T[] => Array.prototype.concat(...arrays)
 
@@ -27,3 +28,6 @@ export const sumNumbers = (values: number[]): number => {
 }
 
 export const getSystemTimestamp = (): number => Math.floor(Date.now() / 1000)
+
+export const toFixedPointEthersBigNumber = (value: number, decimals: number): BigInteger =>
+  BigInteger.from(new BigDecimal(value).times(new BigDecimal(10).pow(decimals)).toString())

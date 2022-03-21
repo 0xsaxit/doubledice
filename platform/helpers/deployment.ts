@@ -130,16 +130,22 @@ export async function upgradeDoubleDice({
   deployedTransparentUpgradeableProxyAddress: string;
   deployedProxyAdminAddress: string;
 }): Promise<void> {
+
   const impl = await new DoubleDice__factory(deployer).deploy(...deployArgs);
   process.stdout.write(`Deploying DoubleDice impl to: ${impl.address}...\n`);
   process.stdout.write(`Sent transaction: ${impl.deployTransaction.hash}\n`);
   await impl.deployed();
   process.stdout.write('Deployed.\n\n');
+  const implAddress = impl.address;
+
+  // Note: If impl is deployed correctly, but for some reason upgrade fails with
+  // "execution reverted: ERC1967: new implementation is not a contract",
+  // comment the code block above, set implAddress directly, and reattempt upgrade.
 
   process.stdout.write(`Calling ProxyAdmin(${deployedProxyAdminAddress}),\n`);
   process.stdout.write(`  to upgrade TransparentUpgradeableProxyAddress(${deployedTransparentUpgradeableProxyAddress}),\n`);
-  process.stdout.write(`  to just-deployed impl DoubleDice(${impl.address})...\n`);
+  process.stdout.write(`  to just-deployed impl DoubleDice(${implAddress})...\n`);
   const proxyAdmin = ProxyAdmin__factory.connect(deployedProxyAdminAddress, deployer);
-  await (await proxyAdmin.upgrade(deployedTransparentUpgradeableProxyAddress, impl.address)).wait();
+  await (await proxyAdmin.upgrade(deployedTransparentUpgradeableProxyAddress, implAddress)).wait();
   process.stdout.write('Upgraded.\n');
 }

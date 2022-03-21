@@ -1,3 +1,4 @@
+import { decodeDoubleDiceCustomErrorData } from '@doubledice/platform/lib/contracts'
 import { BigNumber as BigDecimal } from 'bignumber.js'
 import { BigNumber as BigInteger } from 'ethers'
 
@@ -7,8 +8,31 @@ export const tryCatch = async (func: () => Promise<void>): Promise<void> => {
   try {
     await func()
   } catch (e: any) {
-    if (e.code && e.code === -32603 && e.data && e.data.message) {
-      alert(e.data.message)
+    if (
+      e.code &&
+      e.code === -32603 &&
+      e.data &&
+      e.data.message
+    ) {
+      if (
+        e.data.code &&
+        e.data.code === 3 &&
+        typeof e.data.message === 'string' &&
+        e.data.data &&
+        typeof e.data.data === 'string' &&
+        /^0x/.test(e.data.data)
+      ) {
+        const message = e.data.message as string
+        const data = e.data.data as string
+        const decoded = decodeDoubleDiceCustomErrorData(data)
+        if (decoded) {
+          alert(`${message}: ${decoded.name}(${decoded.formattedArgs})`)
+        } else {
+          alert(`${message}: ${data}`)
+        }
+      } else {
+        alert(e.data.message)
+      }
     } else {
       throw e
     }

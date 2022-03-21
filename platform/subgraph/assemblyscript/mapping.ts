@@ -130,14 +130,14 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.tClose = event.params.tClose;
     $.tResolve = event.params.tResolve;
     $.tResultSetMin = event.params.tResolve;
-    $.tResultSetMax = event.params.tResolve + SET_WINDOW_DURATION; // ToDo: Include this as event param tResultSetMax
+    $.tResultSetMax = event.params.tResolve.plus(SET_WINDOW_DURATION); // ToDo: Include this as event param tResultSetMax
     $.state = 'RUNNING_OR_CLOSED__RESULT_NONE';
 
     const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
 
     const decimalBonusAmount = paymentTokenAmountToBigDecimal(event.params.bonusAmount, paymentToken.decimals);
     $.bonusAmount = decimalBonusAmount;
-    $.totalSupply += decimalBonusAmount;
+    $.totalSupply = $.totalSupply.plus(decimalBonusAmount);
 
     $.minCommitmentAmount = paymentTokenAmountToBigDecimal(event.params.minCommitmentAmount, paymentToken.decimals);
     $.maxCommitmentAmount = paymentTokenAmountToBigDecimal(event.params.maxCommitmentAmount, paymentToken.decimals);
@@ -210,7 +210,7 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
     const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
     amount = paymentTokenAmountToBigDecimal(event.params.amount, paymentToken.decimals);
 
-    $.totalSupply += amount;
+    $.totalSupply = $.totalSupply.plus(amount);
     $.save();
   }
 
@@ -219,8 +219,8 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
   const outcomeId = `${virtualFloorId}-${event.params.outcomeIndex}`;
   {
     const $ = loadExistentEntity<Outcome>(Outcome.load, outcomeId);
-    $.totalSupply += amount;
-    $.totalWeightedSupply += beta * amount;
+    $.totalSupply = $.totalSupply.plus(amount);
+    $.totalWeightedSupply = $.totalWeightedSupply.plus(beta.times(amount));
     $.save();
   }
 
@@ -232,7 +232,7 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
       $.timeslot = event.params.timeslot;
       $.beta = beta;
     }
-    $.totalSupply += amount;
+    $.totalSupply = $.totalSupply.plus(amount);
     $.save();
   }
 
@@ -257,8 +257,8 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
       $.user = userId;
       $.outcome = outcomeId;
     }
-    $.totalBalance += amount;
-    $.totalWeightedBalance += beta * amount;
+    $.totalBalance = $.totalBalance.plus(amount);
+    $.totalWeightedBalance = $.totalWeightedBalance.plus(beta.times(amount));
     $.save();
   }
 
@@ -271,7 +271,7 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
       $.timeslot = event.params.timeslot;
       $.outcomeTimeslot = outcomeTimeslotId;
     }
-    $.balance += amount;
+    $.balance = $.balance.plus(amount);
     $.save();
   }
 
@@ -346,14 +346,14 @@ function handleTransfers(event: ethereum.Event, from: Address, to: Address, ids:
     const toUserOutcomeTimeslotId = `${outcomeTimeslotId}-${toUserId}`;
     {
       const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, toUserOutcomeTimeslotId);
-      $.balance -= amount;
+      $.balance = $.balance.minus(amount);
       $.save();
     }
 
     const fromUserOutcomeTimeslotId = `${outcomeTimeslotId}-${fromUserId}`;
     {
       const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, fromUserOutcomeTimeslotId);
-      $.balance += amount;
+      $.balance = $.balance.plus(amount);
       $.save();
     }
 
@@ -373,16 +373,16 @@ function handleTransfers(event: ethereum.Event, from: Address, to: Address, ids:
     const fromUserOutcomeId = `${outcomeId}-${fromUserId}`;
     {
       const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, fromUserOutcomeId);
-      $.totalBalance -= amount;
-      $.totalWeightedBalance -= beta * amount;
+      $.totalBalance = $.totalBalance.minus(amount);
+      $.totalWeightedBalance = $.totalWeightedBalance.minus(beta.times(amount));
       $.save();
     }
 
     const toUserOutcomeId = `${outcomeId}-${toUserId}`;
     {
       const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, toUserOutcomeId);
-      $.totalBalance += amount;
-      $.totalWeightedBalance += beta * amount;
+      $.totalBalance = $.totalBalance.plus(amount);
+      $.totalWeightedBalance = $.totalWeightedBalance.plus(beta.times(amount));
       $.save();
     }
 
@@ -440,14 +440,14 @@ export function handleCreationQuotaAdjustments(event: CreationQuotaAdjustmentsEv
   for (let i = 0; i < adjustments.length; i++) {
     const userId = adjustments[i].creator.toHex();
     const user = loadOrCreateEntity<User>(User.load, userId);
-    user.maxConcurrentVirtualFloors += adjustments[i].relativeAmount;
+    user.maxConcurrentVirtualFloors = user.maxConcurrentVirtualFloors.plus(adjustments[i].relativeAmount);
     user.save();
   }
 }
 
 function adjustUserConcurrentVirtualFloors(userId: string, adjustment: i32): void {
   const user = loadExistentEntity<User>(User.load, userId);
-  user.concurrentVirtualFloors += BigInt.fromI32(adjustment);
+  user.concurrentVirtualFloors = user.concurrentVirtualFloors.plus(BigInt.fromI32(adjustment));
   user.save();
 }
 
@@ -460,7 +460,7 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
   switch (event.params.action) {
     case ResultUpdateAction.CreatorSetResult:
       vf.state = 'RUNNING_OR_CLOSED__RESULT_SET';
-      vf.tResultChallengeMax = event.block.timestamp + CHALLENGE_WINDOW_DURATION; // ToDo: Include this as event param tChallengeMax
+      vf.tResultChallengeMax = event.block.timestamp.plus(CHALLENGE_WINDOW_DURATION); // ToDo: Include this as event param tChallengeMax
       break;
     case ResultUpdateAction.SomeoneChallengedSetResult: {
       vf.state = 'RUNNING_OR_CLOSED__RESULT_CHALLENGED';

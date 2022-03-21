@@ -102,6 +102,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
     const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
 
+    $.intId = event.params.virtualFloorId;
     $.subcategory = subcategoryId;
     $.title = metadata.title;
     $.description = metadata.description;
@@ -230,6 +231,7 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
   {
     const $ = loadOrCreateEntity<OutcomeTimeslot>(OutcomeTimeslot.load, outcomeTimeslotId);
     /* if (isNew) */ {
+      $.tokenId = event.params.tokenId;
       $.outcome = outcomeId;
       $.timeslot = event.params.timeslot;
       $.beta = beta;

@@ -41,6 +41,8 @@ enum VirtualFloorInternalState {
 type VirtualFloor @entity {
   id: ID!
 
+  intId: BigInt!
+
   # parents
   owner: User!
   subcategory: Subcategory!
@@ -166,6 +168,8 @@ type UserOutcome @entity {
 
 type OutcomeTimeslot @entity {
   id: ID!
+
+  tokenId: BigInt!
 
   # parents
   outcome: Outcome!

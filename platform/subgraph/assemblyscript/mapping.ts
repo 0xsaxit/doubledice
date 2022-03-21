@@ -216,11 +216,13 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
 
   const beta = toDecimal(event.params.beta_e18);
 
+  const amountTimesBeta = amount.times(beta);
+
   const outcomeId = `${virtualFloorId}-${event.params.outcomeIndex}`;
   {
     const $ = loadExistentEntity<Outcome>(Outcome.load, outcomeId);
     $.totalSupply = $.totalSupply.plus(amount);
-    $.totalWeightedSupply = $.totalWeightedSupply.plus(beta.times(amount));
+    $.totalWeightedSupply = $.totalWeightedSupply.plus(amountTimesBeta);
     $.save();
   }
 
@@ -258,7 +260,7 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
       $.outcome = outcomeId;
     }
     $.totalBalance = $.totalBalance.plus(amount);
-    $.totalWeightedBalance = $.totalWeightedBalance.plus(beta.times(amount));
+    $.totalWeightedBalance = $.totalWeightedBalance.plus(amountTimesBeta);
     $.save();
   }
 
@@ -369,12 +371,13 @@ function handleTransfers(event: ethereum.Event, from: Address, to: Address, ids:
       $.save();
     }
 
+    const amountTimesBeta = amount.times(beta);
 
     const fromUserOutcomeId = `${outcomeId}-${fromUserId}`;
     {
       const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, fromUserOutcomeId);
       $.totalBalance = $.totalBalance.minus(amount);
-      $.totalWeightedBalance = $.totalWeightedBalance.minus(beta.times(amount));
+      $.totalWeightedBalance = $.totalWeightedBalance.minus(amountTimesBeta);
       $.save();
     }
 
@@ -382,7 +385,7 @@ function handleTransfers(event: ethereum.Event, from: Address, to: Address, ids:
     {
       const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, toUserOutcomeId);
       $.totalBalance = $.totalBalance.plus(amount);
-      $.totalWeightedBalance = $.totalWeightedBalance.plus(beta.times(amount));
+      $.totalWeightedBalance = $.totalWeightedBalance.plus(amountTimesBeta);
       $.save();
     }
 

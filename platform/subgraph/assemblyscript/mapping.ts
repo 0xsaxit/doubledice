@@ -70,9 +70,11 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
   log.warning('VirtualFloorCreation(id = {} = {})', [event.params.virtualFloorId.toString(), event.params.virtualFloorId.toHex()]);
 
-  const aggregate = loadOrCreateEntity<VirtualFloorsAggregate>(VirtualFloorsAggregate.load, SINGLETON_AGGREGATE_ENTITY_ID);
-  aggregate.totalVirtualFloorsCreated += 1;
-  aggregate.save()
+  {
+    const aggregate = loadOrCreateEntity<VirtualFloorsAggregate>(VirtualFloorsAggregate.load, SINGLETON_AGGREGATE_ENTITY_ID);
+    aggregate.totalVirtualFloorsCreated += 1;
+    aggregate.save()
+  }
 
   const metadata = decodeMetadata(event.params.metadata);
 

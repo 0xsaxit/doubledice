@@ -67,7 +67,11 @@
           <pre style="font-size: xx-small">{{ JSON.stringify(virtualFloor, null, 2) }}</pre>
         </td>
       -->
-      <td :title="virtualFloor.id">{{ virtualFloor.id.slice(0, 10) }}</td>
+      <td :title="virtualFloor.id">
+        {{ virtualFloor.id }}
+        <br />
+        {{ BigInt(virtualFloor.id) }}
+      </td>
       <td>{{ virtualFloor.state }}</td>
       <td>
         <table>

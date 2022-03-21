@@ -289,7 +289,7 @@ export default class App extends Vue {
 
   virtualFloors!: VirtualFloorEntity[]
 
-  user!: UserEntity
+  user!: UserEntity | null
 
   paymentTokens!: PaymentTokenEntity[]
 
@@ -415,7 +415,11 @@ export default class App extends Vue {
   }
 
   get quotaText(): string {
-    return `${this.user.concurrentVirtualFloors} of ${this.user.maxConcurrentVirtualFloors} active VFs`
+    const user = this.user || {
+      maxConcurrentVirtualFloors: 0,
+      concurrentVirtualFloors: 0
+    }
+    return `${user.concurrentVirtualFloors} of ${user.maxConcurrentVirtualFloors} active VFs`
   }
 
   get totalVirtualFloorsCreated(): number {

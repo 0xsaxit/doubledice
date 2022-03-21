@@ -2,6 +2,8 @@
 
 pragma solidity 0.8.12;
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
 import "../BaseDoubleDice.sol";
 import "../interface/IDoubleDice.sol";
 import "./FixedPointTypes.sol";
@@ -13,6 +15,7 @@ library VirtualFloors {
 
     using FixedPointTypes for UFixed256x18;
     using FixedPointTypes for UFixed32x6;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using VirtualFloors for VirtualFloor;
 
     function state(VirtualFloor storage vf) internal view returns (VirtualFloorState) {
@@ -87,6 +90,12 @@ library VirtualFloors {
         return vf._internalState == VirtualFloorInternalState.Claimable_Refunds_ResolvedNoWinners
             || vf._internalState == VirtualFloorInternalState.Claimable_Refunds_ResolvableNever
             || vf._internalState == VirtualFloorInternalState.Claimable_Refunds_Flagged;
+    }
+
+    function refundBonusAmount(VirtualFloor storage vf) internal {
+        if (vf.bonusAmount > 0) {
+            vf.paymentToken.safeTransfer(vf.creator, vf.bonusAmount);
+        }
     }
 
 }

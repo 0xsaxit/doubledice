@@ -463,7 +463,10 @@ abstract contract BaseDoubleDice is
         // nonReentrant
         // Since cancelVirtualFloorUnresolvable is guarded by require(_internalState == Active)
         // and _internalState has now been moved to Claimable_Refunds_ResolvableNever,
-        // any external calls made by _onVirtualFloorConclusion cannot re-enter cancelVirtualFloorUnresolvable.
+        // any external calls made from this point onwards cannot re-enter cancelVirtualFloorUnresolvable.
+
+        vf.refundBonusAmount();
+
         _onVirtualFloorConclusion(vfId);
     }
 
@@ -479,7 +482,10 @@ abstract contract BaseDoubleDice is
         // nonReentrant
         // Since cancelVirtualFloorFlagged is guarded by require(_internalState == Active)
         // and _internalState has now been moved to Claimable_Refunds_Flagged,
-        // any external calls made by _onVirtualFloorConclusion cannot re-enter cancelVirtualFloorFlagged.
+        // any external calls made from this point onwards cannot re-enter cancelVirtualFloorFlagged.
+
+        vf.refundBonusAmount();
+
         _onVirtualFloorConclusion(vfId);
     }
 
@@ -523,7 +529,7 @@ abstract contract BaseDoubleDice is
             creatorFeeAmount = 0;
             totalWinnerProfits = 0;
 
-            vf.paymentToken.safeTransfer(vf.creator, vf.bonusAmount);
+            vf.refundBonusAmount();
         } else {
             vf._internalState = VirtualFloorInternalState.Claimable_Payouts;
             resolutionType = VirtualFloorResolutionType.Winners;

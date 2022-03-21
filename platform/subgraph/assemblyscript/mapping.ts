@@ -276,6 +276,7 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
       $.outcome = outcomeId;
       $.timeslot = event.params.timeslot;
       $.outcomeTimeslot = outcomeTimeslotId;
+      $.userOutcome = userOutcomeId;
     }
     $.balance = $.balance.plus(amount);
     $.save();

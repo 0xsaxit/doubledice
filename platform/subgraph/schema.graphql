@@ -161,6 +161,9 @@ type UserOutcome @entity {
   user: User!
   outcome: Outcome!
 
+  # children
+  userOutcomeTimeslots: [UserOutcomeTimeslot!]! @derivedFrom(field: "userOutcome")
+
   # properties
   totalBalance: BigDecimal!
   totalWeightedBalance: BigDecimal!
@@ -192,6 +195,7 @@ type UserOutcomeTimeslot @entity {
   outcome: Outcome!
   timeslot: BigInt!
   outcomeTimeslot: OutcomeTimeslot!
+  userOutcome: UserOutcome!
 
   # # children
   # outcomeTimeslotTransfersFrom: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "fromUserOutcomeTimeslot")

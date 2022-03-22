@@ -83,8 +83,9 @@ type VirtualFloor @entity {
   tResultChallengeMax: BigInt
 
   state: VirtualFloorInternalState!
-  winningOutcome: Outcome # Optional: Only set if VF is resolved
-  flaggingReason: String  # Optional: Only set if VF is cancelled because it was flagged
+  winningOutcome: Outcome   # Optional: Only set if VF is resolved
+  winnerProfits: BigDecimal # Optional: Only set if VF is resolved
+  flaggingReason: String    # Optional: Only set if VF is cancelled because it was flagged
 
   # properties (ipfs)
   title: String!

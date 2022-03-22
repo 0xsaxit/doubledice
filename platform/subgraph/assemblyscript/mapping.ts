@@ -435,8 +435,15 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
         break;
     }
 
-    const winningOutcomeId = `${virtualFloorId}-${event.params.winningOutcomeIndex}`;
-    $.winningOutcome = winningOutcomeId;
+    {
+      const winningOutcomeId = `${virtualFloorId}-${event.params.winningOutcomeIndex}`;
+      $.winningOutcome = winningOutcomeId;
+    }
+
+    {
+      const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
+      $.winnerProfits = paymentTokenAmountToBigDecimal(event.params.winnerProfits, paymentToken.decimals);
+    }
 
     $.save();
   }

@@ -172,6 +172,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
       id
       index
     }
+    winnerProfits
     totalSupply
     betaOpen
     owner {

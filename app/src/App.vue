@@ -154,33 +154,9 @@ BigDecimal.config({ DECIMAL_PLACES: 18 })
 
 const MAIN_CONTRACT_ADDRESS = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
 
-const USER_QUERY = gql`query {
-  user(id: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266") {
+const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
+  virtualFloors(orderBy: tCreated, orderDirection: desc) {
     id
-    maxConcurrentVirtualFloors
-    concurrentVirtualFloors
-  }
-}`
-
-const VIRTUAL_FLOORS_QUERY = gql`query {
-  virtualFloors(
-    orderBy: tCreated,
-    orderDirection: desc
-#    where: {
-#      # timestamp_gte: 1638396709
-#      #timestamp_gte: $minTimestamp
-#    }
-  ) {
-    id
-    subcategory {
-      slug
-      category {
-        slug
-      }
-    }
-    title
-    description
-    isListed
     paymentToken {
       symbol
       decimals
@@ -201,27 +177,31 @@ const VIRTUAL_FLOORS_QUERY = gql`query {
     owner {
       id
     }
-    opponents {
-      id
-      title
-      image
-    }
     outcomes {
       index
       totalSupply
       totalWeightedSupply
       title
-      userOutcomes(where: { user: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266" }) {
+      userOutcomes(where: { user: $userId, totalBalance_gt: 0 }) {
         totalBalance
         totalWeightedBalance
       }
-      outcomeTimeslots {
-        totalSupply
-        userOutcomeTimeslots(where: { user: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266" }) {
-          user { id }
-          balance
-        }
+    }
+
+    # pure metadata
+    subcategory {
+      slug
+      category {
+        slug
       }
+    }
+    title
+    description
+    isListed
+    opponents {
+      id
+      title
+      image
     }
     resultSources {
       id
@@ -257,16 +237,20 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
     virtualFloors: {
       query: VIRTUAL_FLOORS_QUERY,
       variables: {
-        minTimestamp: 1638356708,
-        theUser: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
+        userId: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
       },
       pollInterval: 1 * 1000
     },
     user: {
-      query: USER_QUERY,
+      query: gql`query userQuery($userId: String!){
+        user(id: $userId) {
+          id
+          maxConcurrentVirtualFloors
+          concurrentVirtualFloors
+        }
+      }`,
       variables: {
-        minTimestamp: 1638356708,
-        theUser: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
+        userId: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
       },
       pollInterval: 1 * 1000
     },

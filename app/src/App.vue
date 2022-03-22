@@ -163,7 +163,6 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
       symbol
       decimals
     }
-    creationFeeRate
     platformFeeRate
     tCreated
     tOpen
@@ -171,8 +170,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
     tResultSetMin
     state
     winningOutcome {
-      id
-      index
+      ...commonOutcomeFields
     }
     winnerProfits
     totalSupply
@@ -181,21 +179,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
       id
     }
     outcomes {
-      index
-      totalSupply
-      totalWeightedSupply
-      title
-      userOutcomes(where: { user: $userId, totalBalance_gt: 0 }) {
-        totalBalance
-        totalWeightedBalance
-        userOutcomeTimeslots(where: { balance_gt: 0 }) {
-          balance
-          outcomeTimeslot {
-            beta
-            tokenId
-          }
-        }
-      }
+      ...commonOutcomeFields
     }
 
     # pure metadata
@@ -217,6 +201,25 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
       id
       title
       url
+    }
+  }
+}
+
+fragment commonOutcomeFields on Outcome {
+  index
+  title
+  totalSupply
+  totalWeightedSupply
+  userOutcomes(where: {user: $userId, totalBalance_gt: 0}) {
+    totalBalance
+    totalWeightedBalance
+    userOutcomeTimeslots(where: {balance_gt: 0}) {
+      balance
+      outcomeTimeslot {
+        beta
+        timeslot
+        tokenId
+      }
     }
   }
 }`

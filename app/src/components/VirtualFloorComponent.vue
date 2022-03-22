@@ -63,17 +63,17 @@
     </tr>
     <tr>
       <template v-if="showVfJsonCol">
-        <td>
+        <td rowspan="2">
           <pre style="font-size: xx-small">{{ JSON.stringify(virtualFloor, null, 2) }}</pre>
         </td>
       </template>
-      <td :title="virtualFloor.id">
+      <td rowspan="2" :title="virtualFloor.id">
         {{ virtualFloor.id }}
         <br />
         {{ BigInt(virtualFloor.id) }}
       </td>
-      <td>{{ virtualFloor.state }}</td>
-      <td>
+      <td rowspan="2">{{ virtualFloor.state }}</td>
+      <td rowspan="2">
         <table>
           <tr :title="`tCreated = ${virtualFloor.tCreated}`">
             <th>tCreated</th>
@@ -93,12 +93,16 @@
           </tr>
         </table>
       </td>
-      <td>{{ `${Number(virtualFloor.creationFeeRate) * 100}%` }}</td>
-      <td>{{ `${Number(virtualFloor.platformFeeRate) * 100}%` }}</td>
-      <td>{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
-      <td>{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
-      <td>{{ beta.toFixed(6) }}</td>
-      <td>{{ virtualFloor.totalSupply }}</td>
+      <td rowspan="2">{{ `${Number(virtualFloor.creationFeeRate) * 100}%` }}</td>
+      <td rowspan="2">{{ `${Number(virtualFloor.platformFeeRate) * 100}%` }}</td>
+      <td
+        rowspan="2"
+      >{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
+      <td
+        rowspan="2"
+      >{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
+      <td rowspan="2">{{ beta.toFixed(6) }}</td>
+      <td rowspan="2">{{ virtualFloor.totalSupply }}</td>
       <template v-for="outcome in virtualFloor.outcomes" :key="outcome.id">
         <Outcome
           :contract="contract"
@@ -110,6 +114,17 @@
         />
       </template>
     </tr>
+    <tr>
+      <td :colspan="virtualFloor.outcomes.length">
+        <div v-if="preparedClaim">
+          <button
+            @click="claim"
+            style="width: 100%; height: 30px; font-size: larger"
+          >{{ claimButtonText }}</button>
+        </div>
+        <div v-else style="text-align: center;">Not possible to claim</div>
+      </td>
+    </tr>
   </tbody>
 </template>
 
@@ -117,9 +132,14 @@
 import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
 import {
   VirtualFloor as VirtualFloorEntity,
-  VirtualFloorInternalState as VirtualFloorEntityState
+  VirtualFloorInternalState as VirtualFloorEntityState,
+  prepareVirtualFloorClaim,
+  PreparedClaim,
+  VirtualFloorClaimType
 } from '@doubledice/platform/lib/graph'
+import assert from 'assert'
 import BigDecimal from 'bignumber.js'
+import { ContractTransaction } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 import { formatTimestamp, sumNumbers, tryCatch } from '../utils'
@@ -214,11 +234,43 @@ export default class VirtualFloorComponent extends Vue {
       console.log(`Sent ${txUrl}`)
       await tx.wait()
       console.log(`⛏ Mined ${txUrl}`)
+      this.$emit('balanceChange') // tx could result in bonusAmount refund
     })
   }
 
   formatTimestamp(timestamp: string | number): string {
     return formatTimestamp(timestamp)
+  }
+
+  get preparedClaim(): PreparedClaim | null {
+    return prepareVirtualFloorClaim(this.virtualFloor)
+  }
+
+  get claimButtonText(): string {
+    const claim = this.preparedClaim
+    assert(claim)
+    const what = claim.claimType === VirtualFloorClaimType.Payouts ? 'winnings' : 'refunds'
+    return `Claim ${this.virtualFloor.paymentToken.symbol} ${claim.totalClaimAmount} in ${what}`
+  }
+
+  async claim(): Promise<void> {
+    const preparedClaim = this.preparedClaim
+    assert(preparedClaim)
+    // eslint-disable-next-line space-before-function-paren
+    await tryCatch(async () => {
+      let tx: ContractTransaction
+      if (preparedClaim.claimType === VirtualFloorClaimType.Payouts) {
+        tx = await this.contract.claimPayouts(this.virtualFloor.id, preparedClaim.tokenIds)
+      } else {
+        tx = await this.contract.claimRefunds(this.virtualFloor.id, preparedClaim.tokenIds)
+      }
+      const { hash } = tx
+      const txUrl = `https://polygonscan.com/tx/${hash}`
+      console.log(`Sent ${txUrl}`)
+      await tx.wait()
+      console.log(`⛏ Mined ${txUrl}`)
+      this.$emit('balanceChange') // tx will probably result in balance change
+    })
   }
 }
 </script>

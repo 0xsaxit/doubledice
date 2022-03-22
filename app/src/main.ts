@@ -3,8 +3,7 @@ import detectEthereumProvider from '@metamask/detect-provider'
 import { createApolloProvider } from '@vue/apollo-option'
 import { createApp, h } from 'vue'
 import App from './App.vue'
-
-const GRAPHQL_QUERIES_URL = 'http://127.0.0.1:8000/subgraphs/name/doubledice-com/doubledice-platform'
+import { GRAPHQL_QUERIES_URL } from './config'
 
 async function main() {
   const ethereumProvider = await detectEthereumProvider()

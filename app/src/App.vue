@@ -149,10 +149,9 @@ import CategoriesComponent from './components/CategoriesComponent.vue'
 import NewVirtualFloor from './components/NewVirtualFloor.vue'
 import PaymentTokenComponent from './components/PaymentTokenComponent.vue'
 import VirtualFloorComponent from './components/VirtualFloorComponent.vue'
+import { CHAIN_ID, MAIN_CONTRACT_ADDRESS, POLL_INTERVAL_SECONDS, PROVIDER_URL, USER_ACCOUNT } from './config'
 
 BigDecimal.config({ DECIMAL_PLACES: 18 })
-
-const MAIN_CONTRACT_ADDRESS = '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9'
 
 const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
   virtualFloors(orderBy: tCreated, orderDirection: desc) {
@@ -215,7 +214,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
 const delay = (seconds: number) =>
   new Promise(resolve => setTimeout(resolve, seconds * 1000))
 
-const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545')
+const directProvider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
 
 @Options({
   props: {
@@ -233,14 +232,14 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
           totalVirtualFloorsCreated
         }
       }`,
-      pollInterval: 1 * 1000
+      pollInterval: POLL_INTERVAL_SECONDS * 1000
     },
     virtualFloors: {
       query: VIRTUAL_FLOORS_QUERY,
       variables: {
-        userId: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
+        userId: USER_ACCOUNT.toLowerCase()
       },
-      pollInterval: 1 * 1000
+      pollInterval: POLL_INTERVAL_SECONDS * 1000
     },
     user: {
       query: gql`query userQuery($userId: String!){
@@ -251,9 +250,9 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
         }
       }`,
       variables: {
-        userId: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
+        userId: USER_ACCOUNT.toLowerCase()
       },
-      pollInterval: 1 * 1000
+      pollInterval: POLL_INTERVAL_SECONDS * 1000
     },
     paymentTokens: {
       query: gql`query {
@@ -265,7 +264,7 @@ const directProvider = new ethers.providers.JsonRpcProvider('http://localhost:85
           decimals
         }
       }`,
-      pollInterval: 60 * 1000
+      pollInterval: POLL_INTERVAL_SECONDS * 1000
     }
   }
 })
@@ -379,6 +378,9 @@ export default class App extends Vue {
     this.accountSigner = signer
 
     const { name: networkName, chainId: networkChainId } = await this.injectedProvider.getNetwork()
+    if (networkChainId !== CHAIN_ID) {
+      alert(`Was expecting ${CHAIN_ID}, not ${networkChainId}`)
+    }
     this.networkDescription = `${networkName}(🔗${networkChainId})`
 
     const mainContract = DoubleDice__factory.connect(MAIN_CONTRACT_ADDRESS, signer)

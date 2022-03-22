@@ -5,14 +5,12 @@ import { createApp, h } from 'vue'
 import App from './App.vue'
 
 const GRAPHQL_QUERIES_URL = 'http://127.0.0.1:8000/subgraphs/name/doubledice-com/doubledice-platform'
-const GRAPHQL_SUBSCRIPTIONS_URL = 'http://127.0.0.1:8001/subgraphs/name/doubledice-com/doubledice-platform'
 
 async function main() {
   const ethereumProvider = await detectEthereumProvider()
 
   // HTTP connection to the API
   const httpLink = createHttpLink({ uri: GRAPHQL_QUERIES_URL })
-  // const httpLink = createHttpLink({ uri: GRAPHQL_SUBSCRIPTIONS_URL })
 
   // Cache implementation
   const cache = new InMemoryCache()

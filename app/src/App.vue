@@ -188,6 +188,13 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
       userOutcomes(where: { user: $userId, totalBalance_gt: 0 }) {
         totalBalance
         totalWeightedBalance
+        userOutcomeTimeslots(where: { balance_gt: 0 }) {
+          balance
+          outcomeTimeslot {
+            beta
+            tokenId
+          }
+        }
       }
     }
 

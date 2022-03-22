@@ -1,7 +1,7 @@
 <template>
   <tbody class="virtual-floor">
     <tr :id="`virtual-floor-${virtualFloor.id}`">
-      <td :colspan="9 + maxOutcomes">
+      <td :colspan="(showVfJsonCol ? 1 : 0) + 9 + maxOutcomes">
         <Timeline
           :min="minVirtualFloorTimestamp"
           :start="Number(virtualFloor.tCreated)"
@@ -62,11 +62,11 @@
       </td>
     </tr>
     <tr>
-      <!--
+      <template v-if="showVfJsonCol">
         <td>
           <pre style="font-size: xx-small">{{ JSON.stringify(virtualFloor, null, 2) }}</pre>
         </td>
-      -->
+      </template>
       <td :title="virtualFloor.id">
         {{ virtualFloor.id }}
         <br />
@@ -135,7 +135,8 @@ import Timeline from './Timeline.vue'
     maxVirtualFloorTimestamp: Number,
     maxOutcomes: Number,
     fastforwarding: Boolean,
-    nextBlockTimestamp: Number
+    nextBlockTimestamp: Number,
+    showVfJsonCol: Boolean
   },
   components: {
     Timeline,
@@ -155,6 +156,7 @@ export default class VirtualFloorComponent extends Vue {
   maxOutcomes!: number
   fastforwarding!: boolean
   nextBlockTimestamp!: number
+  showVfJsonCol!: boolean
 
   get tCreated(): number {
     return Number(this.virtualFloor.tCreated)

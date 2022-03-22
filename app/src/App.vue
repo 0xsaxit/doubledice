@@ -77,7 +77,9 @@
     </colgroup>
     <thead>
       <tr>
-        <!-- <th>json</th> -->
+        <template v-if="showVfJsonCol">
+          <th>json</th>
+        </template>
         <th>id</th>
         <th>state</th>
         <th>timeline</th>
@@ -103,6 +105,7 @@
       :maxOutcomes="maxOutcomeCount.length"
       :fastforwarding="isFastforwarding"
       :nextBlockTimestamp="nextBlockTimestamp"
+      :showVfJsonCol="showVfJsonCol"
       @balanceChange="refreshBalances"
     />
   </table>
@@ -149,7 +152,7 @@ import CategoriesComponent from './components/CategoriesComponent.vue'
 import NewVirtualFloor from './components/NewVirtualFloor.vue'
 import PaymentTokenComponent from './components/PaymentTokenComponent.vue'
 import VirtualFloorComponent from './components/VirtualFloorComponent.vue'
-import { CHAIN_ID, MAIN_CONTRACT_ADDRESS, POLL_INTERVAL_SECONDS, PROVIDER_URL, USER_ACCOUNT } from './config'
+import { CHAIN_ID, MAIN_CONTRACT_ADDRESS, POLL_INTERVAL_SECONDS, PROVIDER_URL, USER_ACCOUNT, SHOW_VF_JSON_COL } from './config'
 
 BigDecimal.config({ DECIMAL_PLACES: 18 })
 
@@ -269,6 +272,8 @@ const directProvider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
   }
 })
 export default class App extends Vue {
+  showVfJsonCol = SHOW_VF_JSON_COL
+
   virtualFloorsAggregate!: VirtualFloorsAggregateEntity | null
 
   virtualFloors!: VirtualFloorEntity[]

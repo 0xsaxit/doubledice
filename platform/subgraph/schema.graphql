@@ -28,7 +28,7 @@ type Subcategory @entity {
   slug: String!
 }
 
-enum VirtualFloorInternalState {
+enum VirtualFloorState {
   RUNNING_OR_CLOSED__RESULT_NONE,
   RUNNING_OR_CLOSED__RESULT_SET,
   RUNNING_OR_CLOSED__RESULT_CHALLENGED,
@@ -82,7 +82,7 @@ type VirtualFloor @entity {
   # Optional because it can only be set once CHALLENGE_WINDOW starts ticking
   tResultChallengeMax: BigInt
 
-  state: VirtualFloorInternalState!
+  state: VirtualFloorState!
   winningOutcome: Outcome   # Optional: Only set if VF is resolved
   winnerProfits: BigDecimal # Optional: Only set if VF is resolved
   flaggingReason: String    # Optional: Only set if VF is cancelled because it was flagged

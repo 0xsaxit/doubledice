@@ -7,7 +7,7 @@ import { BigNumber as BigDecimal } from 'bignumber.js';
 import { BigNumber as EthersBigInteger } from 'ethers';
 import {
   VirtualFloor as VirtualFloorEntity,
-  VirtualFloorInternalState as VirtualFloorEntityState
+  VirtualFloorState as VirtualFloorEntityState
 } from './generated/graphql';
 
 export enum VirtualFloorClaimType {

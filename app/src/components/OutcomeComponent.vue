@@ -45,7 +45,11 @@
 
 <script lang="ts">
 import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
-import { Outcome as OutcomeEntity, VirtualFloor as VirtualFloorEntity, VirtualFloorInternalState } from '@doubledice/platform/lib/graph'
+import {
+  Outcome as OutcomeEntity,
+  VirtualFloor as VirtualFloorEntity,
+  VirtualFloorState
+} from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
 import { BigNumber, ethers } from 'ethers'
 import { PropType } from 'vue'
@@ -100,7 +104,7 @@ export default class OutcomeComponent extends Vue {
   }
 
   get canCommit(): boolean {
-    return this.virtualFloor.state === VirtualFloorInternalState.RunningOrClosedResultNone &&
+    return this.virtualFloor.state === VirtualFloorState.RunningOrClosedResultNone &&
       this.nextBlockTimestamp < Number(this.virtualFloor.tClose)
   }
 
@@ -125,7 +129,7 @@ export default class OutcomeComponent extends Vue {
   }
 
   get canResolve(): boolean {
-    return this.virtualFloor.state === VirtualFloorInternalState.RunningOrClosedResultNone &&
+    return this.virtualFloor.state === VirtualFloorState.RunningOrClosedResultNone &&
       this.nextBlockTimestamp >= Number(this.virtualFloor.tResultSetMin) &&
       !this.isVirtualFloorUnresolvable
   }
@@ -150,16 +154,16 @@ export default class OutcomeComponent extends Vue {
   }
 
   get isWinningOutcome(): boolean {
-    const isResolvedState = this.virtualFloor.state === VirtualFloorInternalState.ResolvedWinners ||
-      this.virtualFloor.state === VirtualFloorInternalState.CancelledBecauseResolvedNoWinners
+    const isResolvedState = this.virtualFloor.state === VirtualFloorState.ResolvedWinners ||
+      this.virtualFloor.state === VirtualFloorState.CancelledBecauseResolvedNoWinners
     return isResolvedState && this.outcome.index === this.virtualFloor.winningOutcome?.index
   }
 
   get winningText(): string {
     switch (this.virtualFloor.state) {
-      case VirtualFloorInternalState.ResolvedWinners:
+      case VirtualFloorState.ResolvedWinners:
         return '🏆'
-      case VirtualFloorInternalState.CancelledBecauseResolvedNoWinners:
+      case VirtualFloorState.CancelledBecauseResolvedNoWinners:
         return '🤷'
       default:
         return '?'

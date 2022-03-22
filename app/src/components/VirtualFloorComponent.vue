@@ -131,11 +131,11 @@
 <script lang="ts">
 import { DoubleDice as DoubleDiceContract } from '@doubledice/platform/lib/contracts'
 import {
-  VirtualFloor as VirtualFloorEntity,
-  VirtualFloorInternalState as VirtualFloorEntityState,
-  prepareVirtualFloorClaim,
   PreparedClaim,
-  VirtualFloorClaimType
+  prepareVirtualFloorClaim,
+  VirtualFloor as VirtualFloorEntity,
+  VirtualFloorClaimType,
+  VirtualFloorState as VirtualFloorEntityState
 } from '@doubledice/platform/lib/graph'
 import assert from 'assert'
 import BigDecimal from 'bignumber.js'

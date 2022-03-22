@@ -47,6 +47,15 @@ import { createNewEntity, loadExistentEntity, loadOrCreateEntity } from './entit
 import { decodeMetadata } from './metadata';
 import { paymentTokenAmountToBigDecimal, toDecimal } from './utils';
 
+// Manually mirrored from schema.graphql
+const VirtualFloorState__Active_ResultChallenged = 'Active_ResultChallenged';
+const VirtualFloorState__Active_ResultNone = 'Active_ResultNone';
+const VirtualFloorState__Active_ResultSet = 'Active_ResultSet';
+const VirtualFloorState__Claimable_Payouts = 'Claimable_Payouts';
+const VirtualFloorState__Claimable_Refunds_Flagged = 'Claimable_Refunds_Flagged';
+const VirtualFloorState__Claimable_Refunds_ResolvableNever = 'Claimable_Refunds_ResolvableNever';
+const VirtualFloorState__Claimable_Refunds_ResolvedNoWinners = 'Claimable_Refunds_ResolvedNoWinners';
+
 /**
  * It doesn't matter whether this token is being enabled or disabled, we are only using it to discover
  * new ERC-20 payment tokens that might later be used in virtual-floors.
@@ -134,7 +143,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
     $.tResolve = event.params.tResolve;
     $.tResultSetMin = event.params.tResolve;
     $.tResultSetMax = event.params.tResolve.plus(SET_WINDOW_DURATION); // ToDo: Include this as event param tResultSetMax
-    $.state = 'RUNNING_OR_CLOSED__RESULT_NONE';
+    $.state = VirtualFloorState__Active_ResultNone;
 
     const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
 
@@ -403,7 +412,7 @@ export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCa
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
     adjustUserConcurrentVirtualFloors($.owner, -1);
-    $.state = 'CANCELLED_BECAUSE_UNRESOLVABLE';
+    $.state = VirtualFloorState__Claimable_Refunds_ResolvableNever;
     $.save();
   }
 }
@@ -413,7 +422,7 @@ export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancell
   {
     const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
     adjustUserConcurrentVirtualFloors($.owner, -1);
-    $.state = 'CANCELLED_BECAUSE_FLAGGED';
+    $.state = VirtualFloorState__Claimable_Refunds_Flagged;
     $.flaggingReason = event.params.reason;
     $.save();
   }
@@ -428,10 +437,10 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
 
     switch (event.params.resolutionType) {
       case VirtualFloorResolutionType.NoWinners:
-        $.state = 'CANCELLED_BECAUSE_RESOLVED_NO_WINNERS';
+        $.state = VirtualFloorState__Claimable_Refunds_ResolvedNoWinners;
         break;
       case VirtualFloorResolutionType.Winners:
-        $.state = 'RESOLVED_WINNERS';
+        $.state = VirtualFloorState__Claimable_Payouts;
         break;
     }
 
@@ -474,11 +483,11 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
 
   switch (event.params.action) {
     case ResultUpdateAction.CreatorSetResult:
-      vf.state = 'RUNNING_OR_CLOSED__RESULT_SET';
+      vf.state = VirtualFloorState__Active_ResultSet;
       vf.tResultChallengeMax = event.block.timestamp.plus(CHALLENGE_WINDOW_DURATION); // ToDo: Include this as event param tChallengeMax
       break;
     case ResultUpdateAction.SomeoneChallengedSetResult: {
-      vf.state = 'RUNNING_OR_CLOSED__RESULT_CHALLENGED';
+      vf.state = VirtualFloorState__Active_ResultChallenged;
 
       const challengerUserId = event.params.operator.toHex();
       loadOrCreateEntity<User>(User.load, challengerUserId);

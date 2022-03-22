@@ -31,7 +31,7 @@ export const prepareVirtualFloorClaim = (vf: Partial<VirtualFloorEntity>): Prepa
   assert(vf.winnerProfits !== MISSING, 'Missing field: VirtualFloor.winnerProfits');
 
   switch (vf.state) {
-    case VirtualFloorEntityState.ResolvedWinners: {
+    case VirtualFloorEntityState.Claimable_Payouts: {
       // Since they are not missing, they must be non-blank since
       // on the Graph they are always set for a VF resolved with winners
       assert(vf.winningOutcome !== BLANK);
@@ -78,9 +78,9 @@ export const prepareVirtualFloorClaim = (vf: Partial<VirtualFloorEntity>): Prepa
         }
       }
     }
-    case VirtualFloorEntityState.CancelledBecauseFlagged:
-    case VirtualFloorEntityState.CancelledBecauseResolvedNoWinners:
-    case VirtualFloorEntityState.CancelledBecauseUnresolvable: {
+    case VirtualFloorEntityState.Claimable_Refunds_Flagged:
+    case VirtualFloorEntityState.Claimable_Refunds_ResolvedNoWinners:
+    case VirtualFloorEntityState.Claimable_Refunds_ResolvableNever: {
       return {
         claimType: VirtualFloorClaimType.Refunds,
         totalClaimAmount: new BigDecimal(1234.56),

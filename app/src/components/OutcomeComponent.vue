@@ -104,7 +104,7 @@ export default class OutcomeComponent extends Vue {
   }
 
   get canCommit(): boolean {
-    return this.virtualFloor.state === VirtualFloorState.RunningOrClosedResultNone &&
+    return this.virtualFloor.state === VirtualFloorState.Active_ResultNone &&
       this.nextBlockTimestamp < Number(this.virtualFloor.tClose)
   }
 
@@ -129,7 +129,7 @@ export default class OutcomeComponent extends Vue {
   }
 
   get canResolve(): boolean {
-    return this.virtualFloor.state === VirtualFloorState.RunningOrClosedResultNone &&
+    return this.virtualFloor.state === VirtualFloorState.Active_ResultNone &&
       this.nextBlockTimestamp >= Number(this.virtualFloor.tResultSetMin) &&
       !this.isVirtualFloorUnresolvable
   }
@@ -154,16 +154,16 @@ export default class OutcomeComponent extends Vue {
   }
 
   get isWinningOutcome(): boolean {
-    const isResolvedState = this.virtualFloor.state === VirtualFloorState.ResolvedWinners ||
-      this.virtualFloor.state === VirtualFloorState.CancelledBecauseResolvedNoWinners
+    const isResolvedState = this.virtualFloor.state === VirtualFloorState.Claimable_Payouts ||
+      this.virtualFloor.state === VirtualFloorState.Claimable_Refunds_ResolvedNoWinners
     return isResolvedState && this.outcome.index === this.virtualFloor.winningOutcome?.index
   }
 
   get winningText(): string {
     switch (this.virtualFloor.state) {
-      case VirtualFloorState.ResolvedWinners:
+      case VirtualFloorState.Claimable_Payouts:
         return '🏆'
-      case VirtualFloorState.CancelledBecauseResolvedNoWinners:
+      case VirtualFloorState.Claimable_Refunds_ResolvedNoWinners:
         return '🤷'
       default:
         return '?'

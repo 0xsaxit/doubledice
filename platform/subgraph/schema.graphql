@@ -29,13 +29,13 @@ type Subcategory @entity {
 }
 
 enum VirtualFloorState {
-  RUNNING_OR_CLOSED__RESULT_NONE,
-  RUNNING_OR_CLOSED__RESULT_SET,
-  RUNNING_OR_CLOSED__RESULT_CHALLENGED,
-  CANCELLED_BECAUSE_UNRESOLVABLE,
-  CANCELLED_BECAUSE_RESOLVED_NO_WINNERS,
-  CANCELLED_BECAUSE_FLAGGED,
-  RESOLVED_WINNERS
+  Active_ResultNone,                   # formerly RUNNING_OR_CLOSED__RESULT_NONE
+  Active_ResultSet,                    # formerly RUNNING_OR_CLOSED__RESULT_SET
+  Active_ResultChallenged,             # formerly RUNNING_OR_CLOSED__RESULT_CHALLENGED
+  Claimable_Refunds_ResolvableNever,   # formerly CANCELLED_BECAUSE_UNRESOLVABLE
+  Claimable_Refunds_ResolvedNoWinners, # formerly CANCELLED_BECAUSE_RESOLVED_NO_WINNERS
+  Claimable_Refunds_Flagged,           # formerly CANCELLED_BECAUSE_FLAGGED
+  Claimable_Payouts                    # formerly RESOLVED_WINNERS
 }
 
 type VirtualFloor @entity {

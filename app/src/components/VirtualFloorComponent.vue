@@ -204,11 +204,11 @@ export default class VirtualFloorComponent extends Vue {
   }
 
   get isRunning(): boolean {
-    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosedResultNone && this.nextBlockTimestamp < this.tClose
+    return this.virtualFloor.state === VirtualFloorEntityState.Active_ResultNone && this.nextBlockTimestamp < this.tClose
   }
 
   get isClosed(): boolean {
-    return this.virtualFloor.state === VirtualFloorEntityState.RunningOrClosedResultNone && this.nextBlockTimestamp >= this.tClose
+    return this.virtualFloor.state === VirtualFloorEntityState.Active_ResultNone && this.nextBlockTimestamp >= this.tClose
   }
 
   get isUnresolvable(): boolean {
@@ -218,11 +218,11 @@ export default class VirtualFloorComponent extends Vue {
       )
     )
     return (this.isClosed && nonzeroOutcomeCount < 2) ||
-      this.virtualFloor.state === VirtualFloorEntityState.CancelledBecauseUnresolvable
+      this.virtualFloor.state === VirtualFloorEntityState.Claimable_Refunds_ResolvableNever
   }
 
   get isCancellableBecauseUnresolvable(): boolean {
-    return this.isUnresolvable && this.virtualFloor.state !== VirtualFloorEntityState.CancelledBecauseUnresolvable
+    return this.isUnresolvable && this.virtualFloor.state !== VirtualFloorEntityState.Claimable_Refunds_ResolvableNever
   }
 
   async cancelVirtualFloorUnresolvable(): Promise<void> {

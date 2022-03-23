@@ -6,6 +6,7 @@ import assert from 'assert';
 import { BigNumber as BigDecimal } from 'bignumber.js';
 import { BigNumber as EthersBigInteger } from 'ethers';
 import {
+  Outcome as OutcomeEntity,
   VirtualFloor as VirtualFloorEntity,
   VirtualFloorState as VirtualFloorEntityState
 } from './generated/graphql';
@@ -81,10 +82,45 @@ export const prepareVirtualFloorClaim = (vf: Partial<VirtualFloorEntity>): Prepa
     case VirtualFloorEntityState.Claimable_Refunds_Flagged:
     case VirtualFloorEntityState.Claimable_Refunds_ResolvedNoWinners:
     case VirtualFloorEntityState.Claimable_Refunds_ResolvableNever: {
+      assert(vf.outcomes);
+
+      // ToDo: What we really want to assert here, is that all outcomes are included on the query response,
+      // (e.g. the query has not filtered out one of the outcomes)
+      // Ideally, we would generate bindings directly from named GQL queries,
+      // and we would not need to encode these assertions manually.
+      assert(vf.outcomes.length >= 2);
+
+      const individualOutcomeSubClaims = vf.outcomes.map((outcome: OutcomeEntity): Omit<PreparedClaim, 'claimType'> => {
+        assert(outcome.userOutcomes !== MISSING);
+        assert(outcome.userOutcomes.length === 0 || outcome.userOutcomes.length === 1);
+        if (outcome.userOutcomes.length === 1) {
+          const [userOutcome] = outcome.userOutcomes;
+          assert(userOutcome.totalBalance !== MISSING);
+          const totalClaimAmount = new BigDecimal(userOutcome.totalBalance);
+          assert(userOutcome.userOutcomeTimeslots !== MISSING);
+          const tokenIds = userOutcome.userOutcomeTimeslots.map(userOutcomeTimeslot => {
+            assert(userOutcomeTimeslot.outcomeTimeslot !== MISSING);
+            assert(userOutcomeTimeslot.outcomeTimeslot.tokenId !== MISSING);
+            return EthersBigInteger.from(userOutcomeTimeslot.outcomeTimeslot.tokenId);
+          });
+          return {
+            totalClaimAmount,
+            tokenIds
+          };
+        } else /* if (outcome.userOutcomes.length === 0) */ {
+          return {
+            totalClaimAmount: new BigDecimal(0),
+            tokenIds: []
+          };
+        }
+      });
+
       return {
         claimType: VirtualFloorClaimType.Refunds,
-        totalClaimAmount: new BigDecimal(1234.56),
-        tokenIds: []
+        ...individualOutcomeSubClaims.reduce((aggregate, subClaim) => ({
+          totalClaimAmount: aggregate.totalClaimAmount.plus(subClaim.totalClaimAmount),
+          tokenIds: [...aggregate.tokenIds, ...subClaim.tokenIds]
+        }))
       };
     }
     default:

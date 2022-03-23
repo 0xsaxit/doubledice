@@ -359,16 +359,16 @@ function handleTransfers(event: ethereum.Event, from: Address, to: Address, ids:
       beta = outcomeTimeslot.beta;
     }
 
-    const toUserOutcomeTimeslotId = `${outcomeTimeslotId}-${toUserId}`;
+    const fromUserOutcomeTimeslotId = `${outcomeTimeslotId}-${fromUserId}`;
     {
-      const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, toUserOutcomeTimeslotId);
+      const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, fromUserOutcomeTimeslotId);
       $.balance = $.balance.minus(amount);
       $.save();
     }
 
-    const fromUserOutcomeTimeslotId = `${outcomeTimeslotId}-${fromUserId}`;
+    const toUserOutcomeTimeslotId = `${outcomeTimeslotId}-${toUserId}`;
     {
-      const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, fromUserOutcomeTimeslotId);
+      const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, toUserOutcomeTimeslotId);
       $.balance = $.balance.plus(amount);
       $.save();
     }

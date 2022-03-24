@@ -139,7 +139,7 @@ import {
 } from '@doubledice/platform/lib/graph'
 import assert from 'assert'
 import BigDecimal from 'bignumber.js'
-import { ContractTransaction } from 'ethers'
+import { BigNumber, ContractTransaction } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 import { formatTimestamp, sumNumbers, tryCatch } from '../utils'
@@ -212,11 +212,12 @@ export default class VirtualFloorComponent extends Vue {
   }
 
   get isUnresolvable(): boolean {
+    const bonusAmount = BigNumber.from(this.virtualFloor.bonusAmount)
     const nonzeroOutcomeCount = sumNumbers(
       this.virtualFloor.outcomes.map(({ totalSupply }) =>
         Number(new BigDecimal(totalSupply).gt(0))
       )
-    )
+    ) + (bonusAmount.gt(0) ? 1 : 0)
     return (this.isClosed && nonzeroOutcomeCount < 2) ||
       this.virtualFloor.state === VirtualFloorEntityState.Claimable_Refunds_ResolvableNever
   }

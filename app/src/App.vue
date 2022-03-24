@@ -181,6 +181,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
     outcomes {
       ...commonOutcomeFields
     }
+    bonusAmount
 
     # pure metadata
     subcategory {

@@ -194,7 +194,10 @@ type UserOutcomeTimeslot @entity {
   # parents
   user: User!
   outcome: Outcome!
+  
+  """Deprecated: Use `UserOutcomeTimeslot.outcomeTimeslot.timeslot` instead."""
   timeslot: BigInt!
+  
   outcomeTimeslot: OutcomeTimeslot!
   userOutcome: UserOutcome!
 

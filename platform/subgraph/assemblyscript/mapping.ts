@@ -33,8 +33,6 @@ import {
   ResultSource,
   Subcategory,
   User,
-  UserOutcome,
-  UserOutcomeTimeslot,
   VirtualFloor,
   VirtualFloorsAggregate
 } from '../../generated/schema';
@@ -42,10 +40,27 @@ import {
   ResultUpdateAction,
   VirtualFloorResolutionType
 } from '../../lib/helpers/sol-enums';
-import { CHALLENGE_WINDOW_DURATION, SET_WINDOW_DURATION, SINGLETON_AGGREGATE_ENTITY_ID } from './constants';
-import { createNewEntity, loadExistentEntity, loadOrCreateEntity } from './entities';
-import { decodeMetadata } from './metadata';
-import { paymentTokenAmountToBigDecimal, toDecimal } from './utils';
+import {
+  CHALLENGE_WINDOW_DURATION,
+  SET_WINDOW_DURATION,
+  SINGLETON_AGGREGATE_ENTITY_ID
+} from './constants';
+import {
+  assertOutcomeTimeslotEntity,
+  assertUserEntity,
+  assertUserOutcomeEntity,
+  assertUserOutcomeTimeslotEntity,
+  createNewEntity,
+  loadExistentEntity,
+  loadOrCreateEntity
+} from './entities';
+import {
+  decodeMetadata
+} from './metadata';
+import {
+  paymentTokenAmountToBigDecimal,
+  toDecimal
+} from './utils';
 
 // Manually mirrored from schema.graphql
 const VirtualFloorState__Active_ResultChallenged = 'Active_ResultChallenged';
@@ -213,115 +228,59 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   }
 }
 
+
+function convertPaymentTokenAmountToDecimal(vfEntityId: string, amount: BigInt): BigDecimal {
+  const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, vfEntityId);
+  const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
+  return paymentTokenAmountToBigDecimal(amount, paymentToken.decimals);
+}
+
+
+
 export function handleUserCommitment(event: UserCommitmentEvent): void {
-  let amount: BigDecimal;
-
-  const virtualFloorId = event.params.virtualFloorId.toHex();
-  {
-    const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
-    const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
-    amount = paymentTokenAmountToBigDecimal(event.params.amount, paymentToken.decimals);
-
-    $.totalSupply = $.totalSupply.plus(amount);
-    $.save();
-  }
-
-  const beta = toDecimal(event.params.beta_e18);
-
-  const amountTimesBeta = amount.times(beta);
-
-  const outcomeId = `${virtualFloorId}-${event.params.outcomeIndex}`;
-  {
-    const $ = loadExistentEntity<Outcome>(Outcome.load, outcomeId);
-    $.totalSupply = $.totalSupply.plus(amount);
-    $.totalWeightedSupply = $.totalWeightedSupply.plus(amountTimesBeta);
-    $.save();
-  }
-
-  const outcomeTimeslotId = event.params.tokenId.toHex(); // ToDo: To 32 bytes
-  {
-    const $ = loadOrCreateEntity<OutcomeTimeslot>(OutcomeTimeslot.load, outcomeTimeslotId);
-    /* if (isNew) */ {
-      $.tokenId = event.params.tokenId;
-      $.outcome = outcomeId;
-      $.timeslot = event.params.timeslot;
-      $.beta = beta;
-    }
-    $.totalSupply = $.totalSupply.plus(amount);
-    $.save();
-  }
-
-  // ToDo: Is this necessary?
-  const nobodyId = Address.zero().toHex();
-  {
-    loadOrCreateEntity<User>(User.load, nobodyId);
-  }
-
+  const vfEntityId = event.params.virtualFloorId.toHex();
+  const outcomeEntityId = `${vfEntityId}-${event.params.outcomeIndex}`;
+  const outcomeTimeslotEntityId = event.params.tokenId.toHex(); // ToDo: To 32 bytes
+  const fromUserId = Address.zero().toHex();
   // Note: We use an explicit `committer` param rather than relying on the underlying `event.transaction.from`
   // as if the transaction were being relayed by a 3rd party,
   // the commitment would be mistakenly attributed to the relayer.
-  const userId = event.params.committer.toHex();
-  {
-    loadOrCreateEntity<User>(User.load, userId);
-  }
+  const toUserEntityId = event.params.committer.toHex();
 
-  const userOutcomeId = `${outcomeId}-${userId}`;
-  {
-    const $ = loadOrCreateEntity<UserOutcome>(UserOutcome.load, userOutcomeId);
-    /* if (isNew) */ {
-      $.user = userId;
-      $.outcome = outcomeId;
-    }
-    $.totalBalance = $.totalBalance.plus(amount);
-    $.totalWeightedBalance = $.totalWeightedBalance.plus(amountTimesBeta);
-    $.save();
-  }
+  const beta = toDecimal(event.params.beta_e18);
 
-  const userOutcomeTimeslotId = `${outcomeTimeslotId}-${userId}`;
-  {
-    const $ = loadOrCreateEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, userOutcomeTimeslotId);
-    /* if (isNew) */ {
-      $.user = userId;
-      $.outcome = outcomeId;
-      $.timeslot = event.params.timeslot;
-      $.outcomeTimeslot = outcomeTimeslotId;
-      $.userOutcome = userOutcomeId;
-    }
-    $.balance = $.balance.plus(amount);
-    $.save();
-  }
+  assertOutcomeTimeslotEntity(outcomeTimeslotEntityId,
+    outcomeEntityId,
+    event.params.timeslot,
+    event.params.tokenId,
+    beta
+  );
 
-  const postOfEventInTx = event.transactionLogIndex;
-  const outcomeTimeslotTransferId = `${outcomeTimeslotId}-${event.transaction.hash.toHex()}-${postOfEventInTx}`;
-  {
-    const $ = createNewEntity<OutcomeTimeslotTransfer>(OutcomeTimeslotTransfer.load, outcomeTimeslotTransferId);
-    $.outcomeTimeslot = outcomeTimeslotId;
-    $.from = nobodyId;
-    $.to = userId;
-    $.timestamp = event.block.timestamp;
-    // $.logIndex = event.logIndex.toI32();
-    $.amount = amount;
-    $.save();
-  }
+  assertUserEntity(fromUserId);
+
+  assertUserEntity(toUserEntityId);
+
+  // Possibly this handler could simply instantiate the entities and exit at this point,
+  // and then let the balances be updated in the handleTransferSingle executed
+  // soon after during the same transaction.
+  // But this would make the code depend on the ordering of events.
+  // It might work, but it needs to be tested.
+  // So instead, we update the balances right here,
+  // and then during the handling of transfers, we skip mints.
+  handleTransfers(event, Address.zero(), event.params.committer, [event.params.tokenId], [event.params.amount]);
 }
 
 export function handleTransferSingle(event: TransferSingleEvent): void {
-  if (event.params.from.equals(Address.zero()) || event.params.to.equals(Address.zero())) {
-    log.warning(
-      'Ignoring TransferSingle(from={}, to={}, id={}) because it is mint or burn',
-      [event.params.from.toHex(), event.params.to.toHex(), event.params.id.toHex()]
-    );
+  // For mints, do not handle TransferSingle event itself, as this is already handled in handleUserCommitment
+  if (event.params.from.equals(Address.zero())) {
     return;
   }
   handleTransfers(event, event.params.from, event.params.to, [event.params.id], [event.params.value]);
 }
 
 export function handleTransferBatch(event: TransferBatchEvent): void {
-  if (event.params.from.equals(Address.zero()) || event.params.to.equals(Address.zero())) {
-    log.warning(
-      'Ignoring TransferBatch(from={}, to={}) because it is mint or burn',
-      [event.params.from.toHex(), event.params.to.toHex()]
-    );
+  // For mints, do not handle TransferBatch event itself, as this is already handled in handleUserCommitment
+  if (event.params.from.equals(Address.zero())) {
     return;
   }
   handleTransfers(event, event.params.from, event.params.to, event.params.ids, event.params.values);
@@ -330,82 +289,118 @@ export function handleTransferBatch(event: TransferBatchEvent): void {
 function handleTransfers(event: ethereum.Event, from: Address, to: Address, ids: BigInt[], values: BigInt[]): void {
   assert(ids.length == values.length);
 
-  const fromUserId = from.toHex();
-  {
-    loadOrCreateEntity<User>(User.load, fromUserId);
-  }
+  const isMint = from.equals(Address.zero());
 
-  const toUserId = to.toHex();
-  {
-    loadOrCreateEntity<User>(User.load, toUserId);
-  }
+  const fromUserEntityId = from.toHex();
+  const toUserEntityId = to.toHex();
 
   for (let i = 0; i < ids.length; i++) {
     const id = ids[i];
     const value = values[i];
 
-    let amount: BigDecimal;
+    const outcomeTimeslotEntityId = id.toHex();
+    const fromUserOutcomeTimeslotId = `${outcomeTimeslotEntityId}-${fromUserEntityId}`;
+    const toUserOutcomeTimeslotId = `${outcomeTimeslotEntityId}-${toUserEntityId}`;
 
-    let beta: BigDecimal;
-    let outcomeId: string;
-    const outcomeTimeslotId = id.toHex();
-    {
-      const outcomeTimeslot = loadExistentEntity<OutcomeTimeslot>(OutcomeTimeslot.load, outcomeTimeslotId);
-      outcomeId = outcomeTimeslot.outcome;
-      const outcome = loadExistentEntity<Outcome>(Outcome.load, outcomeId);
-      const virtualFloor = loadExistentEntity<VirtualFloor>(VirtualFloor.load, outcome.virtualFloor);
-      const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, virtualFloor.paymentToken);
-      amount = paymentTokenAmountToBigDecimal(value, paymentToken.decimals);
-      beta = outcomeTimeslot.beta;
+    const outcomeTimeslot = assert(OutcomeTimeslot.load(outcomeTimeslotEntityId));
+    const outcomeEntityId = outcomeTimeslot.outcome;
+    const outcome = assert(Outcome.load(outcomeEntityId));
+    const vfEntityId = outcome.virtualFloor;
+    const amount = convertPaymentTokenAmountToDecimal(vfEntityId, value);
+    const beta = outcomeTimeslot.beta;
+
+    const fromUserOutcomeEntityId = `${outcomeEntityId}-${fromUserEntityId}`;
+    const toUserOutcomeEntityId = `${outcomeEntityId}-${toUserEntityId}`;
+
+    // We debit (credit -amount) the "from" hierarchy, and credit the "to" hierarchy.
+
+    if (!isMint) {
+      creditEntityHierarchy(
+        vfEntityId,
+        outcomeEntityId,
+        outcomeTimeslotEntityId,
+        fromUserEntityId,
+        fromUserOutcomeEntityId,
+        fromUserOutcomeTimeslotId,
+        amount.neg(),
+        beta
+      );
     }
 
-    const fromUserOutcomeTimeslotId = `${outcomeTimeslotId}-${fromUserId}`;
-    {
-      const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, fromUserOutcomeTimeslotId);
-      $.balance = $.balance.minus(amount);
-      $.save();
-    }
-
-    const toUserOutcomeTimeslotId = `${outcomeTimeslotId}-${toUserId}`;
-    {
-      const $ = loadExistentEntity<UserOutcomeTimeslot>(UserOutcomeTimeslot.load, toUserOutcomeTimeslotId);
-      $.balance = $.balance.plus(amount);
-      $.save();
-    }
+    // Credit `to` even if it is address(0) and this is an ERC-1155 balance-burn,
+    // as like that the totals will still remain under the VirtualFloor, Outcome, OutcomeTimeslot, etc.
+    // They will be credited to address(0), so this address will eventually accumulate a lot of balance,
+    // but it doesn't matter!
+    // Doing it this way keeps things simple: the balance doesn't perish, it simply "changes ownership" to address(0)
+    creditEntityHierarchy(
+      vfEntityId,
+      outcomeEntityId,
+      outcomeTimeslotEntityId,
+      toUserEntityId,
+      toUserOutcomeEntityId,
+      toUserOutcomeTimeslotId,
+      amount,
+      beta
+    );
 
     const posOfEventInTx = event.transactionLogIndex;
-    const outcomeTimeslotTransferId = `${outcomeTimeslotId}-${event.transaction.hash.toHex()}-${posOfEventInTx}-${i}`;
-    {
-      const $ = createNewEntity<OutcomeTimeslotTransfer>(OutcomeTimeslotTransfer.load, outcomeTimeslotTransferId);
-      $.outcomeTimeslot = outcomeTimeslotId;
-      $.from = fromUserId;
-      $.to = toUserId;
-      $.timestamp = event.block.timestamp;
-      $.amount = amount;
-      $.save();
-    }
-
-    const amountTimesBeta = amount.times(beta);
-
-    const fromUserOutcomeId = `${outcomeId}-${fromUserId}`;
-    {
-      const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, fromUserOutcomeId);
-      $.totalBalance = $.totalBalance.minus(amount);
-      $.totalWeightedBalance = $.totalWeightedBalance.minus(amountTimesBeta);
-      $.save();
-    }
-
-    const toUserOutcomeId = `${outcomeId}-${toUserId}`;
-    {
-      const $ = loadExistentEntity<UserOutcome>(UserOutcome.load, toUserOutcomeId);
-      $.totalBalance = $.totalBalance.plus(amount);
-      $.totalWeightedBalance = $.totalWeightedBalance.plus(amountTimesBeta);
-      $.save();
-    }
-
+    const outcomeTimeslotTransferEntityId = `${outcomeTimeslotEntityId}-${event.transaction.hash.toHex()}-${posOfEventInTx}-${i}`;
+    const outcomeTimeslotTransferEntity = createNewEntity<OutcomeTimeslotTransfer>(OutcomeTimeslotTransfer.load, outcomeTimeslotTransferEntityId);
+    outcomeTimeslotTransferEntity.outcomeTimeslot = outcomeTimeslotEntityId;
+    outcomeTimeslotTransferEntity.from = fromUserEntityId;
+    outcomeTimeslotTransferEntity.to = toUserEntityId;
+    outcomeTimeslotTransferEntity.timestamp = event.block.timestamp;
+    outcomeTimeslotTransferEntity.amount = amount;
+    outcomeTimeslotTransferEntity.save();
   }
 }
 
+function creditEntityHierarchy(
+  existentVfEntityId: string,
+  existentOutcomeEntityId: string,
+  existentOutcomeTimeslotEntityId: string,
+  userEntityId: string,
+  userOutcomeEntityId: string,
+  userOutcomeTimeslotEntityId: string,
+  amount: BigDecimal,
+  beta: BigDecimal
+): void {
+  const amountTimesBeta = amount.times(beta);
+
+  const vfEntity = loadExistentEntity<VirtualFloor>(VirtualFloor.load, existentVfEntityId);
+  vfEntity.totalSupply = vfEntity.totalSupply.plus(amount);
+  vfEntity.save();
+
+  const outcomeEntity = loadExistentEntity<Outcome>(Outcome.load, existentOutcomeEntityId);
+  outcomeEntity.totalSupply = outcomeEntity.totalSupply.plus(amount);
+  outcomeEntity.totalWeightedSupply = outcomeEntity.totalWeightedSupply.plus(amountTimesBeta);
+  outcomeEntity.save();
+
+  const outcomeTimeslotEntity = loadExistentEntity<OutcomeTimeslot>(OutcomeTimeslot.load, existentOutcomeTimeslotEntityId);
+  outcomeTimeslotEntity.totalSupply = outcomeTimeslotEntity.totalSupply.plus(amount);
+  outcomeTimeslotEntity.save();
+
+  assertUserEntity(userEntityId,
+  );
+
+  const userOutcomeEntity = assertUserOutcomeEntity(userOutcomeEntityId,
+    userEntityId,
+    existentOutcomeEntityId
+  );
+  userOutcomeEntity.totalBalance = userOutcomeEntity.totalBalance.plus(amount);
+  userOutcomeEntity.totalWeightedBalance = userOutcomeEntity.totalWeightedBalance.plus(amountTimesBeta);
+  userOutcomeEntity.save();
+
+  const userOutcomeTimeslotEntity = assertUserOutcomeTimeslotEntity(userOutcomeTimeslotEntityId,
+    userEntityId,
+    existentOutcomeEntityId,
+    outcomeTimeslotEntity.timeslot, // ToDo: Deprecate
+    userOutcomeEntityId,
+    existentOutcomeTimeslotEntityId
+  );
+  userOutcomeTimeslotEntity.balance = userOutcomeTimeslotEntity.balance.plus(amount);
+  userOutcomeTimeslotEntity.save();
+}
 
 export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCancellationUnresolvableEvent): void {
   const virtualFloorId = event.params.virtualFloorId.toHex();
@@ -498,7 +493,7 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
     case ResultUpdateAction.AdminFinalizedUnsetResult:
     case ResultUpdateAction.SomeoneConfirmedUnchallengedResult:
     case ResultUpdateAction.AdminFinalizedChallenge:
-      // No need to handle these, as these will all result in a separate `VirtualFloorResultion` event,
+      // No need to handle these, as these will all result in a separate `VirtualFloorResolution` event,
       // which will be handled by `handleVirtualFloorResultion`
       break;
   }

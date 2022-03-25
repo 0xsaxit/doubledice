@@ -55,7 +55,11 @@
     <tr>
       <th>EVM time</th>
       <td>
-        <button @click="fastforward" :disabled="isFastforwarding">⏩</button>
+        <button @click="fastforward({ minutes: 1 })" :disabled="isFastforwarding">⏩ +1m</button>
+        <button @click="fastforward({ minutes: 30 })" :disabled="isFastforwarding">⏩ +30m</button>
+        <button @click="fastforward({ hours: 1 })" :disabled="isFastforwarding">⏩ +1h</button>
+        <button @click="fastforward({ days: 1 })" :disabled="isFastforwarding">⏩ +24h</button>
+        <button @click="fastforward({ days: 3 })" :disabled="isFastforwarding">⏩ +3d</button>
       </td>
     </tr>
   </table>
@@ -320,12 +324,16 @@ export default class App extends Vue {
 
   expanded = false
 
-  async fastforward(): Promise<void> {
+  async fastforward({
+    days = 0, hours = 0, minutes = 0, seconds = 0
+  }: {
+    days?: number, hours?: number, minutes?: number, seconds?: number
+  }): Promise<void> {
     if (this.isFastforwarding) {
       return
     }
     this.isFastforwarding = true
-    this.timeAdjustment = await directProvider.send('evm_increaseTime', [24 * 60 * 60])
+    this.timeAdjustment = await directProvider.send('evm_increaseTime', [((days * 24 + hours) * 60 + minutes) * 60 + seconds])
     await directProvider.send('evm_mine', [])
     const { timestamp } = await directProvider.getBlock('latest')
     this.latestBlockTimestamp = timestamp
@@ -480,5 +488,10 @@ table#virtual-floors {
 
 #virtual-floors:not(.expanded) .collapsible-column {
   visibility: collapse;
+}
+
+button {
+  padding: 2px;
+  margin: 2px;
 }
 </style>

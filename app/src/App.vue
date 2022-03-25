@@ -159,6 +159,7 @@ BigDecimal.config({ DECIMAL_PLACES: 18 })
 const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
   virtualFloors(orderBy: tCreated, orderDirection: desc) {
     id
+    intId
     paymentToken {
       symbol
       decimals

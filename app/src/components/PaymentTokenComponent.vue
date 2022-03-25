@@ -1,17 +1,49 @@
 <template>
-  <tr v-if="isMounted">
-    <td>{{ balance }} balance</td>
-    <td>
-      <button @click="mintSome">mint +10 {{ paymentToken.symbol }}</button>
-    </td>
-    <td>{{ allowance }} allowed to DD contract</td>
-    <td>
-      <button @click="increaseAllowance">approve +10 {{ paymentToken.symbol }}</button>
-    </td>
-    <td>
-      <button @click="addToken" :title="`Add '${paymentToken.name}' ERC-20 token to MetaMask`">+🦊</button>
-    </td>
-  </tr>
+  <tbody v-if="isMounted">
+    <tr>
+      <td rowspan="2" style="font-size: x-large">{{ paymentToken.symbol }}</td>
+      <td>Balance:</td>
+      <td style="text-align: right;">{{ balance }}</td>
+      <td>
+        <button @click="mintSome(1)">Mint +1 {{ paymentToken.symbol }}</button>
+      </td>
+      <td>
+        <button @click="mintSome(10)">Mint +10 {{ paymentToken.symbol }}</button>
+      </td>
+      <td>
+        <button @click="mintSome(100)">Mint +100 {{ paymentToken.symbol }}</button>
+      </td>
+      <td>
+        <button @click="mintSome(1000)">Mint +1000 {{ paymentToken.symbol }}</button>
+      </td>
+      <td></td>
+      <td rowspan="2">
+        <button @click="addToken" :title="`Add '${paymentToken.name}' ERC-20 token to MetaMask`">+🦊</button>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Allowance to
+        <br />DD contract:
+      </td>
+      <td style="text-align: right;">{{ allowance }}</td>
+      <td>
+        <button @click="increaseAllowance(1)">Allow +1 {{ paymentToken.symbol }}</button>
+      </td>
+      <td>
+        <button @click="increaseAllowance(10)">Allow +10 {{ paymentToken.symbol }}</button>
+      </td>
+      <td>
+        <button @click="increaseAllowance(100)">Allow +100 {{ paymentToken.symbol }}</button>
+      </td>
+      <td>
+        <button @click="increaseAllowance(1000)">Allow +1000 {{ paymentToken.symbol }}</button>
+      </td>
+      <td>
+        <button @click="increaseAllowance('max')">Allow max {{ paymentToken.symbol }}</button>
+      </td>
+    </tr>
+  </tbody>
 </template>
 
 <script lang="ts">
@@ -19,7 +51,7 @@
 import { DummyERC20, DummyERC20__factory } from '@doubledice/platform/lib/contracts'
 import { PaymentToken as PaymentTokenEntity } from '@doubledice/platform/lib/graph'
 import { BigNumber as BigDecimal } from 'bignumber.js'
-import { BigNumber as BigInteger, BigNumberish, providers } from 'ethers'
+import { BigNumber as BigInteger, BigNumberish, ethers, providers } from 'ethers'
 import { PropType } from 'vue'
 import { Options, Vue } from 'vue-class-component'
 
@@ -44,6 +76,7 @@ export default class PaymentTokenComponent extends Vue {
   balance!: string
   allowance!: string
   isMounted = false
+
   async mounted(): Promise<void> {
     this.accountAddress = await this.accountSigner.getAddress()
     this.tokenContract = DummyERC20__factory.connect(this.paymentToken.address, this.provider)
@@ -59,18 +92,26 @@ export default class PaymentTokenComponent extends Vue {
     const unitsString = BigInteger.from(amount).toString()
     const decimals = this.paymentToken.decimals
     const valueFormatted = new BigDecimal(unitsString).dividedBy(this.divisor).toFixed(decimals)
-    return `${valueFormatted} ${this.paymentToken.symbol}`
+    if (BigInteger.from(amount).lt(BigInteger.from(2).pow(128))) {
+      return `${valueFormatted} ${this.paymentToken.symbol}`
+    } else {
+      return `∞ ${this.paymentToken.symbol}`
+    }
   }
 
-  async mintSome(): Promise<void> {
-    const amount = BigInteger.from(10).mul(BigInteger.from(10).pow(this.paymentToken.decimals))
+  async mintSome(amountUnits: number): Promise<void> {
+    const amount = BigInteger.from(amountUnits).mul(BigInteger.from(10).pow(this.paymentToken.decimals))
     await (await this.tokenContract.connect(this.accountSigner).mint(this.accountAddress, amount)).wait()
     this.refreshAmounts()
   }
 
-  async increaseAllowance(): Promise<void> {
-    const amount = BigInteger.from(10).mul(BigInteger.from(10).pow(this.paymentToken.decimals))
-    await (await this.tokenContract.connect(this.accountSigner).increaseAllowance(this.platformContractAddress, amount)).wait()
+  async increaseAllowance(byUnits: number | 'max'): Promise<void> {
+    if (byUnits === 'max') {
+      await (await this.tokenContract.connect(this.accountSigner).approve(this.platformContractAddress, ethers.constants.MaxUint256)).wait()
+    } else {
+      const amount = BigInteger.from(byUnits).mul(BigInteger.from(10).pow(this.paymentToken.decimals))
+      await (await this.tokenContract.connect(this.accountSigner).increaseAllowance(this.platformContractAddress, amount)).wait()
+    }
     await this.refreshAmounts()
   }
 

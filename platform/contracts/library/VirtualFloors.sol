@@ -47,6 +47,7 @@ library VirtualFloors {
         } else if (_internalState == VirtualFloorInternalState.Claimable_Refunds_ResolvableNever) {
             return VirtualFloorState.Claimable_Refunds_ResolvableNever;
         } else /*if (_internalState == VirtualFloorInternalState.Claimable_Refunds_Flagged)*/ {
+            assert(_internalState == VirtualFloorInternalState.Claimable_Refunds_Flagged); // Ensure all enum values have been handled.
             return VirtualFloorState.Claimable_Refunds_Flagged;
         }
     }

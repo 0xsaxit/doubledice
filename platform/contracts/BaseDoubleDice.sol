@@ -499,7 +499,7 @@ abstract contract BaseDoubleDice is
         VirtualFloor storage vf = _vfs[vfId];
 
         VirtualFloorState state = vf.state();
-        if (!(vf.state() == VirtualFloorState.Active_Closed_ResolvableNow)) revert WrongVirtualFloorState(state);
+        if (!(state == VirtualFloorState.Active_Closed_ResolvableNow)) revert WrongVirtualFloorState(state);
 
         if (!(winningOutcomeIndex < vf.nOutcomes)) revert OutcomeIndexOutOfRange();
 

@@ -413,18 +413,18 @@ abstract contract BaseDoubleDice is
     /// commitment-type token balances that are tied to virtual-floors
     /// that are in the wrong state and time-period.
     function _beforeTokenTransfer(
-        address operator,
+        address /*operator*/,
         address from,
         address to,
         uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
+        uint256[] memory /*amounts*/,
+        bytes memory /*data*/
     )
         internal
         override
         virtual
     {
-        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+        // Skip empty "super._beforeTokenTransfer(operator, from, to, ids, amounts, data);"
 
         // No restrictions on mint/burn
         if (from == address(0) || to == address(0)) {

@@ -427,6 +427,10 @@ abstract contract BaseDoubleDice is
         // Skip empty "super._beforeTokenTransfer(operator, from, to, ids, amounts, data);"
 
         // No restrictions on mint/burn
+        //        
+        // EN-01: Since this hook is invoked routinely as part of the regular commit/claim process,
+        // this check is performed before all other checks, even before checking paused(),
+        // to avoid wasting gas on SLOADs or on other relatively expensive operations.
         if (from == address(0) || to == address(0)) {
             return;
         }

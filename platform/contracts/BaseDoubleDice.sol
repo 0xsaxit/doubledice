@@ -490,9 +490,9 @@ abstract contract BaseDoubleDice is
     }
 
     function _resolve(uint256 vfId, uint8 winningOutcomeIndex, address creatorFeeBeneficiary) internal {
-        VirtualFloor storage vf = _vfs[vfId];
-
         if (paused()) revert ResolveWhilePaused();
+
+        VirtualFloor storage vf = _vfs[vfId];
 
         VirtualFloorState state = vf.state();
         if (!(vf.state() == VirtualFloorState.Active_Closed_ResolvableNow)) revert WrongVirtualFloorState(state);

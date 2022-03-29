@@ -82,7 +82,7 @@ export const prepareVirtualFloorClaim = (vf: Partial<VirtualFloorEntity>): Prepa
     case VirtualFloorEntityState.Claimable_Refunds_Flagged:
     case VirtualFloorEntityState.Claimable_Refunds_ResolvedNoWinners:
     case VirtualFloorEntityState.Claimable_Refunds_ResolvableNever: {
-      assert(vf.outcomes);
+      assert(vf.outcomes !== MISSING);
 
       // ToDo: What we really want to assert here, is that all outcomes are included on the query response,
       // (e.g. the query has not filtered out one of the outcomes)

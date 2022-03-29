@@ -84,7 +84,10 @@ type VirtualFloor @entity {
 
   state: VirtualFloorState!
   winningOutcome: Outcome   # Optional: Only set if VF is resolved
+
+  """Total commitments to all outcomes + bonus amount - fees"""
   winnerProfits: BigDecimal # Optional: Only set if VF is resolved
+
   flaggingReason: String    # Optional: Only set if VF is cancelled because it was flagged
 
   # properties (ipfs)
@@ -242,7 +245,13 @@ type PaymentToken @entity {
   decimals: Int!
 }
 
+"""
+Holds totals in a singleton entity with special id 'singleton'.
+
+Like a database table with a single row.
+"""
 type VirtualFloorsAggregate @entity {
+  """Should be always 'singleton'"""
   id: ID!
 
   """The total number of VFs ever created."""

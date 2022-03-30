@@ -43,9 +43,13 @@ const config: HardhatUserConfig = {
     hardhat: {
       chainId: 1337,
     },
-    ganache: {
+    localhost: {
       chainId: 1337,
       url: 'http://localhost:8545',
+    },
+    docker: {
+      chainId: 1337,
+      url: 'http://ganache-cli:8545',
     },
     rinkeby: {
       url: PROVIDER_URL,

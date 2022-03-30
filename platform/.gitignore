@@ -6,6 +6,7 @@ generated/
 build/
 .env
 .env.*
+!.env.docker
 !.env.local
 !.env.template
 !.env.polygon

@@ -160,6 +160,7 @@ abstract contract BaseDoubleDice is
     // ---------- Internal setters ----------
 
     function _setPlatformFeeBeneficiary(address platformFeeBeneficiary_) internal {
+        emit OwnershipTransferred(_platformFeeBeneficiary, platformFeeBeneficiary_);
         _platformFeeBeneficiary = platformFeeBeneficiary_;
         emit PlatformFeeBeneficiaryUpdate(platformFeeBeneficiary_);
     }
@@ -683,4 +684,15 @@ abstract contract BaseDoubleDice is
 
     /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
     uint256[50] private __gap;
+
+
+    // ---------- Ownable ----------
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /// @dev Does not control anything on the contract,
+    /// only exposed for compatibility with 3rd-party tools.
+    function owner() external view returns (address) {
+        return _platformFeeBeneficiary;
+    }
 }

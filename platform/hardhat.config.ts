@@ -57,6 +57,12 @@ const config: HardhatUserConfig = {
       accounts: [OWNER_PRIVATE_KEY],
       chainId: 80001,
     },
+    polygon: {
+      url: PROVIDER_URL,
+      accounts: [OWNER_PRIVATE_KEY],
+      chainId: 137,
+      timeout: 60 * 60 * 1000 // 1 hour
+    }
   },
   solidity: {
     version: '0.8.12',

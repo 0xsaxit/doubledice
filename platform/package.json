@@ -11,6 +11,7 @@
     "contracts:deploy:local": "   hardhat run ./scripts/deploy.ts  --network localhost",
     "contracts:deploy:rinkeby": " hardhat run ./scripts/deploy.ts  --network rinkeby",
     "contracts:deploy:mumbai": "  hardhat run ./scripts/deploy.ts  --network mumbai",
+    "contracts:deploy:polygon": " hardhat run ./scripts/deploy.ts  --network polygon",
     "contracts:upgrade:local": "  hardhat run ./scripts/upgrade.ts --network localhost",
     "contracts:upgrade:rinkeby": "hardhat run ./scripts/upgrade.ts --network rinkeby",
     "contracts:upgrade:mumbai": " hardhat run ./scripts/upgrade.ts --network mumbai",

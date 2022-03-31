@@ -8,6 +8,7 @@ build/
 .env.*
 !.env.local
 !.env.template
+!.env.polygon
 
 coverage.json
 coverage/

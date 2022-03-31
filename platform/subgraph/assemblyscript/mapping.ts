@@ -105,8 +105,10 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   const virtualFloorId = event.params.virtualFloorId.toHex();
   {
-    const category = metadata.category;
-    const subcategory = metadata.subcategory;
+    // encodeURIComponent is implemented in AssemblyScript,
+    // see https://github.com/AssemblyScript/assemblyscript/wiki/Status-and-Roadmap#globals
+    const category = encodeURIComponent(metadata.category);
+    const subcategory = encodeURIComponent(metadata.subcategory);
 
     const categoryId = category;
     {
@@ -117,7 +119,11 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
       }
     }
 
-    const subcategoryId = `${category}-${subcategory}`;
+    // Note: We use "/" as a separator instead of "-", since category and subcategory
+    // might contain "-", but they will not contain "/" because they have been percent-encoded,
+    // so by using "/" we rule out collisions.
+    // Moreover, "/" is semantically suitable in this particular context.
+    const subcategoryId = `${category}/${subcategory}`;
     {
       const subcategoryEntity = loadOrCreateEntity<Subcategory>(Subcategory.load, subcategoryId);
       /* if (isNew) */ {

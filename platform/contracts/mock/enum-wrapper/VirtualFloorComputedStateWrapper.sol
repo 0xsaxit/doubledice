@@ -5,6 +5,7 @@ pragma solidity 0.8.12;
 import "../../interface/IDoubleDice.sol";
 
 contract VirtualFloorStateWrapper {
+    /* solhint-disable const-name-snakecase */
     VirtualFloorState constant public None = VirtualFloorState.None;
     VirtualFloorState constant public Active_Open_MaybeResolvableNever = VirtualFloorState.Active_Open_MaybeResolvableNever;
     VirtualFloorState constant public Active_Open_ResolvableLater = VirtualFloorState.Active_Open_ResolvableLater;
@@ -15,4 +16,5 @@ contract VirtualFloorStateWrapper {
     VirtualFloorState constant public Claimable_Refunds_ResolvedNoWinners = VirtualFloorState.Claimable_Refunds_ResolvedNoWinners;
     VirtualFloorState constant public Claimable_Refunds_ResolvableNever = VirtualFloorState.Claimable_Refunds_ResolvableNever;
     VirtualFloorState constant public Claimable_Refunds_Flagged = VirtualFloorState.Claimable_Refunds_Flagged;
+    /* solhint-enable const-name-snakecase */
 }

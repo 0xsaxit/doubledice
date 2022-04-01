@@ -32,7 +32,7 @@
     "postinstall": "npm run codegen",
     "pregen-sol-interface": "npx hardhat compile",
     "gen-sol-interface": "cat ./generated/abi/DoubleDice.json | abi-to-sol --validate --solidity-version=0.8.12 IDoubleDiceComplete > ./generated/IDoubleDiceComplete.sol",
-    "lint:sol": "solhint contracts/**.sol"
+    "lint:sol": "solhint contracts/*.sol contracts/*/*.sol contracts/*/*/*.sol"
   },
   "main": "./lib/index.ts",
   "files": [

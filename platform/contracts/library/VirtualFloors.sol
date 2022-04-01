@@ -23,6 +23,7 @@ library VirtualFloors {
         if (_internalState == VirtualFloorInternalState.None) {
             return VirtualFloorState.None;
         } else if (_internalState == VirtualFloorInternalState.Active) {
+            // solhint-disable-next-line not-rely-on-time
             if (block.timestamp < vf.tClose) {
                 if (vf.nonzeroOutcomeCount >= 2) {
                     return VirtualFloorState.Active_Open_ResolvableLater;
@@ -31,6 +32,7 @@ library VirtualFloors {
                 }
             } else {
                 if (vf.nonzeroOutcomeCount >= 2) {
+                    // solhint-disable-next-line not-rely-on-time
                     if (block.timestamp < vf.tResolve) {
                         return VirtualFloorState.Active_Closed_ResolvableLater;
                     } else {
@@ -84,6 +86,7 @@ library VirtualFloors {
     /// @dev Equivalent to state == Active_Open_ResolvableLater || state == Active_Open_MaybeResolvableNever,
     /// but ~300 gas cheaper.
     function isOpen(VirtualFloor storage vf) internal view returns (bool) {
+        // solhint-disable-next-line not-rely-on-time
         return vf._internalState == VirtualFloorInternalState.Active && block.timestamp < vf.tClose;
     }
 

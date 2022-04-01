@@ -7,6 +7,7 @@ import 'hardhat-abi-exporter';
 import 'hardhat-gas-reporter';
 import { HardhatUserConfig } from 'hardhat/types';
 import 'solidity-coverage';
+import './scripts/write-contract-size-report';
 
 // // Commented out by default to avoid cyclic dependency (script relies on TypeChain, and TypeChain relies on this file)
 // import './scripts/decode-doubledice-custom-error';

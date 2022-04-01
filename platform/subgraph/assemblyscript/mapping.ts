@@ -97,7 +97,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   {
     const aggregate = loadOrCreateEntity<VirtualFloorsAggregate>(VirtualFloorsAggregate.load, SINGLETON_AGGREGATE_ENTITY_ID);
     aggregate.totalVirtualFloorsCreated += 1;
-    aggregate.save()
+    aggregate.save();
   }
 
   const metadata = decodeMetadata(event.params.metadata);
@@ -234,7 +234,6 @@ function convertPaymentTokenAmountToDecimal(vfEntityId: string, amount: BigInt):
   const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
   return paymentTokenAmountToBigDecimal(amount, paymentToken.decimals);
 }
-
 
 
 export function handleUserCommitment(event: UserCommitmentEvent): void {

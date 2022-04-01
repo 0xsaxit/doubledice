@@ -59,7 +59,7 @@ export function assertOutcomeTimeslotEntity(id: string,
       created.tokenId = tokenId;
       created.beta = beta;
     }
-    created.save()
+    created.save();
     return created;
   } else {
     {
@@ -78,7 +78,7 @@ export function assertUserEntity(id: string): User {
     const created = new User(id);
     {
     }
-    created.save()
+    created.save();
     return created;
   } else {
     {
@@ -98,7 +98,7 @@ export function assertUserOutcomeEntity(id: string,
       created.user = userEntityId;
       created.outcome = outcomeEntityId;
     }
-    created.save()
+    created.save();
     return created;
   } else {
     {
@@ -126,7 +126,7 @@ export function assertUserOutcomeTimeslotEntity(id: string,
       created.userOutcome = userOutcomeEntityId;
       created.outcomeTimeslot = outcomeTimeslotEntityId;
     }
-    created.save()
+    created.save();
     return created;
   } else {
     {

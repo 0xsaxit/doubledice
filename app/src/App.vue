@@ -230,9 +230,6 @@ fragment commonOutcomeFields on Outcome {
   }
 }`
 
-const delay = (seconds: number) =>
-  new Promise(resolve => setTimeout(resolve, seconds * 1000))
-
 const directProvider = new ethers.providers.JsonRpcProvider(PROVIDER_URL)
 
 @Options({

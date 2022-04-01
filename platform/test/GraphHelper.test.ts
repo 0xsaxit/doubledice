@@ -46,7 +46,7 @@ describe('GraphHelper', () => {
       extraData: '0x1122334455',
     };
 
-    const encodedWithSelector = GraphHelper__factory.createInterface().encodeFunctionData('encodeVirtualFloorMetadataV1', [orig])
+    const encodedWithSelector = GraphHelper__factory.createInterface().encodeFunctionData('encodeVirtualFloorMetadataV1', [orig]);
 
     expect(encodedWithSelector).to.eq([
       '0x92bedfc0',

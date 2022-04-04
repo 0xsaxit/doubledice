@@ -38,6 +38,14 @@ enum VirtualFloorState {
   Claimable_Payouts                    # formerly RESOLVED_WINNERS
 }
 
+enum ResultUpdateAction {
+  AdminFinalizedUnsetResult,
+  CreatorSetResult,
+  SomeoneConfirmedUnchallengedResult,
+  SomeoneChallengedSetResult,
+  AdminFinalizedChallenge
+}
+
 type VirtualFloor @entity {
   id: ID!
 
@@ -89,6 +97,8 @@ type VirtualFloor @entity {
   winnerProfits: BigDecimal # Optional: Only set if VF is resolved
 
   flaggingReason: String    # Optional: Only set if VF is cancelled because it was flagged
+
+  resultUpdateAction: ResultUpdateAction # Optional: Only set if VF result has been set
 
   # properties (ipfs)
   title: String!

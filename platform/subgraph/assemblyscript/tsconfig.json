@@ -6,6 +6,7 @@
     "./env.template.ts",
     "./mapping.ts",
     "./metadata.ts",
+    "./result-update-action.ts",
     "./utils.ts",
   ]
 }

@@ -57,6 +57,7 @@ import {
 import {
   decodeMetadata
 } from './metadata';
+import { resultUpdateActionEnumToString, resultUpdateActionOrdinalToEnum } from './result-update-action';
 import {
   paymentTokenAmountToBigDecimal,
   toDecimal
@@ -475,7 +476,9 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
   const winningOutcomeId = `${vfEntityId}-${event.params.outcomeIndex}`;
   vf.winningOutcome = winningOutcomeId;
 
-  switch (event.params.action) {
+  const action = resultUpdateActionOrdinalToEnum(event.params.action);
+
+  switch (action) {
     case ResultUpdateAction.CreatorSetResult:
       vf.state = VirtualFloorState__Active_ResultSet;
       vf.tResultChallengeMax = event.block.timestamp.plus(CHALLENGE_WINDOW_DURATION); // ToDo: Include this as event param tChallengeMax
@@ -496,5 +499,8 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
       // which will be handled by `handleVirtualFloorResultion`
       break;
   }
+
+  vf.resultUpdateAction = resultUpdateActionEnumToString(action);
+
   vf.save();
 }

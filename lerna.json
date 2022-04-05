@@ -2,7 +2,8 @@
   "packages": [
     "platform",
     "app",
-    "server"
+    "server",
+    "autotasks"
   ],
   "version": "0.1.0"
 }

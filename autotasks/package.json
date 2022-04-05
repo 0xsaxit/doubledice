@@ -6,22 +6,28 @@
   "license": "MIT",
   "scripts": {
     "build": "webpack",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "update-code": "defender-autotask update-code e366c6d9-77d0-4149-a37d-9b6d6b88b9cb ./dist"
   },
   "devDependencies": {
-    "@types/is-odd": "^3.0.0",
-    "aws-sdk": "^2.904.0",
-    "ts-loader": "^9.1.2",
-    "ts-node": "^9.1.1",
-    "typescript": "^4.2.4",
-    "webpack": "^5.37.0",
-    "webpack-cli": "^4.7.0"
+    "@typescript-eslint/eslint-plugin": "5.18.0",
+    "@typescript-eslint/parser": "5.18.0",
+    "defender-autotask-client": "1.18.0",
+    "eslint": "8.12.0",
+    "ts-loader": "9.2.8",
+    "ts-node": "10.7.0",
+    "typescript": "4.6.3",
+    "webpack": "5.71.0",
+    "webpack-cli": "4.9.2"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^3.3.0",
-    "defender-relay-client": "^1.1.0",
-    "dotenv": "^8.2.0",
-    "ethers": "5.0.3",
-    "is-odd": "^3.0.1"
+    "@doubledice/platform": "0.1.0",
+    "@openzeppelin/contracts": "4.5.0",
+    "axios": "0.21.1",
+    "defender-relay-client": "1.19.0",
+    "dotenv": "16.0.0",
+    "ethers": "5.6.2",
+    "graphql-request": "4.2.0",
+    "moment": "2.29.2"
   }
 }

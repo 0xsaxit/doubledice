@@ -23,6 +23,7 @@
     "graph:deploy:docker": "  npm run graph:build && graph deploy doubledice-com/doubledice-platform --ipfs http://ipfs:5001      --node http://graph-node:8020           ./subgraph/generated/subgraph.yaml",
     "graph:deploy:mumbai:1": "npm run graph:build && graph deploy doubledicedev/doubledice-mumbai                                 --node https://api.thegraph.com/deploy/ ./subgraph/generated/subgraph.yaml",
     "graph:deploy:mumbai:2": "npm run graph:build && graph deploy doubledicedev/doubledice-mumbai2                                --node https://api.thegraph.com/deploy/ ./subgraph/generated/subgraph.yaml",
+    "graph:deploy:polygon": " npm run graph:build && graph deploy ddvfs-com/ddvfs-polygon                                         --node https://api.thegraph.com/deploy/ ./subgraph/generated/subgraph.yaml",
     "graph:all:local": " npm run graph:generate-ts-bindings && npm run graph:codegen && npm run graph:build && npm run graph:create:local  && npm run graph:deploy:local",
     "graph:all:docker": "npm run graph:generate-ts-bindings && npm run graph:codegen && npm run graph:build && npm run graph:create:docker && npm run graph:deploy:docker",
     "test:local:create-vf": "hardhat run --network localhost ./scripts/create-test-vf.ts",

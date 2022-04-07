@@ -26,6 +26,7 @@ dataSources:
         - User
         - UserOutcome
         - UserOutcomeTimeslot
+        - UserVirtualFloor
         - VirtualFloor
         - VirtualFloorsAggregate
       abis:

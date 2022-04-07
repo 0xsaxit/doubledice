@@ -50,6 +50,7 @@ import {
   assertUserEntity,
   assertUserOutcomeEntity,
   assertUserOutcomeTimeslotEntity,
+  assertVfUserEntity,
   createNewEntity,
   loadExistentEntity,
   loadOrCreateEntity
@@ -372,7 +373,7 @@ function creditEntityHierarchy(
   outcomeTimeslotEntity.totalSupply = outcomeTimeslotEntity.totalSupply.plus(amount);
   outcomeTimeslotEntity.save();
 
-  assertUserEntity(userEntityId,
+  const userEntity = assertUserEntity(userEntityId,
   );
 
   const userOutcomeEntity = assertUserOutcomeEntity(userOutcomeEntityId,
@@ -391,6 +392,10 @@ function creditEntityHierarchy(
   );
   userOutcomeTimeslotEntity.balance = userOutcomeTimeslotEntity.balance.plus(amount);
   userOutcomeTimeslotEntity.save();
+
+  const vfUserEntity = assertVfUserEntity(vfEntity, userEntity);
+  vfUserEntity.totalBalance = vfUserEntity.totalBalance.plus(amount);
+  vfUserEntity.save();
 }
 
 export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCancellationUnresolvableEvent): void {

@@ -6,16 +6,20 @@ erDiagram
     Category ||--|{ VirtualFloor: has
 
     VirtualFloor ||--|{ Outcome: has
+    VirtualFloor ||--o{ UserVirtualFloor: has
 
     Outcome ||--o{ UserOutcomeTimeslot: has
     Outcome ||--o{ OutcomeTimeslot: has
     Outcome ||--o{ UserOutcome: has
 
+    User ||--o{ UserVirtualFloor: has
     User ||--o{ UserOutcome: has
     User ||--o{ UserOutcomeTimeslot: has
 
     UserOutcome ||--o{ UserOutcomeTimeslot: has
     OutcomeTimeslot ||--o{ UserOutcomeTimeslot: has
+
+    UserVirtualFloor ||--o{ UserOutcome: has
 
     VirtualFloor {
         BigInt virtualFloorId
@@ -38,5 +42,8 @@ erDiagram
     }
     UserOutcomeTimeslot {
         BigDecimal balance
+    }
+    UserVirtualFloor {
+        BigDecimal totalBalance
     }
 ```

@@ -8,7 +8,9 @@ import {
   Subcategory,
   User,
   UserOutcome,
-  UserOutcomeTimeslot
+  UserOutcomeTimeslot,
+  UserVirtualFloor as VfUser,
+  VirtualFloor
 } from '../../generated/schema';
 
 
@@ -180,6 +182,30 @@ export function assertSubcategoryEntity(id: string,
       assertFieldEqual('Subcategory', id, 'category', loaded.category, categoryEntityId);
       assertFieldEqual('Subcategory', id, 'subid', loaded.subid, subid);
       assertFieldEqual('Subcategory', id, 'slug', loaded.slug, slug);
+    }
+    return loaded;
+  }
+}
+
+/**
+ * This assertEntity function looks different from the rest,
+ * but this is actually how we want all the others to look.
+ */
+export function assertVfUserEntity(vf: VirtualFloor, user: User): VfUser {
+  const id = `${vf.id}-${user.id}`;
+  const loaded = VfUser.load(id);
+  if (loaded == null) {
+    const created = new VfUser(id);
+    {
+      created.virtualFloor = vf.id;
+      created.user = user.id;
+    }
+    created.save();
+    return created;
+  } else {
+    {
+      assertFieldEqual('VfUser', id, 'virtualFloor', loaded.virtualFloor, vf.id);
+      assertFieldEqual('VfUser', id, 'user', loaded.user, user.id);
     }
     return loaded;
   }

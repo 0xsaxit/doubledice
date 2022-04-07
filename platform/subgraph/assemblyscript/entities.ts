@@ -112,7 +112,6 @@ export function assertUserOutcomeEntity(id: string,
 export function assertUserOutcomeTimeslotEntity(id: string,
   userEntityId: string,
   outcomeEntityId: string,
-  timeslot: BigInt,
   userOutcomeEntityId: string,
   outcomeTimeslotEntityId: string,
 ): UserOutcomeTimeslot {
@@ -122,7 +121,6 @@ export function assertUserOutcomeTimeslotEntity(id: string,
     {
       created.user = userEntityId;
       created.outcome = outcomeEntityId;
-      created.timeslot = timeslot; // ToDo: Deprecate
       created.userOutcome = userOutcomeEntityId;
       created.outcomeTimeslot = outcomeTimeslotEntityId;
     }
@@ -132,7 +130,6 @@ export function assertUserOutcomeTimeslotEntity(id: string,
     {
       assertFieldEqual('UserOutcomeTimeslot', id, 'user', loaded.user, userEntityId);
       assertFieldEqual('UserOutcomeTimeslot', id, 'outcome', loaded.outcome, outcomeEntityId);
-      assertFieldEqual('UserOutcomeTimeslot', id, 'timeslot', loaded.timeslot, timeslot); // ToDo: Deprecate
       assertFieldEqual('UserOutcomeTimeslot', id, 'userOutcome', loaded.userOutcome, userOutcomeEntityId);
       assertFieldEqual('UserOutcomeTimeslot', id, 'outcomeTimeslot', loaded.outcomeTimeslot, outcomeTimeslotEntityId);
     }

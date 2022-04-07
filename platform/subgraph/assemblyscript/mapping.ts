@@ -400,7 +400,6 @@ function creditEntityHierarchy(
   const userOutcomeTimeslotEntity = assertUserOutcomeTimeslotEntity(userOutcomeTimeslotEntityId,
     userEntityId,
     existentOutcomeEntityId,
-    outcomeTimeslotEntity.timeslot, // ToDo: Deprecate
     userOutcomeEntityId,
     existentOutcomeTimeslotEntityId
   );

@@ -129,7 +129,8 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   vf.discordChannelId = metadata.discordChannelId;
 
   const creator = assertUserEntity(event.params.creator);
-  vf.owner = creator.id;
+  vf.creator = creator.id;
+  vf.owner = creator.id; // Deprecated
   adjustUserConcurrentVirtualFloors(creator, +1);
 
   // Since the platform contract will reject VirtualFloors created with a PaymentToken that is not whitelisted,
@@ -291,7 +292,7 @@ function creditEntityHierarchy(vfOutcomeTimeslot: OutcomeTimeslot, user: User, a
 
 export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCancellationUnresolvableEvent): void {
   const vf = loadExistentVfEntity(event.params.virtualFloorId);
-  const creator = loadExistentEntity<User>(User.load, vf.owner);
+  const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_ResolvableNever;
   vf.save();
@@ -299,7 +300,7 @@ export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCa
 
 export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancellationFlaggedEvent): void {
   const vf = loadExistentVfEntity(event.params.virtualFloorId);
-  const creator = loadExistentEntity<User>(User.load, vf.owner);
+  const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_Flagged;
   vf.flaggingReason = event.params.reason;
@@ -308,7 +309,7 @@ export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancell
 
 export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent): void {
   const vf = loadExistentVfEntity(event.params.virtualFloorId);
-  const creator = loadExistentEntity<User>(User.load, vf.owner);
+  const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   switch (event.params.resolutionType) {
     case VirtualFloorResolutionType.NoWinners:

@@ -65,7 +65,12 @@ type VirtualFloor @entity {
   intId: BigInt!
 
   # parents
+
+  creator: User!
+
+  """Deprecated in favour of `creator`."""
   owner: User!
+
   subcategory: Subcategory!
   category: Category!
 
@@ -176,7 +181,12 @@ type User @entity {
   userOutcomes: [UserOutcome!]! @derivedFrom(field: "user")
   outcomeTimeslotTransfersTo: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "to")
   outcomeTimeslotTransfersFrom: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "from")
+
+  createdVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "creator")
+
+  """Deprecated in favour of `createdVirtualFloors`."""
   ownedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "owner")
+
   challengedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "challenger")
 
   # properties

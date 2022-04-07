@@ -4,11 +4,11 @@
     <ul>
       <li v-for="category in categories" :key="category.id">
         <div>
-          <span>{{ category.slug }}</span>
+          <span>{{ category.id }}</span>
           <ul>
             <li v-for="subcategory in category.subcategories" :key="subcategory.id">
               <div>
-                <span>{{ subcategory.slug }}</span>
+                <span>{{ subcategory.subid }}</span>
                 <ul>
                   <li v-for="virtualFloor in subcategory.virtualFloors" :key="virtualFloor.id">
                     <div>

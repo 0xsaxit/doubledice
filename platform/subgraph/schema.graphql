@@ -12,10 +12,17 @@ type Category @entity {
   subcategories: [Subcategory!]! @derivedFrom(field: "category")
 
   # properties
+
+  """Deprecated in favour of `id`."""
   slug: String!
 }
 
 type Subcategory @entity {
+  """
+  Unique across all categories.
+  Currently formed by combining `subcategory.category.id + '/' + subcategory.subid`,
+  but this could change, so frontend code should treat this as an opaque string.
+  """
   id: ID!
 
   # parents
@@ -25,6 +32,11 @@ type Subcategory @entity {
   virtualFloors: [VirtualFloor!]! @derivedFrom(field: "subcategory")
 
   # properties
+
+  """Unique only within the parent category."""
+  subid: String!
+
+  """Deprecated in favour of `subid`."""
   slug: String!
 }
 

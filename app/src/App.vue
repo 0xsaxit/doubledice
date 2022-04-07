@@ -190,9 +190,10 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
 
     # pure metadata
     subcategory {
-      slug
+      id
+      subid
       category {
-        slug
+        id
       }
     }
     title

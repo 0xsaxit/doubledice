@@ -3,7 +3,9 @@ import {
   BigInt
 } from '@graphprotocol/graph-ts';
 import {
+  Category,
   OutcomeTimeslot,
+  Subcategory,
   User,
   UserOutcome,
   UserOutcomeTimeslot
@@ -76,11 +78,13 @@ export function assertUserEntity(id: string): User {
   const loaded = User.load(id);
   if (loaded == null) {
     const created = new User(id);
+    // eslint-disable-next-line no-empty
     {
     }
     created.save();
     return created;
   } else {
+    // eslint-disable-next-line no-empty
     {
     }
     return loaded;
@@ -132,6 +136,50 @@ export function assertUserOutcomeTimeslotEntity(id: string,
       assertFieldEqual('UserOutcomeTimeslot', id, 'outcome', loaded.outcome, outcomeEntityId);
       assertFieldEqual('UserOutcomeTimeslot', id, 'userOutcome', loaded.userOutcome, userOutcomeEntityId);
       assertFieldEqual('UserOutcomeTimeslot', id, 'outcomeTimeslot', loaded.outcomeTimeslot, outcomeTimeslotEntityId);
+    }
+    return loaded;
+  }
+}
+
+export function assertCategoryEntity(id: string,
+): Category {
+  const slug = id; // Deprecated in favour of id
+  const loaded = Category.load(id);
+  if (loaded == null) {
+    const created = new Category(id);
+    {
+      created.slug = slug;
+    }
+    created.save();
+    return created;
+  } else {
+    {
+      assertFieldEqual('Category', id, 'slug', loaded.slug, slug);
+    }
+    return loaded;
+  }
+}
+
+export function assertSubcategoryEntity(id: string,
+  categoryEntityId: string,
+  subid: string,
+): Subcategory {
+  const slug = subid; // Deprecated in favour of subid
+  const loaded = Subcategory.load(id);
+  if (loaded == null) {
+    const created = new Subcategory(id);
+    {
+      created.category = categoryEntityId;
+      created.subid = subid;
+      created.slug = slug;
+    }
+    created.save();
+    return created;
+  } else {
+    {
+      assertFieldEqual('Subcategory', id, 'category', loaded.category, categoryEntityId);
+      assertFieldEqual('Subcategory', id, 'subid', loaded.subid, subid);
+      assertFieldEqual('Subcategory', id, 'slug', loaded.slug, slug);
     }
     return loaded;
   }

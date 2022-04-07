@@ -24,14 +24,12 @@ import {
   IERC20Metadata
 } from '../../generated/DoubleDice/IERC20Metadata';
 import {
-  Category,
   Opponent,
   Outcome,
   OutcomeTimeslot,
   OutcomeTimeslotTransfer,
   PaymentToken,
   ResultSource,
-  Subcategory,
   User,
   VirtualFloor,
   VirtualFloorsAggregate
@@ -46,7 +44,9 @@ import {
   SINGLETON_AGGREGATE_ENTITY_ID
 } from './constants';
 import {
+  assertCategoryEntity,
   assertOutcomeTimeslotEntity,
+  assertSubcategoryEntity,
   assertUserEntity,
   assertUserOutcomeEntity,
   assertUserOutcomeTimeslotEntity,
@@ -107,31 +107,20 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   {
     // encodeURIComponent is implemented in AssemblyScript,
     // see https://github.com/AssemblyScript/assemblyscript/wiki/Status-and-Roadmap#globals
-    const category = encodeURIComponent(metadata.category);
-    const subcategory = encodeURIComponent(metadata.subcategory);
-
-    const categoryId = category;
-    {
-      const categoryEntity = loadOrCreateEntity<Category>(Category.load, categoryId);
-      /* if (isNew) */ {
-        categoryEntity.slug = category;
-        categoryEntity.save();
-      }
-    }
+    const categoryId = encodeURIComponent(metadata.category);
+    const subcategorySubid = encodeURIComponent(metadata.subcategory);
 
     // Note: We use "/" as a separator instead of "-", since category and subcategory
     // might contain "-", but they will not contain "/" because they have been percent-encoded,
     // so by using "/" we rule out collisions.
     // Moreover, "/" is semantically suitable in this particular context.
-    const subcategoryId = `${category}/${subcategory}`;
-    {
-      const subcategoryEntity = loadOrCreateEntity<Subcategory>(Subcategory.load, subcategoryId);
-      /* if (isNew) */ {
-        subcategoryEntity.category = categoryId;
-        subcategoryEntity.slug = subcategory;
-        subcategoryEntity.save();
-      }
-    }
+    const subcategoryId = `${categoryId}/${subcategorySubid}`;
+
+    assertCategoryEntity(categoryId);
+    assertSubcategoryEntity(subcategoryId,
+      categoryId,
+      subcategorySubid,
+    );
 
     const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
 
@@ -215,11 +204,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   {
     const outcomes = metadata.outcomes;
-    assert(
-      outcomes.length == event.params.nOutcomes,
-      'outcomeValues.length = ' + outcomes.length.toString()
-      + ' != event.params.nOutcomes = ' + event.params.nOutcomes.toString());
-
+    assert(outcomes.length == event.params.nOutcomes, `outcomeValues.length = ${outcomes.length} != event.params.nOutcomes = ${event.params.nOutcomes}`);
     for (let outcomeIndex = 0; outcomeIndex < event.params.nOutcomes; outcomeIndex++) {
       const outcome = outcomes[outcomeIndex];
       const title = outcome.title;

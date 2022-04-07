@@ -10,6 +10,7 @@ type Category @entity {
 
   # children
   subcategories: [Subcategory!]! @derivedFrom(field: "category")
+  virtualFloors: [VirtualFloor!]! @derivedFrom(field: "category")
 
   # properties
 
@@ -66,6 +67,7 @@ type VirtualFloor @entity {
   # parents
   owner: User!
   subcategory: Subcategory!
+  category: Category!
 
   """Only set if the result set by the creator has been challenged"""
   challenger: User

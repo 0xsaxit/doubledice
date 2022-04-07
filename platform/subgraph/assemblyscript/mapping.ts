@@ -126,6 +126,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
     $.intId = event.params.virtualFloorId;
     $.subcategory = subcategoryId;
+    $.category = categoryId;
     $.title = metadata.title;
     $.description = metadata.description;
     $.isListed = metadata.isListed;

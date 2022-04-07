@@ -1,9 +1,10 @@
 ```mermaid
 erDiagram
     Category ||--|{ Subcategory: has
-
     Subcategory ||--|{ VirtualFloor: has
-    
+
+    Category ||--|{ VirtualFloor: has
+
     VirtualFloor ||--|{ Outcome: has
 
     Outcome ||--o{ UserOutcomeTimeslot: has

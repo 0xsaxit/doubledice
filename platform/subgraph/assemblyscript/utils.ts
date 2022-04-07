@@ -3,6 +3,4 @@
 
 import { BigDecimal, BigInt } from '@graphprotocol/graph-ts';
 
-export const toDecimal = (wei: BigInt): BigDecimal => wei.divDecimal(new BigDecimal(BigInt.fromU32(10).pow(18)));
-
-export const paymentTokenAmountToBigDecimal = (wei: BigInt, decimals: i32): BigDecimal => wei.divDecimal(new BigDecimal(BigInt.fromU32(10).pow(u8(decimals))));
+export const toBigDecimal = (wei: BigInt, decimals: i32 = 18): BigDecimal => wei.divDecimal(new BigDecimal(BigInt.fromU32(10).pow(u8(decimals))));

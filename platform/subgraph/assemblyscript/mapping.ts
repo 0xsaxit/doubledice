@@ -6,7 +6,7 @@ import {
   BigDecimal,
   BigInt,
   ethereum,
-  log
+  log,
 } from '@graphprotocol/graph-ts';
 import {
   CreationQuotaAdjustments as CreationQuotaAdjustmentsEvent,
@@ -18,50 +18,57 @@ import {
   VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
   VirtualFloorCancellationUnresolvable as VirtualFloorCancellationUnresolvableEvent,
   VirtualFloorCreation as VirtualFloorCreationEvent,
-  VirtualFloorResolution as VirtualFloorResolutionEvent
+  VirtualFloorResolution as VirtualFloorResolutionEvent,
 } from '../../generated/DoubleDice/DoubleDice';
 import {
   IERC20Metadata
 } from '../../generated/DoubleDice/IERC20Metadata';
 import {
-  Opponent,
   Outcome,
   OutcomeTimeslot,
   OutcomeTimeslotTransfer,
   PaymentToken,
-  ResultSource,
   User,
   VirtualFloor,
-  VirtualFloorsAggregate
+  VirtualFloorsAggregate,
 } from '../../generated/schema';
 import {
   ResultUpdateAction,
-  VirtualFloorResolutionType
+  VirtualFloorResolutionType,
 } from '../../lib/helpers/sol-enums';
 import {
   CHALLENGE_WINDOW_DURATION,
   SET_WINDOW_DURATION,
-  SINGLETON_AGGREGATE_ENTITY_ID
+  SINGLETON_AGGREGATE_ENTITY_ID,
 } from './constants';
 import {
   assertCategoryEntity,
-  assertOutcomeTimeslotEntity,
+  assertVfOutcomeTimeslotEntity,
+  assertOutcomeTimeslotUserEntity,
+  assertOutcomeUserEntity,
   assertSubcategoryEntity,
   assertUserEntity,
-  assertUserOutcomeEntity,
-  assertUserOutcomeTimeslotEntity,
   assertVfUserEntity,
   createNewEntity,
+  createVfOpponentEntity,
+  createVfOutcomeEntity,
+  createVfResultSourceEntity,
+  genVfEntityId,
+  genVfOutcomeTimeslotEntityId,
   loadExistentEntity,
-  loadOrCreateEntity
+  loadExistentVfEntity,
+  loadExistentVfOutcomeEntity,
+  loadOrCreateEntity,
 } from './entities';
 import {
   decodeMetadata
 } from './metadata';
-import { resultUpdateActionEnumToString, resultUpdateActionOrdinalToEnum } from './result-update-action';
 import {
-  paymentTokenAmountToBigDecimal,
-  toDecimal
+  resultUpdateActionEnumToString,
+  resultUpdateActionOrdinalToEnum,
+} from './result-update-action';
+import {
+  toBigDecimal,
 } from './utils';
 
 // Manually mirrored from schema.graphql
@@ -94,7 +101,8 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
 
 
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
-  log.warning('VirtualFloorCreation(id = {} = {})', [event.params.virtualFloorId.toString(), event.params.virtualFloorId.toHex()]);
+  // Although this is "info" or "debug", we log as "warning" as it is easier to find because there are less
+  log.warning('Creating VirtualFloorCreation({})...', [event.params.virtualFloorId.toString()]);
 
   {
     const aggregate = loadOrCreateEntity<VirtualFloorsAggregate>(VirtualFloorsAggregate.load, SINGLETON_AGGREGATE_ENTITY_ID);
@@ -104,154 +112,84 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   const metadata = decodeMetadata(event.params.metadata);
 
-  const virtualFloorId = event.params.virtualFloorId.toHex();
-  {
-    // encodeURIComponent is implemented in AssemblyScript,
-    // see https://github.com/AssemblyScript/assemblyscript/wiki/Status-and-Roadmap#globals
-    const categoryId = encodeURIComponent(metadata.category);
-    const subcategorySubid = encodeURIComponent(metadata.subcategory);
+  const vfId = genVfEntityId(event.params.virtualFloorId);
 
-    // Note: We use "/" as a separator instead of "-", since category and subcategory
-    // might contain "-", but they will not contain "/" because they have been percent-encoded,
-    // so by using "/" we rule out collisions.
-    // Moreover, "/" is semantically suitable in this particular context.
-    const subcategoryId = `${categoryId}/${subcategorySubid}`;
+  const vf = createNewEntity<VirtualFloor>(VirtualFloor.load, vfId);
 
-    assertCategoryEntity(categoryId);
-    assertSubcategoryEntity(subcategoryId,
-      categoryId,
-      subcategorySubid,
-    );
+  const category = assertCategoryEntity(metadata.category);
+  vf.category = category.id;
 
-    const $ = createNewEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
+  const subcategory = assertSubcategoryEntity(category, metadata.subcategory);
+  vf.subcategory = subcategory.id;
 
-    $.intId = event.params.virtualFloorId;
-    $.subcategory = subcategoryId;
-    $.category = categoryId;
-    $.title = metadata.title;
-    $.description = metadata.description;
-    $.isListed = metadata.isListed;
-    $.discordChannelId = metadata.discordChannelId;
+  vf.intId = event.params.virtualFloorId;
+  vf.title = metadata.title;
+  vf.description = metadata.description;
+  vf.isListed = metadata.isListed;
+  vf.discordChannelId = metadata.discordChannelId;
 
-    const userId = event.params.creator.toHex();
-    {
-      loadOrCreateEntity<User>(User.load, userId);
-    }
-    $.owner = userId;
+  const creator = assertUserEntity(event.params.creator);
+  vf.owner = creator.id;
+  adjustUserConcurrentVirtualFloors(creator, +1);
 
-    // should only be done *after* User entity exists
-    adjustUserConcurrentVirtualFloors($.owner, +1);
+  // Since the platform contract will reject VirtualFloors created with a PaymentToken that is not whitelisted,
+  // we are sure that the PaymentToken entity referenced here will have always been created beforehand
+  // when the token was originally whitelisted.
+  vf.paymentToken = event.params.paymentToken.toHex();
 
-    // Since the platform contract will reject VirtualFloors created with a PaymentToken that is not whitelisted,
-    // we are sure that the PaymentToken entity referenced here will have always been created beforehand
-    // when the token was originally whitelisted.
-    $.paymentToken = event.params.paymentToken.toHex();
+  vf.betaOpen = toBigDecimal(event.params.betaOpen_e18);
+  vf.creationFeeRate = toBigDecimal(event.params.creationFeeRate_e18);
+  vf.platformFeeRate = toBigDecimal(event.params.platformFeeRate_e18);
+  vf.tCreated = event.block.timestamp;
+  vf.tOpen = event.params.tOpen;
+  vf.tClose = event.params.tClose;
+  vf.tResolve = event.params.tResolve;
+  vf.tResultSetMin = event.params.tResolve;
+  vf.tResultSetMax = event.params.tResolve.plus(SET_WINDOW_DURATION); // ToDo: Include this as event param tResultSetMax
+  vf.state = VirtualFloorState__Active_ResultNone;
 
-    $.betaOpen = toDecimal(event.params.betaOpen_e18);
-    $.creationFeeRate = toDecimal(event.params.creationFeeRate_e18);
-    $.platformFeeRate = toDecimal(event.params.platformFeeRate_e18);
-    $.tCreated = event.block.timestamp;
-    $.tOpen = event.params.tOpen;
-    $.tClose = event.params.tClose;
-    $.tResolve = event.params.tResolve;
-    $.tResultSetMin = event.params.tResolve;
-    $.tResultSetMax = event.params.tResolve.plus(SET_WINDOW_DURATION); // ToDo: Include this as event param tResultSetMax
-    $.state = VirtualFloorState__Active_ResultNone;
+  const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, vf.paymentToken);
 
-    const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
+  const decimalBonusAmount = toBigDecimal(event.params.bonusAmount, paymentToken.decimals);
+  vf.bonusAmount = decimalBonusAmount;
+  vf.totalSupply = vf.totalSupply.plus(decimalBonusAmount);
 
-    const decimalBonusAmount = paymentTokenAmountToBigDecimal(event.params.bonusAmount, paymentToken.decimals);
-    $.bonusAmount = decimalBonusAmount;
-    $.totalSupply = $.totalSupply.plus(decimalBonusAmount);
+  vf.minCommitmentAmount = toBigDecimal(event.params.minCommitmentAmount, paymentToken.decimals);
+  vf.maxCommitmentAmount = toBigDecimal(event.params.maxCommitmentAmount, paymentToken.decimals);
 
-    $.minCommitmentAmount = paymentTokenAmountToBigDecimal(event.params.minCommitmentAmount, paymentToken.decimals);
-    $.maxCommitmentAmount = paymentTokenAmountToBigDecimal(event.params.maxCommitmentAmount, paymentToken.decimals);
+  vf.save();
 
-    $.save();
+  for (let i = 0; i < metadata.opponents.length; i++) {
+    createVfOpponentEntity(vf, i, metadata.opponents[i].title, metadata.opponents[i].image);
   }
 
-  {
-    const opponents = metadata.opponents;
-    for (let opponentIndex = 0; opponentIndex < opponents.length; opponentIndex++) {
-      const opponent = opponents[opponentIndex];
-      const title = opponent.title;
-      const image = opponent.image;
-      const opponentId = `${virtualFloorId}-${opponentIndex}`;
-      {
-        const $ = createNewEntity<Opponent>(Opponent.load, opponentId);
-        $.virtualFloor = virtualFloorId;
-        $.title = title;
-        $.image = image;
-        $.save();
-      }
-    }
+  for (let i = 0; i < metadata.resultSources.length; i++) {
+    createVfResultSourceEntity(vf, i, metadata.resultSources[i].title, metadata.resultSources[i].url);
   }
 
-  {
-    const resultSources = metadata.resultSources;
-    for (let resultSourceIndex = 0; resultSourceIndex < resultSources.length; resultSourceIndex++) {
-      const resultSource = resultSources[resultSourceIndex];
-      const title = resultSource.title;
-      const url = resultSource.url;
-      const resultSourceId = `${virtualFloorId}-${resultSourceIndex}`;
-      {
-        const $ = createNewEntity<ResultSource>(ResultSource.load, resultSourceId);
-        $.virtualFloor = virtualFloorId;
-        $.title = title;
-        $.url = url;
-        $.save();
-      }
-    }
-  }
-
-  {
-    const outcomes = metadata.outcomes;
-    assert(outcomes.length == event.params.nOutcomes, `outcomeValues.length = ${outcomes.length} != event.params.nOutcomes = ${event.params.nOutcomes}`);
-    for (let outcomeIndex = 0; outcomeIndex < event.params.nOutcomes; outcomeIndex++) {
-      const outcome = outcomes[outcomeIndex];
-      const title = outcome.title;
-      const outcomeId = `${virtualFloorId}-${outcomeIndex}`;
-      {
-        const $ = createNewEntity<Outcome>(Outcome.load, outcomeId);
-        $.virtualFloor = virtualFloorId;
-        $.title = title;
-        $.index = outcomeIndex;
-        $.save();
-      }
-    }
+  assert(metadata.outcomes.length == event.params.nOutcomes, `metadata.outcomes.length = ${metadata.outcomes.length} != event.params.nOutcomes = ${event.params.nOutcomes}`);
+  for (let i = 0; i < metadata.outcomes.length; i++) {
+    createVfOutcomeEntity(vf, i, metadata.outcomes[i].title);
   }
 }
 
-
-function convertPaymentTokenAmountToDecimal(vfEntityId: string, amount: BigInt): BigDecimal {
-  const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, vfEntityId);
-  const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
-  return paymentTokenAmountToBigDecimal(amount, paymentToken.decimals);
+function convertPaymentTokenAmountToDecimal(vf: VirtualFloor, amount: BigInt): BigDecimal {
+  const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, vf.paymentToken);
+  return toBigDecimal(amount, paymentToken.decimals);
 }
-
 
 export function handleUserCommitment(event: UserCommitmentEvent): void {
-  const vfEntityId = event.params.virtualFloorId.toHex();
-  const outcomeEntityId = `${vfEntityId}-${event.params.outcomeIndex}`;
-  const outcomeTimeslotEntityId = event.params.tokenId.toHex(); // ToDo: To 32 bytes
-  const fromUserId = Address.zero().toHex();
+  const outcome = loadExistentVfOutcomeEntity(event.params.virtualFloorId, event.params.outcomeIndex);
+
+  const beta = toBigDecimal(event.params.beta_e18);
+  assertVfOutcomeTimeslotEntity(outcome, event.params.timeslot, event.params.tokenId, beta);
+
+  const fromUser = Address.zero();
+
   // Note: We use an explicit `committer` param rather than relying on the underlying `event.transaction.from`
   // as if the transaction were being relayed by a 3rd party,
   // the commitment would be mistakenly attributed to the relayer.
-  const toUserEntityId = event.params.committer.toHex();
-
-  const beta = toDecimal(event.params.beta_e18);
-
-  assertOutcomeTimeslotEntity(outcomeTimeslotEntityId,
-    outcomeEntityId,
-    event.params.timeslot,
-    event.params.tokenId,
-    beta
-  );
-
-  assertUserEntity(fromUserId);
-
-  assertUserEntity(toUserEntityId);
+  const toUser = event.params.committer;
 
   // Possibly this handler could simply instantiate the entities and exit at this point,
   // and then let the balances be updated in the handleTransferSingle executed
@@ -260,7 +198,7 @@ export function handleUserCommitment(event: UserCommitmentEvent): void {
   // It might work, but it needs to be tested.
   // So instead, we update the balances right here,
   // and then during the handling of transfers, we skip mints.
-  handleTransfers(event, Address.zero(), event.params.committer, [event.params.tokenId], [event.params.amount]);
+  handleTransfers(event, fromUser, toUser, [event.params.tokenId], [event.params.amount]);
 }
 
 export function handleTransferSingle(event: TransferSingleEvent): void {
@@ -279,45 +217,28 @@ export function handleTransferBatch(event: TransferBatchEvent): void {
   handleTransfers(event, event.params.from, event.params.to, event.params.ids, event.params.values);
 }
 
-function handleTransfers(event: ethereum.Event, from: Address, to: Address, ids: BigInt[], values: BigInt[]): void {
+function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Address, ids: BigInt[], values: BigInt[]): void {
   assert(ids.length == values.length);
 
-  const isMint = from.equals(Address.zero());
+  const isMint = fromAddr.equals(Address.zero());
 
-  const fromUserEntityId = from.toHex();
-  const toUserEntityId = to.toHex();
+  const fromUser = assertUserEntity(fromAddr);
+  const toUser = assertUserEntity(toAddr);
 
   for (let i = 0; i < ids.length; i++) {
-    const id = ids[i];
+    const tokenId = ids[i];
     const value = values[i];
 
-    const outcomeTimeslotEntityId = id.toHex();
-    const fromUserOutcomeTimeslotId = `${outcomeTimeslotEntityId}-${fromUserEntityId}`;
-    const toUserOutcomeTimeslotId = `${outcomeTimeslotEntityId}-${toUserEntityId}`;
+    const outcomeTimeslot = loadExistentEntity<OutcomeTimeslot>(OutcomeTimeslot.load, genVfOutcomeTimeslotEntityId(tokenId));
+    const outcome = loadExistentEntity<Outcome>(Outcome.load, outcomeTimeslot.outcome);
+    const vf = loadExistentEntity<VirtualFloor>(VirtualFloor.load, outcome.virtualFloor);
 
-    const outcomeTimeslot = assert(OutcomeTimeslot.load(outcomeTimeslotEntityId));
-    const outcomeEntityId = outcomeTimeslot.outcome;
-    const outcome = assert(Outcome.load(outcomeEntityId));
-    const vfEntityId = outcome.virtualFloor;
-    const amount = convertPaymentTokenAmountToDecimal(vfEntityId, value);
-    const beta = outcomeTimeslot.beta;
-
-    const fromUserOutcomeEntityId = `${outcomeEntityId}-${fromUserEntityId}`;
-    const toUserOutcomeEntityId = `${outcomeEntityId}-${toUserEntityId}`;
+    const amount = convertPaymentTokenAmountToDecimal(vf, value);
 
     // We debit (credit -amount) the "from" hierarchy, and credit the "to" hierarchy.
 
     if (!isMint) {
-      creditEntityHierarchy(
-        vfEntityId,
-        outcomeEntityId,
-        outcomeTimeslotEntityId,
-        fromUserEntityId,
-        fromUserOutcomeEntityId,
-        fromUserOutcomeTimeslotId,
-        amount.neg(),
-        beta
-      );
+      creditEntityHierarchy(outcomeTimeslot, fromUser, amount.neg());
     }
 
     // Credit `to` even if it is address(0) and this is an ERC-1155 balance-burn,
@@ -325,152 +246,105 @@ function handleTransfers(event: ethereum.Event, from: Address, to: Address, ids:
     // They will be credited to address(0), so this address will eventually accumulate a lot of balance,
     // but it doesn't matter!
     // Doing it this way keeps things simple: the balance doesn't perish, it simply "changes ownership" to address(0)
-    creditEntityHierarchy(
-      vfEntityId,
-      outcomeEntityId,
-      outcomeTimeslotEntityId,
-      toUserEntityId,
-      toUserOutcomeEntityId,
-      toUserOutcomeTimeslotId,
-      amount,
-      beta
-    );
+    creditEntityHierarchy(outcomeTimeslot, toUser, amount);
 
     const posOfEventInTx = event.transactionLogIndex;
-    const outcomeTimeslotTransferEntityId = `${outcomeTimeslotEntityId}-${event.transaction.hash.toHex()}-${posOfEventInTx}-${i}`;
-    const outcomeTimeslotTransferEntity = createNewEntity<OutcomeTimeslotTransfer>(OutcomeTimeslotTransfer.load, outcomeTimeslotTransferEntityId);
-    outcomeTimeslotTransferEntity.outcomeTimeslot = outcomeTimeslotEntityId;
-    outcomeTimeslotTransferEntity.from = fromUserEntityId;
-    outcomeTimeslotTransferEntity.to = toUserEntityId;
-    outcomeTimeslotTransferEntity.timestamp = event.block.timestamp;
-    outcomeTimeslotTransferEntity.amount = amount;
-    outcomeTimeslotTransferEntity.save();
+    const outcomeTimeslotTransferEntityId = `${outcomeTimeslot.id}-${event.transaction.hash.toHex()}-${posOfEventInTx}-${i}`;
+    const outcomeTimeslotTransfer = createNewEntity<OutcomeTimeslotTransfer>(OutcomeTimeslotTransfer.load, outcomeTimeslotTransferEntityId);
+    outcomeTimeslotTransfer.outcomeTimeslot = outcomeTimeslot.id;
+    outcomeTimeslotTransfer.from = fromUser.id;
+    outcomeTimeslotTransfer.to = toUser.id;
+    outcomeTimeslotTransfer.timestamp = event.block.timestamp;
+    outcomeTimeslotTransfer.amount = amount;
+    outcomeTimeslotTransfer.save();
   }
 }
 
-function creditEntityHierarchy(
-  existentVfEntityId: string,
-  existentOutcomeEntityId: string,
-  existentOutcomeTimeslotEntityId: string,
-  userEntityId: string,
-  userOutcomeEntityId: string,
-  userOutcomeTimeslotEntityId: string,
-  amount: BigDecimal,
-  beta: BigDecimal
-): void {
-  const amountTimesBeta = amount.times(beta);
+function creditEntityHierarchy(vfOutcomeTimeslot: OutcomeTimeslot, user: User, amount: BigDecimal): void {
+  const amountTimesBeta = amount.times(vfOutcomeTimeslot.beta);
 
-  const vfEntity = loadExistentEntity<VirtualFloor>(VirtualFloor.load, existentVfEntityId);
-  vfEntity.totalSupply = vfEntity.totalSupply.plus(amount);
-  vfEntity.save();
+  vfOutcomeTimeslot.totalSupply = vfOutcomeTimeslot.totalSupply.plus(amount);
+  vfOutcomeTimeslot.save();
 
-  const outcomeEntity = loadExistentEntity<Outcome>(Outcome.load, existentOutcomeEntityId);
-  outcomeEntity.totalSupply = outcomeEntity.totalSupply.plus(amount);
-  outcomeEntity.totalWeightedSupply = outcomeEntity.totalWeightedSupply.plus(amountTimesBeta);
-  outcomeEntity.save();
+  const vfOutcome = loadExistentEntity<Outcome>(Outcome.load, vfOutcomeTimeslot.outcome);
+  vfOutcome.totalSupply = vfOutcome.totalSupply.plus(amount);
+  vfOutcome.totalWeightedSupply = vfOutcome.totalWeightedSupply.plus(amountTimesBeta);
+  vfOutcome.save();
 
-  const outcomeTimeslotEntity = loadExistentEntity<OutcomeTimeslot>(OutcomeTimeslot.load, existentOutcomeTimeslotEntityId);
-  outcomeTimeslotEntity.totalSupply = outcomeTimeslotEntity.totalSupply.plus(amount);
-  outcomeTimeslotEntity.save();
+  const vf = loadExistentEntity<VirtualFloor>(VirtualFloor.load, vfOutcome.virtualFloor);
+  vf.totalSupply = vf.totalSupply.plus(amount);
+  vf.save();
 
-  const userEntity = assertUserEntity(userEntityId,
-  );
+  const vfOutcomeUser = assertOutcomeUserEntity(vfOutcome, user);
+  vfOutcomeUser.totalBalance = vfOutcomeUser.totalBalance.plus(amount);
+  vfOutcomeUser.totalWeightedBalance = vfOutcomeUser.totalWeightedBalance.plus(amountTimesBeta);
+  vfOutcomeUser.save();
 
-  const userOutcomeEntity = assertUserOutcomeEntity(userOutcomeEntityId,
-    userEntityId,
-    existentOutcomeEntityId
-  );
-  userOutcomeEntity.totalBalance = userOutcomeEntity.totalBalance.plus(amount);
-  userOutcomeEntity.totalWeightedBalance = userOutcomeEntity.totalWeightedBalance.plus(amountTimesBeta);
-  userOutcomeEntity.save();
+  const vfOutcomeTimeslotUser = assertOutcomeTimeslotUserEntity(vfOutcome, user, vfOutcomeTimeslot, vfOutcomeUser);
+  vfOutcomeTimeslotUser.balance = vfOutcomeTimeslotUser.balance.plus(amount);
+  vfOutcomeTimeslotUser.save();
 
-  const userOutcomeTimeslotEntity = assertUserOutcomeTimeslotEntity(userOutcomeTimeslotEntityId,
-    userEntityId,
-    existentOutcomeEntityId,
-    userOutcomeEntityId,
-    existentOutcomeTimeslotEntityId
-  );
-  userOutcomeTimeslotEntity.balance = userOutcomeTimeslotEntity.balance.plus(amount);
-  userOutcomeTimeslotEntity.save();
-
-  const vfUserEntity = assertVfUserEntity(vfEntity, userEntity);
-  vfUserEntity.totalBalance = vfUserEntity.totalBalance.plus(amount);
-  vfUserEntity.save();
+  const vfUser = assertVfUserEntity(vf, user);
+  vfUser.totalBalance = vfUser.totalBalance.plus(amount);
+  vfUser.save();
 }
 
 export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCancellationUnresolvableEvent): void {
-  const virtualFloorId = event.params.virtualFloorId.toHex();
-  {
-    const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
-    adjustUserConcurrentVirtualFloors($.owner, -1);
-    $.state = VirtualFloorState__Claimable_Refunds_ResolvableNever;
-    $.save();
-  }
+  const vf = loadExistentVfEntity(event.params.virtualFloorId);
+  const creator = loadExistentEntity<User>(User.load, vf.owner);
+  adjustUserConcurrentVirtualFloors(creator, -1);
+  vf.state = VirtualFloorState__Claimable_Refunds_ResolvableNever;
+  vf.save();
 }
 
 export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancellationFlaggedEvent): void {
-  const virtualFloorId = event.params.virtualFloorId.toHex();
-  {
-    const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
-    adjustUserConcurrentVirtualFloors($.owner, -1);
-    $.state = VirtualFloorState__Claimable_Refunds_Flagged;
-    $.flaggingReason = event.params.reason;
-    $.save();
-  }
+  const vf = loadExistentVfEntity(event.params.virtualFloorId);
+  const creator = loadExistentEntity<User>(User.load, vf.owner);
+  adjustUserConcurrentVirtualFloors(creator, -1);
+  vf.state = VirtualFloorState__Claimable_Refunds_Flagged;
+  vf.flaggingReason = event.params.reason;
+  vf.save();
 }
 
 export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent): void {
-  const virtualFloorId = event.params.virtualFloorId.toHex();
-  {
-    const $ = loadExistentEntity<VirtualFloor>(VirtualFloor.load, virtualFloorId);
-
-    adjustUserConcurrentVirtualFloors($.owner, -1);
-
-    switch (event.params.resolutionType) {
-      case VirtualFloorResolutionType.NoWinners:
-        $.state = VirtualFloorState__Claimable_Refunds_ResolvedNoWinners;
-        break;
-      case VirtualFloorResolutionType.Winners:
-        $.state = VirtualFloorState__Claimable_Payouts;
-        break;
-    }
-
-    {
-      const winningOutcomeId = `${virtualFloorId}-${event.params.winningOutcomeIndex}`;
-      $.winningOutcome = winningOutcomeId;
-    }
-
-    {
-      const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, $.paymentToken);
-      $.winnerProfits = paymentTokenAmountToBigDecimal(event.params.winnerProfits, paymentToken.decimals);
-    }
-
-    $.save();
+  const vf = loadExistentVfEntity(event.params.virtualFloorId);
+  const creator = loadExistentEntity<User>(User.load, vf.owner);
+  adjustUserConcurrentVirtualFloors(creator, -1);
+  switch (event.params.resolutionType) {
+    case VirtualFloorResolutionType.NoWinners:
+      vf.state = VirtualFloorState__Claimable_Refunds_ResolvedNoWinners;
+      break;
+    case VirtualFloorResolutionType.Winners:
+      vf.state = VirtualFloorState__Claimable_Payouts;
+      break;
   }
+  vf.winningOutcome = loadExistentVfOutcomeEntity(event.params.virtualFloorId, event.params.winningOutcomeIndex).id;
+  vf.winnerProfits = convertPaymentTokenAmountToDecimal(vf, event.params.winnerProfits);
+  vf.save();
 }
-
 
 export function handleCreationQuotaAdjustments(event: CreationQuotaAdjustmentsEvent): void {
   const adjustments = event.params.adjustments;
   for (let i = 0; i < adjustments.length; i++) {
-    const userId = adjustments[i].creator.toHex();
-    const user = loadOrCreateEntity<User>(User.load, userId);
-    user.maxConcurrentVirtualFloors = user.maxConcurrentVirtualFloors.plus(adjustments[i].relativeAmount);
-    user.save();
+    const creator = assertUserEntity(adjustments[i].creator);
+    creator.maxConcurrentVirtualFloors = creator.maxConcurrentVirtualFloors.plus(adjustments[i].relativeAmount);
+    creator.save();
   }
 }
 
-function adjustUserConcurrentVirtualFloors(userId: string, adjustment: i32): void {
-  const user = loadExistentEntity<User>(User.load, userId);
+function adjustUserConcurrentVirtualFloors(user: User, adjustment: i32): void {
   user.concurrentVirtualFloors = user.concurrentVirtualFloors.plus(BigInt.fromI32(adjustment));
   user.save();
 }
 
 export function handleResultUpdate(event: ResultUpdateEvent): void {
-  const vfEntityId = event.params.vfId.toHex();
-  const vf = loadExistentEntity<VirtualFloor>(VirtualFloor.load, vfEntityId);
-  const winningOutcomeId = `${vfEntityId}-${event.params.outcomeIndex}`;
-  vf.winningOutcome = winningOutcomeId;
+  const vf = loadExistentVfEntity(event.params.vfId);
+
+  // ToDo: Overwrite this every time result is updated,
+  // or write only final-result in it?
+  // By overwriting every time, it is not possible to query Graph for history of what happened,
+  // but only for latest result.
+  vf.winningOutcome = loadExistentVfOutcomeEntity(event.params.vfId, event.params.outcomeIndex).id;
 
   const action = resultUpdateActionOrdinalToEnum(event.params.action);
 
@@ -481,11 +355,7 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
       break;
     case ResultUpdateAction.SomeoneChallengedSetResult: {
       vf.state = VirtualFloorState__Active_ResultChallenged;
-
-      const challengerUserId = event.params.operator.toHex();
-      loadOrCreateEntity<User>(User.load, challengerUserId);
-      vf.challenger = challengerUserId;
-
+      vf.challenger = assertUserEntity(event.params.operator).id;
       break;
     }
     case ResultUpdateAction.AdminFinalizedUnsetResult:

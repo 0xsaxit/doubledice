@@ -5,16 +5,16 @@ import {
 } from '@graphprotocol/graph-ts';
 import {
   Category,
-  Opponent,
-  Outcome,
-  OutcomeTimeslot,
-  ResultSource,
+  Opponent as VfOpponent,
+  Outcome as VfOutcome,
+  OutcomeTimeslot as VfOutcomeTimeslot,
+  ResultSource as VfResultSource,
   Subcategory,
   User,
-  UserOutcome as OutcomeUser,
-  UserOutcomeTimeslot as OutcomeTimeslotUser,
+  UserOutcome as VfOutcomeUser,
+  UserOutcomeTimeslot as VfOutcomeTimeslotUser,
   UserVirtualFloor as VfUser,
-  VirtualFloor
+  VirtualFloor as Vf
 } from '../../generated/schema';
 
 interface Entity {
@@ -52,17 +52,17 @@ function assertFieldEqual<T>(entityName: string, id: string, fieldName: string, 
 }
 
 export function assertVfOutcomeTimeslotEntity(
-  outcome: Outcome,
+  vfOutcome: VfOutcome,
   timeslot: BigInt,
   tokenId: BigInt,
   beta: BigDecimal,
-): OutcomeTimeslot {
+): VfOutcomeTimeslot {
   const id = genVfOutcomeTimeslotEntityId(tokenId);
-  const loaded = OutcomeTimeslot.load(id);
+  const loaded = VfOutcomeTimeslot.load(id);
   if (loaded == null) {
-    const created = new OutcomeTimeslot(id);
+    const created = new VfOutcomeTimeslot(id);
     {
-      created.outcome = outcome.id;
+      created.outcome = vfOutcome.id;
       created.timeslot = timeslot;
       created.tokenId = tokenId;
       created.beta = beta;
@@ -71,10 +71,10 @@ export function assertVfOutcomeTimeslotEntity(
     return created;
   } else {
     {
-      assertFieldEqual('OutcomeTimeslot', id, 'outcome', loaded.outcome, outcome.id);
-      assertFieldEqual('OutcomeTimeslot', id, 'timeslot', loaded.timeslot, timeslot);
-      assertFieldEqual('OutcomeTimeslot', id, 'tokenId', loaded.tokenId, tokenId);
-      assertFieldEqual('OutcomeTimeslot', id, 'beta', loaded.beta, beta);
+      assertFieldEqual('VfOutcomeTimeslot', id, 'outcome', loaded.outcome, vfOutcome.id);
+      assertFieldEqual('VfOutcomeTimeslot', id, 'timeslot', loaded.timeslot, timeslot);
+      assertFieldEqual('VfOutcomeTimeslot', id, 'tokenId', loaded.tokenId, tokenId);
+      assertFieldEqual('VfOutcomeTimeslot', id, 'beta', loaded.beta, beta);
     }
     return loaded;
   }
@@ -99,55 +99,55 @@ export function assertUserEntity(addr: Address): User {
 }
 
 
-export function assertOutcomeUserEntity(outcome: Outcome, user: User): OutcomeUser {
-  const id = `${outcome.id}-${user.id}`;
-  const loaded = OutcomeUser.load(id);
+export function assertVfOutcomeUserEntity(vfOutcome: VfOutcome, user: User): VfOutcomeUser {
+  const id = `${vfOutcome.id}-${user.id}`;
+  const loaded = VfOutcomeUser.load(id);
   if (loaded == null) {
-    const created = new OutcomeUser(id);
+    const created = new VfOutcomeUser(id);
     {
-      created.outcome = outcome.id;
+      created.outcome = vfOutcome.id;
       created.user = user.id;
     }
     created.save();
     return created;
   } else {
     {
-      assertFieldEqual('OutcomeUser', id, 'outcome', loaded.outcome, outcome.id);
-      assertFieldEqual('OutcomeUser', id, 'user', loaded.user, user.id);
+      assertFieldEqual('VfOutcomeUser', id, 'outcome', loaded.outcome, vfOutcome.id);
+      assertFieldEqual('VfOutcomeUser', id, 'user', loaded.user, user.id);
     }
     return loaded;
   }
 }
 
-export function assertOutcomeTimeslotUserEntity(
-  outcome: Outcome,
+export function assertVfOutcomeTimeslotUserEntity(
+  vfOutcome: VfOutcome,
   user: User,
-  outcomeTimeslot: OutcomeTimeslot,
-  outcomeUser: OutcomeUser,
-): OutcomeTimeslotUser {
+  vfOutcomeTimeslot: VfOutcomeTimeslot,
+  vfOutcomeUser: VfOutcomeUser,
+): VfOutcomeTimeslotUser {
   {
-    assertFieldEqual('OutcomeTimeslot', outcomeTimeslot.id, 'outcome', outcomeTimeslot.outcome, outcome.id);
-    assertFieldEqual('OutcomeUser', outcomeUser.id, 'outcome', outcomeUser.outcome, outcome.id);
-    assertFieldEqual('OutcomeUser', outcomeUser.id, 'user', outcomeUser.user, user.id);
+    assertFieldEqual('VfOutcomeTimeslot', vfOutcomeTimeslot.id, 'outcome', vfOutcomeTimeslot.outcome, vfOutcome.id);
+    assertFieldEqual('VfOutcomeUser', vfOutcomeUser.id, 'outcome', vfOutcomeUser.outcome, vfOutcome.id);
+    assertFieldEqual('VfOutcomeUser', vfOutcomeUser.id, 'user', vfOutcomeUser.user, user.id);
   }
-  const id = `${outcomeTimeslot.id}-${user.id}`;
-  const loaded = OutcomeTimeslotUser.load(id);
+  const id = `${vfOutcomeTimeslot.id}-${user.id}`;
+  const loaded = VfOutcomeTimeslotUser.load(id);
   if (loaded == null) {
-    const created = new OutcomeTimeslotUser(id);
+    const created = new VfOutcomeTimeslotUser(id);
     {
       created.user = user.id;
-      created.outcome = outcome.id;
-      created.userOutcome = outcomeUser.id;
-      created.outcomeTimeslot = outcomeTimeslot.id;
+      created.outcome = vfOutcome.id;
+      created.userOutcome = vfOutcomeUser.id;
+      created.outcomeTimeslot = vfOutcomeTimeslot.id;
     }
     created.save();
     return created;
   } else {
     {
-      assertFieldEqual('UserOutcomeTimeslot', id, 'user', loaded.user, user.id);
-      assertFieldEqual('UserOutcomeTimeslot', id, 'outcome', loaded.outcome, outcome.id);
-      assertFieldEqual('UserOutcomeTimeslot', id, 'userOutcome', loaded.userOutcome, outcomeUser.id);
-      assertFieldEqual('UserOutcomeTimeslot', id, 'outcomeTimeslot', loaded.outcomeTimeslot, outcomeTimeslot.id);
+      assertFieldEqual('VfUserOutcomeTimeslot', id, 'user', loaded.user, user.id);
+      assertFieldEqual('VfUserOutcomeTimeslot', id, 'outcome', loaded.outcome, vfOutcome.id);
+      assertFieldEqual('VfUserOutcomeTimeslot', id, 'userOutcome', loaded.userOutcome, vfOutcomeUser.id);
+      assertFieldEqual('VfUserOutcomeTimeslot', id, 'outcomeTimeslot', loaded.outcomeTimeslot, vfOutcomeTimeslot.id);
     }
     return loaded;
   }
@@ -210,7 +210,7 @@ export function assertSubcategoryEntity(category: Category, metadataSubcategory:
  * This assertEntity function looks different from the rest,
  * but this is actually how we want all the others to look.
  */
-export function assertVfUserEntity(vf: VirtualFloor, user: User): VfUser {
+export function assertVfUserEntity(vf: Vf, user: User): VfUser {
   const id = `${vf.id}-${user.id}`;
   const loaded = VfUser.load(id);
   if (loaded == null) {
@@ -230,34 +230,34 @@ export function assertVfUserEntity(vf: VirtualFloor, user: User): VfUser {
   }
 }
 
-export function createVfOpponentEntity(vf: VirtualFloor, opponentIndex: i32, title: string, image: string): Opponent {
+export function createVfOpponentEntity(vf: Vf, opponentIndex: i32, title: string, image: string): VfOpponent {
   const id = `${vf.id}-${opponentIndex}`;
-  const opponent = createNewEntity<Opponent>(Opponent.load, id);
-  opponent.virtualFloor = vf.id;
-  opponent.title = title;
-  opponent.image = image;
-  opponent.save();
-  return opponent;
+  const vfOpponent = createNewEntity<VfOpponent>(VfOpponent.load, id);
+  vfOpponent.virtualFloor = vf.id;
+  vfOpponent.title = title;
+  vfOpponent.image = image;
+  vfOpponent.save();
+  return vfOpponent;
 }
 
-export function createVfResultSourceEntity(vf: VirtualFloor, resultSourceIndex: i32, title: string, url: string): ResultSource {
+export function createVfResultSourceEntity(vf: Vf, resultSourceIndex: i32, title: string, url: string): VfResultSource {
   const id = `${vf.id}-${resultSourceIndex}`;
-  const resultSource = createNewEntity<ResultSource>(ResultSource.load, id);
-  resultSource.virtualFloor = vf.id;
-  resultSource.title = title;
-  resultSource.url = url;
-  resultSource.save();
-  return resultSource;
+  const vfResultSource = createNewEntity<VfResultSource>(VfResultSource.load, id);
+  vfResultSource.virtualFloor = vf.id;
+  vfResultSource.title = title;
+  vfResultSource.url = url;
+  vfResultSource.save();
+  return vfResultSource;
 }
 
-export function createVfOutcomeEntity(vf: VirtualFloor, outcomeIndex: i32, title: string): Outcome {
+export function createVfOutcomeEntity(vf: Vf, outcomeIndex: i32, title: string): VfOutcome {
   const id = `${vf.id}-${outcomeIndex}`;
-  const outcome = createNewEntity<Outcome>(Outcome.load, id);
-  outcome.virtualFloor = vf.id;
-  outcome.title = title;
-  outcome.index = outcomeIndex;
-  outcome.save();
-  return outcome;
+  const vfOutcome = createNewEntity<VfOutcome>(VfOutcome.load, id);
+  vfOutcome.virtualFloor = vf.id;
+  vfOutcome.title = title;
+  vfOutcome.index = outcomeIndex;
+  vfOutcome.save();
+  return vfOutcome;
 }
 
 export function genVfEntityId(vfId: BigInt): string {
@@ -268,11 +268,11 @@ export function genVfOutcomeTimeslotEntityId(tokenId: BigInt): string {
   return tokenId.toHex();
 }
 
-export function loadExistentVfEntity(vfId: BigInt): VirtualFloor {
-  return loadExistentEntity<VirtualFloor>(VirtualFloor.load, genVfEntityId(vfId));
+export function loadExistentVfEntity(vfId: BigInt): Vf {
+  return loadExistentEntity<Vf>(Vf.load, genVfEntityId(vfId));
 }
 
-export function loadExistentVfOutcomeEntity(vfId: BigInt, outcomeIndex: i32): Outcome {
+export function loadExistentVfOutcomeEntity(vfId: BigInt, outcomeIndex: i32): VfOutcome {
   const vfEntity = loadExistentVfEntity(vfId);
-  return loadExistentEntity<Outcome>(Outcome.load, `${vfEntity.id}-${outcomeIndex}`);
+  return loadExistentEntity<VfOutcome>(VfOutcome.load, `${vfEntity.id}-${outcomeIndex}`);
 }

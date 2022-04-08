@@ -6,7 +6,7 @@ import {
   BigDecimal,
   BigInt,
   ethereum,
-  log,
+  log
 } from '@graphprotocol/graph-ts';
 import {
   CreationQuotaAdjustments as CreationQuotaAdjustmentsEvent,
@@ -18,36 +18,36 @@ import {
   VirtualFloorCancellationFlagged as VirtualFloorCancellationFlaggedEvent,
   VirtualFloorCancellationUnresolvable as VirtualFloorCancellationUnresolvableEvent,
   VirtualFloorCreation as VirtualFloorCreationEvent,
-  VirtualFloorResolution as VirtualFloorResolutionEvent,
+  VirtualFloorResolution as VirtualFloorResolutionEvent
 } from '../../generated/DoubleDice/DoubleDice';
 import {
   IERC20Metadata
 } from '../../generated/DoubleDice/IERC20Metadata';
 import {
-  Outcome,
-  OutcomeTimeslot,
-  OutcomeTimeslotTransfer,
+  Outcome as VfOutcome,
+  OutcomeTimeslot as VfOutcomeTimeslot,
+  OutcomeTimeslotTransfer as VfOutcomeTimeslotTransfer,
   PaymentToken,
   User,
-  VirtualFloor,
-  VirtualFloorsAggregate,
+  VirtualFloor as Vf,
+  VirtualFloorsAggregate
 } from '../../generated/schema';
 import {
   ResultUpdateAction,
-  VirtualFloorResolutionType,
+  VirtualFloorResolutionType
 } from '../../lib/helpers/sol-enums';
 import {
   CHALLENGE_WINDOW_DURATION,
   SET_WINDOW_DURATION,
-  SINGLETON_AGGREGATE_ENTITY_ID,
+  SINGLETON_AGGREGATE_ENTITY_ID
 } from './constants';
 import {
   assertCategoryEntity,
-  assertVfOutcomeTimeslotEntity,
-  assertOutcomeTimeslotUserEntity,
-  assertOutcomeUserEntity,
   assertSubcategoryEntity,
   assertUserEntity,
+  assertVfOutcomeTimeslotEntity,
+  assertVfOutcomeTimeslotUserEntity,
+  assertVfOutcomeUserEntity,
   assertVfUserEntity,
   createNewEntity,
   createVfOpponentEntity,
@@ -58,17 +58,17 @@ import {
   loadExistentEntity,
   loadExistentVfEntity,
   loadExistentVfOutcomeEntity,
-  loadOrCreateEntity,
+  loadOrCreateEntity
 } from './entities';
 import {
   decodeMetadata
 } from './metadata';
 import {
   resultUpdateActionEnumToString,
-  resultUpdateActionOrdinalToEnum,
+  resultUpdateActionOrdinalToEnum
 } from './result-update-action';
 import {
-  toBigDecimal,
+  toBigDecimal
 } from './utils';
 
 // Manually mirrored from schema.graphql
@@ -114,7 +114,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   const vfId = genVfEntityId(event.params.virtualFloorId);
 
-  const vf = createNewEntity<VirtualFloor>(VirtualFloor.load, vfId);
+  const vf = createNewEntity<Vf>(Vf.load, vfId);
 
   const category = assertCategoryEntity(metadata.category);
   vf.category = category.id;
@@ -174,16 +174,16 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   }
 }
 
-function convertPaymentTokenAmountToDecimal(vf: VirtualFloor, amount: BigInt): BigDecimal {
+function convertPaymentTokenAmountToDecimal(vf: Vf, amount: BigInt): BigDecimal {
   const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, vf.paymentToken);
   return toBigDecimal(amount, paymentToken.decimals);
 }
 
 export function handleUserCommitment(event: UserCommitmentEvent): void {
-  const outcome = loadExistentVfOutcomeEntity(event.params.virtualFloorId, event.params.outcomeIndex);
+  const vfOutcome = loadExistentVfOutcomeEntity(event.params.virtualFloorId, event.params.outcomeIndex);
 
   const beta = toBigDecimal(event.params.beta_e18);
-  assertVfOutcomeTimeslotEntity(outcome, event.params.timeslot, event.params.tokenId, beta);
+  assertVfOutcomeTimeslotEntity(vfOutcome, event.params.timeslot, event.params.tokenId, beta);
 
   const fromUser = Address.zero();
 
@@ -230,16 +230,16 @@ function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Addre
     const tokenId = ids[i];
     const value = values[i];
 
-    const outcomeTimeslot = loadExistentEntity<OutcomeTimeslot>(OutcomeTimeslot.load, genVfOutcomeTimeslotEntityId(tokenId));
-    const outcome = loadExistentEntity<Outcome>(Outcome.load, outcomeTimeslot.outcome);
-    const vf = loadExistentEntity<VirtualFloor>(VirtualFloor.load, outcome.virtualFloor);
+    const vfOutcomeTimeslot = loadExistentEntity<VfOutcomeTimeslot>(VfOutcomeTimeslot.load, genVfOutcomeTimeslotEntityId(tokenId));
+    const vfOutcome = loadExistentEntity<VfOutcome>(VfOutcome.load, vfOutcomeTimeslot.outcome);
+    const vf = loadExistentEntity<Vf>(Vf.load, vfOutcome.virtualFloor);
 
     const amount = convertPaymentTokenAmountToDecimal(vf, value);
 
     // We debit (credit -amount) the "from" hierarchy, and credit the "to" hierarchy.
 
     if (!isMint) {
-      creditEntityHierarchy(outcomeTimeslot, fromUser, amount.neg());
+      creditEntityHierarchy(vfOutcomeTimeslot, fromUser, amount.neg());
     }
 
     // Credit `to` even if it is address(0) and this is an ERC-1155 balance-burn,
@@ -247,41 +247,41 @@ function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Addre
     // They will be credited to address(0), so this address will eventually accumulate a lot of balance,
     // but it doesn't matter!
     // Doing it this way keeps things simple: the balance doesn't perish, it simply "changes ownership" to address(0)
-    creditEntityHierarchy(outcomeTimeslot, toUser, amount);
+    creditEntityHierarchy(vfOutcomeTimeslot, toUser, amount);
 
     const posOfEventInTx = event.transactionLogIndex;
-    const outcomeTimeslotTransferEntityId = `${outcomeTimeslot.id}-${event.transaction.hash.toHex()}-${posOfEventInTx}-${i}`;
-    const outcomeTimeslotTransfer = createNewEntity<OutcomeTimeslotTransfer>(OutcomeTimeslotTransfer.load, outcomeTimeslotTransferEntityId);
-    outcomeTimeslotTransfer.outcomeTimeslot = outcomeTimeslot.id;
-    outcomeTimeslotTransfer.from = fromUser.id;
-    outcomeTimeslotTransfer.to = toUser.id;
-    outcomeTimeslotTransfer.timestamp = event.block.timestamp;
-    outcomeTimeslotTransfer.amount = amount;
-    outcomeTimeslotTransfer.save();
+    const outcomeTimeslotTransferEntityId = `${vfOutcomeTimeslot.id}-${event.transaction.hash.toHex()}-${posOfEventInTx}-${i}`;
+    const vfOutcomeTimeslotTransfer = createNewEntity<VfOutcomeTimeslotTransfer>(VfOutcomeTimeslotTransfer.load, outcomeTimeslotTransferEntityId);
+    vfOutcomeTimeslotTransfer.outcomeTimeslot = vfOutcomeTimeslot.id;
+    vfOutcomeTimeslotTransfer.from = fromUser.id;
+    vfOutcomeTimeslotTransfer.to = toUser.id;
+    vfOutcomeTimeslotTransfer.timestamp = event.block.timestamp;
+    vfOutcomeTimeslotTransfer.amount = amount;
+    vfOutcomeTimeslotTransfer.save();
   }
 }
 
-function creditEntityHierarchy(vfOutcomeTimeslot: OutcomeTimeslot, user: User, amount: BigDecimal): void {
+function creditEntityHierarchy(vfOutcomeTimeslot: VfOutcomeTimeslot, user: User, amount: BigDecimal): void {
   const amountTimesBeta = amount.times(vfOutcomeTimeslot.beta);
 
   vfOutcomeTimeslot.totalSupply = vfOutcomeTimeslot.totalSupply.plus(amount);
   vfOutcomeTimeslot.save();
 
-  const vfOutcome = loadExistentEntity<Outcome>(Outcome.load, vfOutcomeTimeslot.outcome);
+  const vfOutcome = loadExistentEntity<VfOutcome>(VfOutcome.load, vfOutcomeTimeslot.outcome);
   vfOutcome.totalSupply = vfOutcome.totalSupply.plus(amount);
   vfOutcome.totalWeightedSupply = vfOutcome.totalWeightedSupply.plus(amountTimesBeta);
   vfOutcome.save();
 
-  const vf = loadExistentEntity<VirtualFloor>(VirtualFloor.load, vfOutcome.virtualFloor);
+  const vf = loadExistentEntity<Vf>(Vf.load, vfOutcome.virtualFloor);
   vf.totalSupply = vf.totalSupply.plus(amount);
   vf.save();
 
-  const vfOutcomeUser = assertOutcomeUserEntity(vfOutcome, user);
+  const vfOutcomeUser = assertVfOutcomeUserEntity(vfOutcome, user);
   vfOutcomeUser.totalBalance = vfOutcomeUser.totalBalance.plus(amount);
   vfOutcomeUser.totalWeightedBalance = vfOutcomeUser.totalWeightedBalance.plus(amountTimesBeta);
   vfOutcomeUser.save();
 
-  const vfOutcomeTimeslotUser = assertOutcomeTimeslotUserEntity(vfOutcome, user, vfOutcomeTimeslot, vfOutcomeUser);
+  const vfOutcomeTimeslotUser = assertVfOutcomeTimeslotUserEntity(vfOutcome, user, vfOutcomeTimeslot, vfOutcomeUser);
   vfOutcomeTimeslotUser.balance = vfOutcomeTimeslotUser.balance.plus(amount);
   vfOutcomeTimeslotUser.save();
 

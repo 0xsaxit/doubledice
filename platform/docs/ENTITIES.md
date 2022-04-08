@@ -1,49 +1,49 @@
 ```mermaid
 erDiagram
     Category ||--|{ Subcategory: has
-    Subcategory ||--|{ VirtualFloor: has
+    Subcategory ||--|{ Vf: has
 
-    Category ||--|{ VirtualFloor: has
+    Category ||--|{ Vf: has
 
-    VirtualFloor ||--|{ Outcome: has
-    VirtualFloor ||--o{ UserVirtualFloor: has
+    Vf ||--|{ VfOutcome: has
+    Vf ||--o{ VfUser: has
 
-    Outcome ||--o{ UserOutcomeTimeslot: has
-    Outcome ||--o{ OutcomeTimeslot: has
-    Outcome ||--o{ UserOutcome: has
+    VfOutcome ||--o{ VfOutcomeTimeslotUser: has
+    VfOutcome ||--o{ VfOutcomeTimeslot: has
+    VfOutcome ||--o{ VfOutcomeUser: has
 
-    User ||--o{ UserVirtualFloor: has
-    User ||--o{ UserOutcome: has
-    User ||--o{ UserOutcomeTimeslot: has
+    User ||--o{ VfUser: has
+    User ||--o{ VfOutcomeUser: has
+    User ||--o{ VfOutcomeTimeslotUser: has
 
-    UserOutcome ||--o{ UserOutcomeTimeslot: has
-    OutcomeTimeslot ||--o{ UserOutcomeTimeslot: has
+    VfOutcomeUser ||--o{ VfOutcomeTimeslotUser: has
+    VfOutcomeTimeslot ||--o{ VfOutcomeTimeslotUser: has
 
-    UserVirtualFloor ||--o{ UserOutcome: has
+    VfUser ||--o{ VfOutcomeUser: has
 
-    VirtualFloor {
+    Vf {
         BigInt virtualFloorId
         BigDecimal totalSupply
     }
-    Outcome {
+    VfOutcome {
         Int outcomeIndex
         BigDecimal totalSupply
         BigDecimal totalWeightedSupply
     }
-    OutcomeTimeslot {
+    VfOutcomeTimeslot {
         BigInt timeslot
         BigInt tokenId
         BigDecimal beta
         BigDecimal totalSupply
     }
-    UserOutcome {
+    VfOutcomeUser {
         BigDecimal totalBalance
         BigDecimal totalWeightedBalance
     }
-    UserOutcomeTimeslot {
+    VfOutcomeTimeslotUser {
         BigDecimal balance
     }
-    UserVirtualFloor {
+    VfUser {
         BigDecimal totalBalance
     }
 ```

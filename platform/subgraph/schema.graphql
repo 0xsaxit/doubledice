@@ -189,6 +189,8 @@ type User @entity {
 
   challengedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "challenger")
 
+  roleUsers: [RoleUser!]! @derivedFrom(field: "user")
+
   # properties
   maxConcurrentVirtualFloors: BigInt!
   concurrentVirtualFloors: BigInt!
@@ -306,4 +308,16 @@ type UserVirtualFloor @entity {
 
   # properties
   totalBalance: BigDecimal!
+}
+
+
+type Role @entity {
+  id: ID!
+  roleUsers: [RoleUser!]! @derivedFrom(field: "role")
+}
+
+type RoleUser @entity {
+  id: ID!
+  role: Role!
+  user: User!
 }

@@ -1,7 +1,8 @@
 import {
   Address,
   BigDecimal,
-  BigInt
+  BigInt,
+  Bytes
 } from '@graphprotocol/graph-ts';
 import {
   Category,
@@ -9,6 +10,7 @@ import {
   Outcome as VfOutcome,
   OutcomeTimeslot as VfOutcomeTimeslot,
   ResultSource as VfResultSource,
+  Role,
   Subcategory,
   User,
   UserOutcome as VfOutcomeUser,
@@ -275,4 +277,27 @@ export function loadExistentVfEntity(vfId: BigInt): Vf {
 export function loadExistentVfOutcomeEntity(vfId: BigInt, outcomeIndex: i32): VfOutcome {
   const vfEntity = loadExistentVfEntity(vfId);
   return loadExistentEntity<VfOutcome>(VfOutcome.load, `${vfEntity.id}-${outcomeIndex}`);
+}
+
+export function assertRoleEntity(roleHash: Bytes): Role {
+  let id = roleHash.toHex();
+  if (id == '0x0000000000000000000000000000000000000000000000000000000000000000') {
+    id = 'DEFAULT_ADMIN_ROLE';
+  } else if (id == '0x97667070c54ef182b0f5858b034beac1b6f3089aa2d3188bb1e8929f4fa9b929') {
+    id = 'OPERATOR_ROLE';
+  }
+  const loaded = Role.load(id);
+  if (loaded == null) {
+    const created = new Role(id);
+    // eslint-disable-next-line no-empty
+    {
+    }
+    created.save();
+    return created;
+  } else {
+    // eslint-disable-next-line no-empty
+    {
+    }
+    return loaded;
+  }
 }

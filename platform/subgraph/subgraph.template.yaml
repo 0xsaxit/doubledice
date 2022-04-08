@@ -22,10 +22,12 @@ dataSources:
         - OutcomeTimeslotTransfer
         - PaymentToken
         - ResultSource
+        - Role
         - Subcategory
         - User
         - UserOutcome
         - UserOutcomeTimeslot
+        - UserRole
         - UserVirtualFloor
         - VirtualFloor
         - VirtualFloorsAggregate
@@ -57,4 +59,8 @@ dataSources:
           handler: handleCreationQuotaAdjustments
         - event: ResultUpdate(indexed uint256,address,uint8,uint8)
           handler: handleResultUpdate
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleRevoked
       file: ../assemblyscript/mapping.ts

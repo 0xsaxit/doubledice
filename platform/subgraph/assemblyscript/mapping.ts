@@ -71,6 +71,8 @@ import {
   toBigDecimal
 } from './utils';
 
+export * from './roles';
+
 // Manually mirrored from schema.graphql
 const VirtualFloorState__Active_ResultChallenged = 'Active_ResultChallenged';
 const VirtualFloorState__Active_ResultNone = 'Active_ResultNone';

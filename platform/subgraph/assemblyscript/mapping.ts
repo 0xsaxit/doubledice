@@ -99,6 +99,18 @@ export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUp
   }
 }
 
+// Temporary measure for categories already created on Beta deployment
+function migrateMetadataCategory(old: string): string {
+  if (old == 'polititcal') {
+    return 'politics';
+  } else if (old == 'crypto projects') {
+    return 'crypto';
+  } else if (old == 'others') {
+    return 'other';
+  } else {
+    return old;
+  }
+}
 
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
   // Although this is "info" or "debug", we log as "warning" as it is easier to find because there are less
@@ -116,7 +128,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   const vf = createNewEntity<Vf>(Vf.load, vfId);
 
-  const category = assertCategoryEntity(metadata.category);
+  const category = assertCategoryEntity(migrateMetadataCategory(metadata.category));
   vf.category = category.id;
 
   const subcategory = assertSubcategoryEntity(category, metadata.subcategory);

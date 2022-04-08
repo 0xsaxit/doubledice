@@ -130,6 +130,8 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   const vf = createNewEntity<Vf>(Vf.load, vfId);
 
+  vf.isTest = metadata.subcategory == 'test';
+
   const category = assertCategoryEntity(migrateMetadataCategory(metadata.category));
   vf.category = category.id;
 

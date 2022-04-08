@@ -126,6 +126,8 @@ type VirtualFloor @entity {
   isListed: Boolean!
   discordChannelId: String!
 
+  isTest: Boolean!
+
   # aggregates
   totalSupply: BigDecimal!
 }

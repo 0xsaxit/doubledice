@@ -23,7 +23,7 @@ const {
   OWNER_PRIVATE_KEY,
 } = process.env;
 
-assert(OWNER_PRIVATE_KEY);
+const accounts = OWNER_PRIVATE_KEY ? [OWNER_PRIVATE_KEY] : [];
 
 const config: HardhatUserConfig = {
   abiExporter: {
@@ -54,17 +54,17 @@ const config: HardhatUserConfig = {
     },
     rinkeby: {
       url: PROVIDER_URL,
-      accounts: [OWNER_PRIVATE_KEY],
+      accounts,
       chainId: 4,
     },
     mumbai: {
       url: PROVIDER_URL,
-      accounts: [OWNER_PRIVATE_KEY],
+      accounts,
       chainId: 80001,
     },
     polygon: {
       url: PROVIDER_URL,
-      accounts: [OWNER_PRIVATE_KEY],
+      accounts,
       chainId: 137,
       timeout: 60 * 60 * 1000 // 1 hour
     }

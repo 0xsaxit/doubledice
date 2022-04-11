@@ -6,6 +6,8 @@
     "clean": "rimraf abi artifacts build cache generated lib/generated subgraph/generated",
     "test": "hardhat typechain && hardhat test",
     "coverage": "hardhat coverage",
+    "testcoins:deploy:local": "   hardhat run ./scripts/deploy-test-coins.ts  --network localhost",
+    "testcoins:deploy:polygon": " hardhat run ./scripts/deploy-test-coins.ts  --network polygon",
     "contracts:deploy:local": "   hardhat run ./scripts/deploy.ts  --network localhost",
     "contracts:deploy:docker": "  hardhat run ./scripts/deploy.ts  --network docker",
     "contracts:deploy:rinkeby": " hardhat run ./scripts/deploy.ts  --network rinkeby",

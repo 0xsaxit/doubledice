@@ -3,6 +3,8 @@ import { SignerWithAddress } from '.';
 import {
   DoubleDice,
   DoubleDice__factory,
+  DummyERC20,
+  DummyERC20__factory,
   DummyUSDCoin,
   DummyUSDCoin__factory,
   DummyWrappedBTC,
@@ -67,6 +69,15 @@ export async function deployDummyUSDCoin(deployer: SignerWithAddress): Promise<D
 export async function deployDummyWrappedBTC(deployer: SignerWithAddress): Promise<DummyWrappedBTC> {
   const contract = await new DummyWrappedBTC__factory(deployer).deploy();
   process.stdout.write(`Deploying WBTC contract to: ${contract.address}...\n`);
+  process.stdout.write(`Sent transaction: ${contract.deployTransaction.hash}\n`);
+  await contract.deployed();
+  return contract;
+}
+
+export async function deployTestCoin(deployer: SignerWithAddress, decimals: number): Promise<DummyERC20> {
+  const name = `TestCoin${decimals}`;
+  const contract = await new DummyERC20__factory(deployer).deploy(name, `TEST${decimals}`, decimals);
+  process.stdout.write(`Deploying ${name} contract to: ${contract.address}...\n`);
   process.stdout.write(`Sent transaction: ${contract.deployTransaction.hash}\n`);
   await contract.deployed();
   return contract;

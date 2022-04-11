@@ -21,9 +21,13 @@ if (dotenvResult.error) {
 const {
   PROVIDER_URL,
   OWNER_PRIVATE_KEY,
+  MAINNET_TESTCOIN_DEPLOYER_PRIVATE_KEY,
 } = process.env;
 
-const accounts = OWNER_PRIVATE_KEY ? [OWNER_PRIVATE_KEY] : [];
+const accounts = [
+  ...(OWNER_PRIVATE_KEY ? [OWNER_PRIVATE_KEY] : []),
+  ...(MAINNET_TESTCOIN_DEPLOYER_PRIVATE_KEY ? [MAINNET_TESTCOIN_DEPLOYER_PRIVATE_KEY] : []),
+];
 
 const config: HardhatUserConfig = {
   abiExporter: {

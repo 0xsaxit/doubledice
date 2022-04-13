@@ -24,7 +24,7 @@ async function main() {
   const deployer = await ethers.getSigner(OWNER_ADDRESS);
 
   await upgradeDoubleDice({
-    deployer: deployer,
+    deployer,
     deployArgs: [],
     deployedTransparentUpgradeableProxyAddress: DOUBLEDICE_CONTRACT_ADDRESS,
     deployedProxyAdminAddress: DOUBLEDICE_PROXY_ADMIN_ADDRESS,

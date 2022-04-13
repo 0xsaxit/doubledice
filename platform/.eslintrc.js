@@ -14,6 +14,7 @@ module.exports = {
     'no-multiple-empty-lines': 'error',
     indent: ['error', 2],
     'quote-props': ['error', 'as-needed'],
+    'object-shorthand': ['error', 'always'],
   },
   env: {
     node: true

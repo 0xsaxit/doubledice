@@ -56,7 +56,7 @@ async function main() {
   }
 
   const contract = await deployDoubleDice({
-    deployer: deployer,
+    deployer,
     deployArgs: [],
     initializeArgs: [
       {

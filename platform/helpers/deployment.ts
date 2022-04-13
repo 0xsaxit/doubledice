@@ -97,7 +97,7 @@ export async function deployDoubleDice({
   process.stdout.write(`Sent transaction: ${impl.deployTransaction.hash}\n`);
   await impl.deployed();
   const encodedInitializerData = impl.interface.encodeFunctionData('initialize', initializeArgs);
-  const proxyAddress = await deployProxy({ name: 'DoubleDice', deployer: deployer, deployedImplAddress: impl.address, encodedInitializerData });
+  const proxyAddress = await deployProxy({ name: 'DoubleDice', deployer, deployedImplAddress: impl.address, encodedInitializerData });
   const contract = DoubleDice__factory.connect(proxyAddress, deployer);
 
   process.stdout.write(`Granting OPERATOR_ROLE to admin ${deployer.address}\n`);

@@ -29,7 +29,7 @@ export const deployProxy = async ({
   deployedImplAddress,
   encodedInitializerData,
 }: {
-  name: string;
+  name?: string;
   proxyAdminAddress?: string,
   deployer: SignerWithAddress;
   deployedImplAddress: string;
@@ -51,7 +51,7 @@ export const deployProxy = async ({
     encodedInitializerData
   );
 
-  process.stdout.write(`Deploying ${name} proxy to: ${proxy.address}...\n`);
+  process.stdout.write(`Deploying ${name ? `${name} proxy` : 'proxy'}  to: ${proxy.address}...\n`);
   process.stdout.write(`Sent transaction: ${proxy.deployTransaction.hash}\n`);
   await proxy.deployed();
 

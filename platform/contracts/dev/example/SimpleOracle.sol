@@ -6,7 +6,7 @@ import "../../BaseDoubleDice.sol";
 
 contract SimpleOracle is BaseDoubleDice {
 
-    function __SimpleOracle_init(BaseDoubleDiceInitParams calldata params) internal onlyInitializing {
+    function initialize(BaseDoubleDiceInitParams calldata params) external initializer multipleInheritanceLeafInitializer {
         __BaseDoubleDice_init(params);
     }
 

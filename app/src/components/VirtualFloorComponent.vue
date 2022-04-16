@@ -70,7 +70,7 @@
       <td rowspan="2" :title="virtualFloor.id">
         {{ virtualFloor.id }}
         <br />
-        <a :href="`http://localhost:3000/bet/${virtualFloor.intId}`">{{ virtualFloor.intId }}</a>
+        <a :href="`http://localhost:3000/bet/#!/${virtualFloor.intId}`">{{ virtualFloor.intId }}</a>
       </td>
       <td rowspan="2">{{ virtualFloor.state }}</td>
       <td rowspan="2">

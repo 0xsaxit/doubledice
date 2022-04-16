@@ -89,7 +89,9 @@ const VirtualFloorState__Claimable_Refunds_ResolvedNoWinners = 'Claimable_Refund
  * new ERC-20 payment tokens that might later be used in virtual-floors.
  */
 export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUpdateEvent): void {
-  assertPaymentTokenEntity(event.params.token);
+  const paymentToken = assertPaymentTokenEntity(event.params.token);
+  paymentToken.isWhitelisted = event.params.whitelisted;
+  paymentToken.save();
 }
 
 // Temporary measure for categories already created on Beta deployment

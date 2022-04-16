@@ -281,6 +281,8 @@ type PaymentToken @entity {
   name: String!
   symbol: String!
   decimals: Int!
+
+  isWhitelisted: Boolean!
 }
 
 """

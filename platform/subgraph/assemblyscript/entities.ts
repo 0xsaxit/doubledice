@@ -312,9 +312,11 @@ export function assertPaymentTokenEntity(token: Address): PaymentToken {
     {
       created.address = token;
       const paymentTokenContract = IERC20Metadata.bind(token);
+      const symbol = paymentTokenContract.symbol();
       created.name = paymentTokenContract.name();
-      created.symbol = paymentTokenContract.symbol();
+      created.symbol = symbol;
       created.decimals = paymentTokenContract.decimals();
+      created.isTest = symbol.startsWith('TEST');
     }
     created.save();
     return created;

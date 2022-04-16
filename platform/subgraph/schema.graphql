@@ -283,6 +283,7 @@ type PaymentToken @entity {
   decimals: Int!
 
   isWhitelisted: Boolean!
+  isTest: Boolean!
 }
 
 """

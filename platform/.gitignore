@@ -9,6 +9,7 @@ build/
 !.env.docker
 !.env.local
 !.env.template
+!.env.mumbai
 !.env.polygon
 
 coverage.json

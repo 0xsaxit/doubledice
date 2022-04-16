@@ -58,6 +58,7 @@ import {
   loadExistentVfOutcomeEntity,
   loadOrCreateEntity
 } from './entities';
+import { FIRST_NON_TEST_VF_BLOCK } from '../generated/env';
 import {
   decodeMetadata
 } from './metadata';
@@ -74,6 +75,8 @@ export * from './roles';
 // Note: Bump up this nonce if we need to deploy the same build to multiple subgraphs,
 // This will force a new build-id, thus averting potential issues on thegraph.com hosted service.
 export const DUMMY_DEPLOYMENT_NONCE = 3;
+
+const firstNonTestVfBlock = BigInt.fromString(FIRST_NON_TEST_VF_BLOCK);
 
 // Manually mirrored from schema.graphql
 const VirtualFloorState__Active_ResultChallenged = 'Active_ResultChallenged';
@@ -123,7 +126,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   const vf = createNewEntity<Vf>(Vf.load, vfId);
 
-  vf.isTest = metadata.subcategory == 'test';
+  vf.isTest = metadata.subcategory == 'test' || event.block.number.lt(firstNonTestVfBlock);
 
   const category = assertCategoryEntity(migrateMetadataCategory(metadata.category));
   vf.category = category.id;

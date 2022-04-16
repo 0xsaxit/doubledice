@@ -4,11 +4,13 @@ import {
   BigInt,
   Bytes
 } from '@graphprotocol/graph-ts';
+import { IERC20Metadata } from '../../generated/DoubleDice/IERC20Metadata';
 import {
   Category,
   Opponent as VfOpponent,
   Outcome as VfOutcome,
   OutcomeTimeslot as VfOutcomeTimeslot,
+  PaymentToken,
   ResultSource as VfResultSource,
   Role,
   Subcategory,
@@ -297,6 +299,28 @@ export function assertRoleEntity(roleHash: Bytes): Role {
   } else {
     // eslint-disable-next-line no-empty
     {
+    }
+    return loaded;
+  }
+}
+
+export function assertPaymentTokenEntity(token: Address): PaymentToken {
+  const id = token.toHex();
+  const loaded = PaymentToken.load(id);
+  if (loaded == null) {
+    const created = new PaymentToken(id);
+    {
+      created.address = token;
+      const paymentTokenContract = IERC20Metadata.bind(token);
+      created.name = paymentTokenContract.name();
+      created.symbol = paymentTokenContract.symbol();
+      created.decimals = paymentTokenContract.decimals();
+    }
+    created.save();
+    return created;
+  } else {
+    {
+      assertFieldEqual('PaymentToken', id, 'address', loaded.address, token);
     }
     return loaded;
   }

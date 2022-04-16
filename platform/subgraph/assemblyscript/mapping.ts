@@ -21,9 +21,6 @@ import {
   VirtualFloorResolution as VirtualFloorResolutionEvent
 } from '../../generated/DoubleDice/DoubleDice';
 import {
-  IERC20Metadata
-} from '../../generated/DoubleDice/IERC20Metadata';
-import {
   Outcome as VfOutcome,
   OutcomeTimeslot as VfOutcomeTimeslot,
   OutcomeTimeslotTransfer as VfOutcomeTimeslotTransfer,
@@ -43,6 +40,7 @@ import {
 } from './constants';
 import {
   assertCategoryEntity,
+  assertPaymentTokenEntity,
   assertSubcategoryEntity,
   assertUserEntity,
   assertVfOutcomeTimeslotEntity,
@@ -91,18 +89,7 @@ const VirtualFloorState__Claimable_Refunds_ResolvedNoWinners = 'Claimable_Refund
  * new ERC-20 payment tokens that might later be used in virtual-floors.
  */
 export function handlePaymentTokenWhitelistUpdate(event: PaymentTokenWhitelistUpdateEvent): void {
-  const paymentTokenId = event.params.token.toHex();
-  {
-    const $ = loadOrCreateEntity<PaymentToken>(PaymentToken.load, paymentTokenId);
-    /* if (isNew) */ {
-      const paymentTokenContract = IERC20Metadata.bind(event.params.token);
-      $.address = event.params.token;
-      $.name = paymentTokenContract.name();
-      $.symbol = paymentTokenContract.symbol();
-      $.decimals = paymentTokenContract.decimals();
-      $.save();
-    }
-  }
+  assertPaymentTokenEntity(event.params.token);
 }
 
 // Temporary measure for categories already created on Beta deployment

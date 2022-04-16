@@ -1,0 +1,36 @@
+{
+  "tokens": [
+    {
+      "name": "DoubleDice Token",
+      "address": "0x5B03aC408938C97e50db3bC5675d182606A01377",
+      "symbol": "DODI",
+      "decimals": 18,
+      "chainId": 137,
+      "logoURI": "https://i.ibb.co/gS8VfcV/256x256.png"
+    },
+    {
+      "name": "Graph Token",
+      "address": "0x5fe2B58c013d7601147DcdD68C143A77499f5531",
+      "symbol": "GRT",
+      "decimals": 18,
+      "chainId": 137,
+      "logoURI": "https://polygonscan.com/token/images/TheGraph_32.png"
+    },
+    {
+      "name": "Curve DAO Token",
+      "address": "0x172370d5Cd63279eFa6d502DAB29171933a610AF",
+      "symbol": "CRV",
+      "decimals": 18,
+      "chainId": 137,
+      "logoURI": "https://polygonscan.com/token/images/curvefi-crv_32.png"
+    },
+    {
+      "name": "0x Protocol Token",
+      "address": "0x5559Edb74751A0edE9DeA4DC23aeE72cCA6bE3D5",
+      "symbol": "ZRX",
+      "decimals": 18,
+      "chainId": 137,
+      "logoURI": "https://polygonscan.com/token/images/oceantoken_28.png"
+    }
+  ]
+}

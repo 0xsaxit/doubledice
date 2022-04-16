@@ -8,6 +8,7 @@
     "coverage": "hardhat coverage",
     "testcoins:deploy:local": "   hardhat run ./scripts/deploy-test-coins.ts  --network localhost",
     "testcoins:deploy:polygon": " hardhat run ./scripts/deploy-test-coins.ts  --network polygon",
+    "tokens:whitelist:polygon": " hardhat run ./scripts/whitelist-tokens.ts   --network polygon",
     "contracts:deploy:local": "   hardhat run ./scripts/deploy.ts  --network localhost",
     "contracts:deploy:docker": "  hardhat run ./scripts/deploy.ts  --network docker",
     "contracts:deploy:rinkeby": " hardhat run ./scripts/deploy.ts  --network rinkeby",

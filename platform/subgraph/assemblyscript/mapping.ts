@@ -75,7 +75,7 @@ export * from './roles';
 
 // Note: Bump up this nonce if we need to deploy the same build to multiple subgraphs,
 // This will force a new build-id, thus averting potential issues on thegraph.com hosted service.
-export const DUMMY_DEPLOYMENT_NONCE = 2;
+export const DUMMY_DEPLOYMENT_NONCE = 3;
 
 // Manually mirrored from schema.graphql
 const VirtualFloorState__Active_ResultChallenged = 'Active_ResultChallenged';

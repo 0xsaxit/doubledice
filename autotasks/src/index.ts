@@ -126,6 +126,9 @@ const splitVfs = async ({
       case VirtualFloorState.Active_Closed_ResolvableNever:
         unresolvables = [...unresolvables, vf];
         break;
+      case VirtualFloorState.Active_Closed_ResolvableLater:
+        // VF is in closed period... nothing to do but wait for resolve-time.
+        break;
       case VirtualFloorState.Active_Closed_ResolvableNow: {
         switch (vf.onChainResolutionState) {
           case ResolutionState.None: {
@@ -152,7 +155,12 @@ const splitVfs = async ({
         }
         break;
       }
-      case VirtualFloorState.Active_Closed_ResolvableLater:
+      case VirtualFloorState.Claimable_Payouts:
+      case VirtualFloorState.Claimable_Refunds_ResolvedNoWinners:
+      case VirtualFloorState.Claimable_Refunds_ResolvableNever:
+      case VirtualFloorState.Claimable_Refunds_Flagged:
+        // Graph always lags behind contract, so maybe it was Active in Graph,
+        // but has since been moved to Claimable on-chain.
         break;
       default:
         assert(false, `Unexpected VF ${vf.intId} in on-chain state ${vf.onChainState}`);

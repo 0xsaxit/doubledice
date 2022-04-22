@@ -14,7 +14,6 @@ import { zipArrays3 } from './utils';
 const configs = {
   mumbai: {
     GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/doubledicedev/doubledice-mumbai2',
-    ADMIN_APP_URL: 'https://oneclickdapp.com/prelude-quota',
     APP_BASE_URL: 'https://beta.doubledice.com',
     // See https://doubledice.slack.com/services/B03AUCBPLJU
     SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',
@@ -24,7 +23,6 @@ const configs = {
   },
   polygon: {
     GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/ddvfs-com/ddvfs-polygon',
-    ADMIN_APP_URL: 'https://oneclickdapp.com/santana-sting',
     APP_BASE_URL: 'https://ddvfs.com',
     // See https://doubledice.slack.com/services/B03AUCBPLJU
     SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',

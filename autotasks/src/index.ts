@@ -14,7 +14,7 @@ import { zipArrays3 } from './utils';
 const configs = {
   mumbai: {
     GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/doubledicedev/doubledice-mumbai2',
-    APP_BASE_URL: 'https://beta.doubledice.com',
+    APP_BASE_URL: 'https://beta.doubledice.com/bet/',
     // See https://doubledice.slack.com/services/B03AUCBPLJU
     SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',
     BLOCK_EXPLORER_HOST: 'https://mumbai.polygonscan.com',
@@ -23,7 +23,7 @@ const configs = {
   },
   polygon: {
     GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/ddvfs-com/ddvfs-polygon',
-    APP_BASE_URL: 'https://ddvfs.com',
+    APP_BASE_URL: 'https://ddvfs.com/bet/',
     // See https://doubledice.slack.com/services/B03AUCBPLJU
     SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',
     BLOCK_EXPLORER_HOST: 'https://polygonscan.com',
@@ -174,7 +174,7 @@ const splitVfs = async ({
 };
 
 
-const constructVfUrl = (intId: string) => `${APP_BASE_URL}/bet/#!/${intId}`;
+const constructVfUrl = (intId: string) => `${APP_BASE_URL}${intId}`;
 
 
 // Entrypoint for the Autotask

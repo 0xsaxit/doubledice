@@ -138,8 +138,13 @@ const splitVfs = async ({
             break;
           }
           case ResolutionState.Set: {
-            assert(vf.tResultChallengeMax);
-            if (now > Number(vf.tResultChallengeMax)) {
+            // Note: On-chain resolution.state is ResolutionState.Set,
+            // but event ResultUpdate(action=ResolutionState.Set) might have not yet propagated to Graph,
+            // which would result in vf.tResultChallengeMax still being null.
+            // So we use on-chain resolution.tResultChallengeMax, which will always be in sync
+            // with on-chain resolution.state.
+            assert(vf.onChainResolution.tResultChallengeMax);
+            if (now > vf.onChainResolution.tResultChallengeMax) {
               unchallengedConfirmables = [...unchallengedConfirmables, vf];
             }
             break;

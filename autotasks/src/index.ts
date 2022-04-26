@@ -109,17 +109,18 @@ const splitVfs = async ({
   challenged: VirtualFloor[],
 }> => {
   const vfStates = await Promise.all(virtualFloors.map(({ intId }) => ddContract.getVirtualFloorState(intId)));
-  const vfResolutionStates = (await Promise.all(virtualFloors.map(({ intId }) => ddContract.resolutions(intId)))).map(({ state }) => state);
-  const vfsWithOnChainState = zipArrays3(virtualFloors, vfStates, vfResolutionStates).map(([vf, onChainState, onChainResolutionState]) => ({ ...vf, onChainState, onChainResolutionState }));
+  const vfResolutions = (await Promise.all(virtualFloors.map(({ intId }) => ddContract.resolutions(intId))));
+  const vfsWithOnChainData = zipArrays3(virtualFloors, vfStates, vfResolutions)
+    .map(([vf, onChainState, onChainResolution]) => ({ ...vf, onChainState, onChainResolution }));
 
-  type VfWithOnChainState = (typeof vfsWithOnChainState)[0];
+  type VfGraphEntityPlusOnChainData = (typeof vfsWithOnChainData)[0];
 
-  let unresolvables = [] as VfWithOnChainState[];
-  let unsetFinalizables = [] as VfWithOnChainState[];
-  let unchallengedConfirmables = [] as VfWithOnChainState[];
-  let challenged = [] as VfWithOnChainState[];
+  let unresolvables = [] as VfGraphEntityPlusOnChainData[];
+  let unsetFinalizables = [] as VfGraphEntityPlusOnChainData[];
+  let unchallengedConfirmables = [] as VfGraphEntityPlusOnChainData[];
+  let challenged = [] as VfGraphEntityPlusOnChainData[];
 
-  for (const vf of vfsWithOnChainState) {
+  for (const vf of vfsWithOnChainData) {
     switch (vf.onChainState) {
       case VirtualFloorState.Active_Closed_ResolvableNever:
         unresolvables = [...unresolvables, vf];
@@ -128,7 +129,7 @@ const splitVfs = async ({
         // VF is in closed period... nothing to do but wait for resolve-time.
         break;
       case VirtualFloorState.Active_Closed_ResolvableNow: {
-        switch (vf.onChainResolutionState) {
+        switch (vf.onChainResolution.state) {
           case ResolutionState.None: {
             const tResultSetMax = Number(vf.tResultSetMax);
             if (now > tResultSetMax) {

@@ -1,5 +1,5 @@
-import { DoubleDice, DoubleDice__factory, VirtualFloorState } from '@doubledice/platform/lib/contracts';
-import { VirtualFloor, VirtualFloorState as VirtualFloorEntityState } from '@doubledice/platform/lib/graph';
+import { DoubleDice, DoubleDice__factory, ResolutionState, VirtualFloorState } from '@doubledice/platform/lib/contracts';
+import { VirtualFloor } from '@doubledice/platform/lib/graph';
 import assert from 'assert';
 import axios from 'axios';
 import { Relayer } from 'defender-relay-client';
@@ -8,20 +8,38 @@ import { RelayerParams } from 'defender-relay-client/lib/relayer';
 import { ContractTransaction } from 'ethers';
 import { gql, GraphQLClient } from 'graphql-request';
 import moment from 'moment';
-import { zipArrays } from './utils';
+import { zipArrays3 } from './utils';
 /* eslint-disable indent */
 
+const configs = {
+  mumbai: {
+    GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/doubledicedev/doubledice-mumbai2',
+    ADMIN_APP_URL: 'https://oneclickdapp.com/prelude-quota',
+    APP_BASE_URL: 'https://beta.doubledice.com',
+    // See https://doubledice.slack.com/services/B03AUCBPLJU
+    SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',
+    BLOCK_EXPLORER_HOST: 'https://mumbai.polygonscan.com',
+    DOUBLEDICE_CONTRACT_ADDRESS: '0x5848A6Df71aE96e9C7544fC07815Ab5B13530c6b',
+  },
+  polygon: {
+    GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/ddvfs-com/ddvfs-polygon',
+    ADMIN_APP_URL: 'https://oneclickdapp.com/santana-sting',
+    APP_BASE_URL: 'https://ddvfs.com',
+    // See https://doubledice.slack.com/services/B03AUCBPLJU
+    SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',
+    BLOCK_EXPLORER_HOST: 'https://polygonscan.com',
+    DOUBLEDICE_CONTRACT_ADDRESS: '0x29370D56050FaA11f971B9b7Dc498c99Fd57fEc7',
+  },
+};
 
-const GRAPHQL_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/doubledicedev/doubledice-mumbai2';
-const ADMIN_APP_URL = 'https://oneclickdapp.com/prelude-quota';
-const APP_BASE_URL = 'https://beta.doubledice.com';
-
-// See https://doubledice.slack.com/services/B03AUCBPLJU
-const SLACK_WEBHOOK_ENDPOINT = 'https://hooks.slack.com/services/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';
-
-const BLOCK_EXPLORER_HOST = 'https://mumbai.polygonscan.com';
-
-const DOUBLEDICE_CONTRACT_ADDRESS = '0x5848A6Df71aE96e9C7544fC07815Ab5B13530c6b';
+// ToDo: For now switch manually between configs.polygon and configs.mumbai before building/deploying
+const {
+  GRAPHQL_ENDPOINT,
+  APP_BASE_URL,
+  SLACK_WEBHOOK_ENDPOINT,
+  BLOCK_EXPLORER_HOST,
+  DOUBLEDICE_CONTRACT_ADDRESS,
+} = configs.polygon;
 
 const QUERY_UNSET = gql`
   query ($now: BigInt) {
@@ -31,17 +49,18 @@ const QUERY_UNSET = gql`
           Active_ResultNone,
           Active_ResultSet,
           Active_ResultChallenged
-				],
+        ],
         tClose_lt: $now
       },
       orderBy: tClose
-
     ) {
       intId
+      isTest
       state
       tClose
       tResolve
       tResultSetMax
+      tResultChallengeMax
       totalSupply
       paymentToken {
         symbol
@@ -82,25 +101,51 @@ const splitVfs = async ({
   now: number;
   ddContract: DoubleDice;
   virtualFloors: VirtualFloor[];
-}): Promise<[VirtualFloor[], VirtualFloor[]]> => {
-  const states = await Promise.all(virtualFloors.map(({ intId }) => ddContract.getVirtualFloorState(intId)));
-
-  const vfsWithOnChainState = zipArrays(virtualFloors, states).map(([vf, onChainState]) => ({ ...vf, onChainState }));
+}): Promise<{
+  unresolvables: VirtualFloor[],
+  unsetFinalizables: VirtualFloor[],
+  unchallengedConfirmables: VirtualFloor[],
+  challenged: VirtualFloor[],
+}> => {
+  const vfStates = await Promise.all(virtualFloors.map(({ intId }) => ddContract.getVirtualFloorState(intId)));
+  const vfResolutionStates = (await Promise.all(virtualFloors.map(({ intId }) => ddContract.resolutions(intId)))).map(({ state }) => state);
+  const vfsWithOnChainState = zipArrays3(virtualFloors, vfStates, vfResolutionStates).map(([vf, onChainState, onChainResolutionState]) => ({ ...vf, onChainState, onChainResolutionState }));
 
   type VfWithOnChainState = (typeof vfsWithOnChainState)[0];
 
-  let unresolvableVfs = [] as VfWithOnChainState[];
-  let finalizableVfs = [] as VfWithOnChainState[];
+  let unresolvables = [] as VfWithOnChainState[];
+  let unsetFinalizables = [] as VfWithOnChainState[];
+  let unchallengedConfirmables = [] as VfWithOnChainState[];
+  let challenged = [] as VfWithOnChainState[];
 
   for (const vf of vfsWithOnChainState) {
     switch (vf.onChainState) {
       case VirtualFloorState.Active_Closed_ResolvableNever:
-        unresolvableVfs = [...unresolvableVfs, vf];
+        unresolvables = [...unresolvables, vf];
         break;
       case VirtualFloorState.Active_Closed_ResolvableNow: {
-        const tResultSetMax = Number(vf.tResultSetMax);
-        if (now > tResultSetMax) {
-          finalizableVfs = [...finalizableVfs, vf];
+        switch (vf.onChainResolutionState) {
+          case ResolutionState.None: {
+            const tResultSetMax = Number(vf.tResultSetMax);
+            if (now > tResultSetMax) {
+              unsetFinalizables = [...unsetFinalizables, vf];
+            }
+            break;
+          }
+          case ResolutionState.Set: {
+            assert(vf.tResultChallengeMax);
+            if (now > Number(vf.tResultChallengeMax)) {
+              unchallengedConfirmables = [...unchallengedConfirmables, vf];
+            }
+            break;
+          }
+          case ResolutionState.Challenged: {
+            challenged = [...challenged, vf];
+            break;
+          }
+          default: {
+            break;
+          }
         }
         break;
       }
@@ -111,13 +156,35 @@ const splitVfs = async ({
     }
   }
 
-  return [unresolvableVfs, finalizableVfs];
+  return {
+    unresolvables,
+    unsetFinalizables,
+    unchallengedConfirmables,
+    challenged
+  };
 };
+
+
+const constructVfUrl = (intId: string) => `${APP_BASE_URL}/bet/#!/${intId}`;
 
 
 // Entrypoint for the Autotask
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function handler(credentials: RelayerParams) {
+
+  const now = moment();
+
+  const formatVf = (vf: VirtualFloor, deadline?: number) => {
+    const vfUrl = constructVfUrl(vf.intId);
+    return [
+      vf.isTest ? '🧪' : '🚀',
+      `<${vfUrl}|${vf.title}>`,
+      `🏦 ${vf.totalSupply} ${vf.paymentToken.symbol}`,
+      ...(deadline ? [`window expired ${moment.unix(deadline).from(now)}`] : [])
+    ].join(' | ');
+  };
+
+
   const logs = [] as string[];
   const log = (message = '') => {
     console.log(message);
@@ -137,67 +204,72 @@ export async function handler(credentials: RelayerParams) {
       now
     });
 
-    if (virtualFloors.length === 0) {
-      console.log('No unset VFs');
-      return;
-    }
-
     const provider = new DefenderRelayProvider(credentials);
     const signer = new DefenderRelaySigner(credentials, provider, { speed: 'fast' });
     const ddContract = DoubleDice__factory.connect(DOUBLEDICE_CONTRACT_ADDRESS, signer);
 
-    const vfs1 = virtualFloors.filter(({ state }) => state === VirtualFloorEntityState.Active_ResultNone);
-
-    const [unresolvables, finalizables] = await splitVfs({
+    const {
+      unresolvables,
+      unsetFinalizables,
+      unchallengedConfirmables,
+      challenged,
+    } = await splitVfs({
       now,
       ddContract,
-      virtualFloors: vfs1
+      virtualFloors
     });
 
-    let txCount = 0;
+    if (unsetFinalizables.length > 0) {
+      log(`${unsetFinalizables.length} VFs’ set-window has expired without their creator having set their result, so they need to have \`finalizeUnsetResult\` called on them (manually by \`OPERATOR\`)${unsetFinalizables.length === 0 ? '.' : `:\n${unsetFinalizables.map((vf, index) => {
+        assert(vf.tResultSetMax);
+        return `${1 + index}. ${formatVf(vf, Number(vf.tResultSetMax))}`;
+      }).join('\n')}`}`);
+    } else {
+      log('No VFs need to have `finalizeUnsetResult` called on them.');
+    }
+
+    if (challenged.length > 0) {
+      log(`${challenged.length} VFs’ result was challenged, so they need to have \`finalizeChallenge\` called on them (manually by \`OPERATOR\`)${challenged.length === 0 ? '.' : `:\n${challenged.map((vf, index) => {
+        return `${1 + index}. ${formatVf(vf)}`;
+      }).join('\n')}`}`);
+    } else {
+      log('No VFs need to have `finalizeChallenge` called on them.');
+    }
 
     if (unresolvables.length > 0) {
-      log(`${unresolvables.length} unresolvable VFs: ${unresolvables.map(({ intId }) => intId.toString()).join(', ')}`);
+      log(`${unresolvables.length} VFs’ close-time has arrived, but there weren’t bets on enough outcomes. Therefore these VFs need to have \`cancelVirtualFloorUnresolvable\` called on them (automatically)${unresolvables.length === 0 ? '.' : `:\n${unresolvables.map((vf, index) => {
+        return `${1 + index}. ${formatVf(vf)}`;
+      }).join('\n')}`}`);
 
-      const [unresolvable] = unresolvables;
-      const { hash, transactionId } = await ddContract.cancelVirtualFloorUnresolvable(unresolvable.intId) as DefenderContractTransaction;
-      txCount += 1;
-
-      const txUrl = `${BLOCK_EXPLORER_HOST}/tx/${hash}`;
+      const [vfToSettle] = unresolvables;
+      const { hash, transactionId } = await ddContract.cancelVirtualFloorUnresolvable(vfToSettle.intId) as DefenderContractTransaction;
+      const txUrl = `${BLOCK_EXPLORER_HOST}/tx/${hash} `;
       // const { hash } = await relayer.query(transactionId);
-      log(`Called cancelVirtualFloorUnresolvable on VF with id ${unresolvable.intId}`);
-      log(`=> transactionId = ${transactionId}, txHash = <${hash}|${txUrl}>`);
+      log(`\`cancelVirtualFloorUnresolvable\` called automatically on <${constructVfUrl(vfToSettle.intId)}|${vfToSettle.title}>: <${txUrl}|${hash}>/${transactionId}`);
     } else {
-      log('No VFs currently need cancelVirtualFloorUnresolvable to be called on them.');
+      log('No VFs need to have `cancelVirtualFloorUnresolvable` called on them.');
     }
 
-    log('\n\n——\n\n');
+    if (unchallengedConfirmables.length > 0) {
+      log(`${unchallengedConfirmables.length} VFs’ challenge-window has expired without anyone having challenged the result set by the VF creator, so they need to have \`confirmUnchallengedResult\` called on them (automatically)${unchallengedConfirmables.length === 0 ? '.' : `:\n${unchallengedConfirmables.map((vf, index) => {
+        assert(vf.tResultChallengeMax);
+        return `${1 + index}. ${formatVf(vf, Number(vf.tResultChallengeMax))}`;
+      }).join('\n')}`}`);
 
-    if (finalizables.length > 0) {
-      const vfMessages = finalizables.map((vf, pos) => {
-        const tResultSetMax = Number(vf.tResultSetMax);
-        // const ago = now - tResultSetMax;
-
-        const ago = moment.unix(tResultSetMax).from(nowDate);
-        const url = `${APP_BASE_URL}/bet/${vf.intId}`;
-        return [
-          `${1 + pos}/${finalizables.length}: Result has not been set on VF <${url}|${vf.title}>.`,
-          `Set window expired ${ago}.`,
-          `Total funds committed: ${vf.totalSupply} ${vf.paymentToken.symbol}`,
-          `Result ${vf.resultSources.length === 1 ? 'source' : 'sources'}: ${vf.resultSources.map(({ title, url }) => `<${url}|${title}>`).join(', ')}`,
-          `To set result, connect to <${ADMIN_APP_URL}|admin app> with account having \`OPERATOR_ROLE\` and:`,
-          ...vf.outcomes.map(outcome => `- Call \`finalizeUnsetResult(${vf.intId}, ${outcome.index})\` for "${outcome.title}"`),
-        ].join('\n');
-      });
-
-      const combinedMessage = vfMessages.join('\n\n—\n\n');
-      log(combinedMessage);
+      const [vfToSettle] = unchallengedConfirmables;
+      const { hash, transactionId } = await ddContract.confirmUnchallengedResult(vfToSettle.intId) as DefenderContractTransaction;
+      const txUrl = `${BLOCK_EXPLORER_HOST}/tx/${hash} `;
+      // const { hash } = await relayer.query(transactionId);
+      log(`\`confirmUnchallengedResult\` called automatically on <${constructVfUrl(vfToSettle.intId)}|${vfToSettle.title}>: <${txUrl}|${hash}>/${transactionId}`);
     } else {
-      log('No VFs currently need finalizing by OPERATOR');
+      log('No VFs need to have `confirmUnchallengedResult` called on them.');
     }
+
   } finally {
-    const text = logs.join('\n\n—\n\n');
-    await axios.post(SLACK_WEBHOOK_ENDPOINT, { text });
+    if (logs.length > 0) {
+      const text = logs.join('\n\n—\n\n');
+      await axios.post(SLACK_WEBHOOK_ENDPOINT, { text });
+    }
   }
 }
 

@@ -6,11 +6,20 @@ export async function getTotalSupply(contract: Contract): Promise<number> {
   return supply;
 }
 
-export const zipArrays = <A, B>(aaa: A[], bbb: B[]): [A, B][] => {
+export const zipArrays2 = <A, B>(aaa: A[], bbb: B[]): [A, B][] => {
   if (aaa.length === 0 || bbb.length === 0) {
     return [];
   } else {
     const [[a, ...aa], [b, ...bb]] = [aaa, bbb];
-    return [[a, b], ...zipArrays(aa, bb)];
+    return [[a, b], ...zipArrays2(aa, bb)];
+  }
+};
+
+export const zipArrays3 = <A, B, C>(aaa: A[], bbb: B[], ccc: C[]): [A, B, C][] => {
+  if (aaa.length === 0 || bbb.length === 0 || ccc.length === 0) {
+    return [];
+  } else {
+    const [[a, ...aa], [b, ...bb], [c, ...cc]] = [aaa, bbb, ccc];
+    return [[a, b, c], ...zipArrays3(aa, bb, cc)];
   }
 };

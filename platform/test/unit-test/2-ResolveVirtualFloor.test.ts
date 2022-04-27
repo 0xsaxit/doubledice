@@ -29,7 +29,7 @@ chai.use(chaiSubset);
 
 let helper: DoubleDicePlatformHelper;
 
-const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
+const totalFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
 describe('DoubleDice/Resolve', function () {
   let ownerSigner: SignerWithAddress;
@@ -99,8 +99,8 @@ describe('DoubleDice/Resolve', function () {
 
   describe('Resolve Virtual Floor', function () {
     // Random virtual floor for each test case
-    const virtualFloorId = generateRandomVirtualFloorId();
-    const virtualFloorId2 = generateRandomVirtualFloorId();
+    const vfId = generateRandomVirtualFloorId();
+    const vfId2 = generateRandomVirtualFloorId();
     const allWinnersVf = generateRandomVirtualFloorId();
     const tOpen = toTimestamp('2022-06-01T12:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
@@ -115,9 +115,9 @@ describe('DoubleDice/Resolve', function () {
     let user3CommitmentEventArgs: UserCommitment;
 
     const virtualFloorCreationParams: VirtualFloorCreationParamsStruct = {
-      virtualFloorId,
+      vfId,
       betaOpen_e18,
-      creationFeeRate_e18,
+      totalFeeRate_e18,
       tOpen,
       tClose,
       tResolve,
@@ -161,21 +161,21 @@ describe('DoubleDice/Resolve', function () {
       await (
         await contract.createVirtualFloor({
           ...virtualFloorCreationParams,
-          virtualFloorId: virtualFloorId2,
+          vfId: vfId2,
           paymentToken: paymentTokenAddress,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
           ...virtualFloorCreationParams,
-          virtualFloorId: allWinnersVf,
+          vfId: allWinnersVf,
           paymentToken: paymentTokenAddress,
         })
       ).wait();
 
-      user1CommitmentEventArgs = await helper.commitToVirtualFloor(virtualFloorId, 0, user1Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
-      user2CommitmentEventArgs = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
-      user3CommitmentEventArgs = await helper.commitToVirtualFloor(virtualFloorId, 1, user3Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
+      user1CommitmentEventArgs = await helper.commitToVirtualFloor(vfId, 0, user1Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
+      user2CommitmentEventArgs = await helper.commitToVirtualFloor(vfId, 1, user2Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
+      user3CommitmentEventArgs = await helper.commitToVirtualFloor(vfId, 1, user3Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
 
       await helper.commitToVirtualFloor(allWinnersVf, 1, user1Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
       await helper.commitToVirtualFloor(allWinnersVf, 1, user2Signer, $(10), UNSPECIFIED_COMMITMENT_DEADLINE);
@@ -191,16 +191,16 @@ describe('DoubleDice/Resolve', function () {
 
       // Commit to 2 outcomes so that VF resolution fails because too early,
       // and not because it is unresolvable.
-      await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId2, 0, 1, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
-      await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId2, 1, 1, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+      await (await contract.connect(user1Signer).commitToVirtualFloor(vfId2, 0, 1, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+      await (await contract.connect(user2Signer).commitToVirtualFloor(vfId2, 1, 1, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
 
-      await expect(contract.setResult(virtualFloorId2, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
+      await expect(contract.setResult(vfId2, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
     });
 
     it('Should revert if the provided outcome index is out of the VF outcomes', async function () {
       const checkpoint = await EvmCheckpoint.create();
       await evm.setNextBlockTimestamp(tResolve);
-      await expect(contract.setResult(virtualFloorId2, 4)).to.be.revertedWith('OutcomeIndexOutOfRange()');
+      await expect(contract.setResult(vfId2, 4)).to.be.revertedWith('OutcomeIndexOutOfRange()');
       await checkpoint.revertTo();
     });
 
@@ -208,25 +208,25 @@ describe('DoubleDice/Resolve', function () {
       const checkpoint = await EvmCheckpoint.create();
       await evm.setNextBlockTimestamp(tResolve);
 
-      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId2, 1);
+      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, vfId2, 1);
 
-      await expect(contract.setResult(virtualFloorId2, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Claimable_Payouts})`);
+      await expect(contract.setResult(vfId2, 1)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Claimable_Payouts})`);
       await checkpoint.revertTo();
     });
 
     it('Should cancel VF and set resolution type to No Winners when total commitments for the resolution index is 0', async function () {
       const checkpoint = await EvmCheckpoint.create();
-      const { amount: amount0 } = await contract.getVirtualFloorOutcomeTotals(virtualFloorId, 0);
+      const { amount: amount0 } = await contract.getVirtualFloorOutcomeTotals(vfId, 0);
       expect(amount0).to.be.gt(0);
-      const { amount: amount1 } = await contract.getVirtualFloorOutcomeTotals(virtualFloorId, 1);
+      const { amount: amount1 } = await contract.getVirtualFloorOutcomeTotals(vfId, 1);
       expect(amount1).to.be.gt(0);
-      const { amount: amount2 } = await contract.getVirtualFloorOutcomeTotals(virtualFloorId, 2);
+      const { amount: amount2 } = await contract.getVirtualFloorOutcomeTotals(vfId, 2);
       expect(amount2).to.be.eq(0);
 
       await evm.setNextBlockTimestamp(tResolve);
-      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 2);
+      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, vfId, 2);
 
-      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.Claimable_Refunds_ResolvedNoWinners);
+      expect(await contract.getVirtualFloorState(vfId)).to.be.eq(VirtualFloorState.Claimable_Refunds_ResolvedNoWinners);
       await checkpoint.revertTo();
     });
 
@@ -259,19 +259,19 @@ describe('DoubleDice/Resolve', function () {
 
       await evm.setNextBlockTimestamp(tResolve);
 
-      const [VFResolutionEventArgs] = await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 1);
+      const [VFResolutionEventArgs] = await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, vfId, 1);
 
       const balanceOfFeeBeneficaryAfter = await token.balanceOf(
         platformFeeBeneficiarySigner.address
       );
 
-      expect(await contract.getVirtualFloorState(virtualFloorId)).to.be.eq(VirtualFloorState.Claimable_Payouts);
+      expect(await contract.getVirtualFloorState(vfId)).to.be.eq(VirtualFloorState.Claimable_Payouts);
 
       expect(balanceOfFeeBeneficaryAfter.toNumber()).to.be.gt(
         balanceOfFeeBeneficaryBefore.toNumber()
       );
 
-      expect(VFResolutionEventArgs.virtualFloorId).to.eq(virtualFloorId);
+      expect(VFResolutionEventArgs.vfId).to.eq(vfId);
       expect(VFResolutionEventArgs.winningOutcomeIndex).to.eq(1);
 
       await checkpoint.revertTo();

@@ -86,7 +86,11 @@ type VirtualFloor @entity {
   # properties (event)
   paymentToken: PaymentToken!
   betaOpen: BigDecimal!
+  totalFeeRate: BigDecimal!
+
+  """Deprecated in favour of `totalFeeRate`."""
   creationFeeRate: BigDecimal!
+
   platformFeeRate: BigDecimal!
   tCreated: BigInt!
   tOpen: BigInt!

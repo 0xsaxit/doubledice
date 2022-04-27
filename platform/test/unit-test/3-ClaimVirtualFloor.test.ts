@@ -35,7 +35,7 @@ const DUMMY_VF_ID = 0;
 
 let helper: DoubleDicePlatformHelper;
 
-const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
+const totalFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
 describe('DoubleDice/Claim', function () {
   let ownerSigner: SignerWithAddress;
@@ -105,8 +105,8 @@ describe('DoubleDice/Claim', function () {
 
   describe('Claim Virtual Floor', function () {
     // Random virtual floor for each test case
-    const virtualFloorId = generateRandomVirtualFloorId();
-    const virtualFloorId2 = generateRandomVirtualFloorId();
+    const vfId = generateRandomVirtualFloorId();
+    const vfId2 = generateRandomVirtualFloorId();
     const allWinnersVf = generateRandomVirtualFloorId();
     const betaOpen_e18 = BigNumber.from(10)
       .pow(18)
@@ -122,9 +122,9 @@ describe('DoubleDice/Claim', function () {
     const allWinnersVfCommitmentEventArgs: UserCommitment[] = [];
 
     const virtualFloorCreationParams: VirtualFloorCreationParamsStruct = {
-      virtualFloorId,
+      vfId,
       betaOpen_e18,
-      creationFeeRate_e18,
+      totalFeeRate_e18,
       tOpen,
       tClose,
       tResolve,
@@ -173,14 +173,14 @@ describe('DoubleDice/Claim', function () {
       await (
         await contract.createVirtualFloor({
           ...virtualFloorCreationParams,
-          virtualFloorId: virtualFloorId2,
+          vfId: vfId2,
           paymentToken: paymentTokenAddress,
         })
       ).wait();
       await (
         await contract.createVirtualFloor({
           ...virtualFloorCreationParams,
-          virtualFloorId: allWinnersVf,
+          vfId: allWinnersVf,
           paymentToken: paymentTokenAddress,
         })
       ).wait();
@@ -188,7 +188,7 @@ describe('DoubleDice/Claim', function () {
       const { events: user1CommittedEvents } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, 0, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, 0, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       user1CommitmentEventArgs = findUserCommitmentEventArgs(
         user1CommittedEvents
@@ -196,7 +196,7 @@ describe('DoubleDice/Claim', function () {
       const { events: user2CommittedEvents } = await (
         await contract
           .connect(user2Signer)
-          .commitToVirtualFloor(virtualFloorId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       user2CommitmentEventArgs = findUserCommitmentEventArgs(
         user2CommittedEvents
@@ -204,7 +204,7 @@ describe('DoubleDice/Claim', function () {
       const { events: user3CommittedEvents } = await (
         await contract
           .connect(user3Signer)
-          .commitToVirtualFloor(virtualFloorId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       user3CommitmentEventArgs = findUserCommitmentEventArgs(
         user3CommittedEvents
@@ -236,18 +236,18 @@ describe('DoubleDice/Claim', function () {
     });
 
     it('Should revert if VF is on Running / Closed state', async function () {
-      await expect(contract.connect(user1Signer).claimPayouts(virtualFloorId, [DUMMY_VF_ID])).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
+      await expect(contract.connect(user1Signer).claimPayouts(vfId, [DUMMY_VF_ID])).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
     });
 
     it('Should claim 0 payout if the passed outcome index is not the winning outcome', async function () {
       const checkpoint = await EvmCheckpoint.create();
       await evm.setNextBlockTimestamp(tResolve);
 
-      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 1);
-      const tokenId = tokenIdOf({ vfId: virtualFloorId, outcomeIndex: 0, timeslot: toTimestamp('2032-01-01T02:00:00') });
+      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, vfId, 1);
+      const tokenId = tokenIdOf({ vfId, outcomeIndex: 0, timeslot: toTimestamp('2032-01-01T02:00:00') });
 
       const balanceBeforeClaim = await token.balanceOf(user1Signer.address);
-      await expect(contract.connect(user1Signer).claimPayouts(virtualFloorId, [tokenId])).to.emit(token, 'Transfer');
+      await expect(contract.connect(user1Signer).claimPayouts(vfId, [tokenId])).to.emit(token, 'Transfer');
       const balanceAfterClaim = await token.balanceOf(user1Signer.address);
       expect(balanceAfterClaim).to.eq(balanceBeforeClaim);
 
@@ -257,17 +257,17 @@ describe('DoubleDice/Claim', function () {
     it('Should be able to claim original committed amount if the VF got cancelled and also transfer the amount to the user and burn the minted tokens', async function () {
       const checkpoint = await EvmCheckpoint.create();
       const vfAggregateCommitments = await contract.getVirtualFloorOutcomeTotals(
-        virtualFloorId,
+        vfId,
         2
       );
       expect(vfAggregateCommitments.amount).to.be.eq(0);
 
       await evm.setNextBlockTimestamp(tResolve);
-      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 2);
+      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, vfId, 2);
 
       const balanceBeforeClaim = await token.balanceOf(user2Signer.address);
 
-      await (await contract.connect(user2Signer).claimRefunds(virtualFloorId, [user2CommitmentEventArgs.tokenId])).wait();
+      await (await contract.connect(user2Signer).claimRefunds(vfId, [user2CommitmentEventArgs.tokenId])).wait();
 
       const balanceAfterClaim = await token.balanceOf(user2Signer.address);
       expect(balanceAfterClaim).to.be.gt(0);
@@ -277,7 +277,7 @@ describe('DoubleDice/Claim', function () {
 
     it('Original owner of a commitment should not be able to claim a commitment that was transferred to 2nd owner', async () => {
       const checkpoint = await EvmCheckpoint.create();
-      const vfAggregateCommitments = await contract.getVirtualFloorOutcomeTotals(virtualFloorId, 2);
+      const vfAggregateCommitments = await contract.getVirtualFloorOutcomeTotals(vfId, 2);
       expect(vfAggregateCommitments.amount).to.be.eq(0);
 
       await contract
@@ -291,10 +291,10 @@ describe('DoubleDice/Claim', function () {
         );
 
       await evm.setNextBlockTimestamp(tResolve);
-      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 2);
+      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, vfId, 2);
 
       const paymentTokenBalanceBefore = await token.balanceOf(user2Signer.address);
-      expect(contract.connect(user2Signer).claimPayouts(virtualFloorId, [user2CommitmentEventArgs.tokenId]));
+      expect(contract.connect(user2Signer).claimPayouts(vfId, [user2CommitmentEventArgs.tokenId]));
       const paymentTokenBalanceAfter = await token.balanceOf(user2Signer.address);
       expect(paymentTokenBalanceAfter).to.eq(paymentTokenBalanceBefore);
 
@@ -304,7 +304,7 @@ describe('DoubleDice/Claim', function () {
     it('Should be able to claim a transferred cancelled commitment same amount as the committed amount', async function () {
       const checkpoint = await EvmCheckpoint.create();
       const vfAggregateCommitments = await contract.getVirtualFloorOutcomeTotals(
-        virtualFloorId,
+        vfId,
         2
       );
       expect(vfAggregateCommitments.amount).to.be.eq(0);
@@ -322,9 +322,9 @@ describe('DoubleDice/Claim', function () {
         );
 
       await evm.setNextBlockTimestamp(tResolve);
-      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 2);
+      await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, vfId, 2);
 
-      await (await contract.connect(user4Signer).claimRefunds(virtualFloorId, [user2CommitmentEventArgs.tokenId])).wait();
+      await (await contract.connect(user4Signer).claimRefunds(vfId, [user2CommitmentEventArgs.tokenId])).wait();
 
       const balanceAfterClaim = await token.balanceOf(user4Signer.address);
       expect(balanceAfterClaim).to.be.gt(0);

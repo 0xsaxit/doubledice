@@ -41,14 +41,9 @@
       <th>Tokens</th>
       <td>
         <table>
-          <PaymentTokenComponent
-            v-for="paymentToken in paymentTokens"
-            :key="paymentToken.id"
-            :provider="injectedProvider"
-            :paymentToken="paymentToken"
-            :platformContractAddress="contract?.address"
-            :accountSigner="accountSigner"
-          ></PaymentTokenComponent>
+          <PaymentTokenComponent v-for="paymentToken in paymentTokens" :key="paymentToken.id"
+            :provider="injectedProvider" :paymentToken="paymentToken" :platformContractAddress="contract?.address"
+            :accountSigner="accountSigner"></PaymentTokenComponent>
         </table>
       </td>
     </tr>
@@ -87,7 +82,7 @@
         <th>id</th>
         <th>state</th>
         <th>timeline</th>
-        <th>creationFeeRate</th>
+        <th>totalFeeRate</th>
         <th>platformFeeRate</th>
         <th>paymentToken</th>
         <th>owner</th>
@@ -98,38 +93,23 @@
         </template>
       </tr>
     </thead>
-    <VirtualFloorComponent
-      v-for="virtualFloor in virtualFloors"
-      :key="virtualFloor.id"
-      :contract="contract"
-      :virtualFloor="virtualFloor"
-      :connectedAccountAddress="accountAddress"
-      :minVirtualFloorTimestamp="minVirtualFloorTimestamp"
-      :maxVirtualFloorTimestamp="maxVirtualFloorTimestamp"
-      :maxOutcomes="maxOutcomeCount.length"
-      :fastforwarding="isFastforwarding"
-      :nextBlockTimestamp="nextBlockTimestamp"
-      :showVfJsonCol="showVfJsonCol"
-      @balanceChange="refreshBalances"
-    />
+    <VirtualFloorComponent v-for="virtualFloor in virtualFloors" :key="virtualFloor.id" :contract="contract"
+      :virtualFloor="virtualFloor" :connectedAccountAddress="accountAddress"
+      :minVirtualFloorTimestamp="minVirtualFloorTimestamp" :maxVirtualFloorTimestamp="maxVirtualFloorTimestamp"
+      :maxOutcomes="maxOutcomeCount.length" :fastforwarding="isFastforwarding" :nextBlockTimestamp="nextBlockTimestamp"
+      :showVfJsonCol="showVfJsonCol" @balanceChange="refreshBalances" />
   </table>
 
   <hr />
 
-  <NewVirtualFloor
-    v-if="contract && paymentTokens && nextBlockTimestamp"
-    :contract="contract"
-    :paymentTokens="paymentTokens"
-    :nextBlockTimestamp="nextBlockTimestamp"
-  />
+  <NewVirtualFloor v-if="contract && paymentTokens && nextBlockTimestamp" :contract="contract"
+    :paymentTokens="paymentTokens" :nextBlockTimestamp="nextBlockTimestamp" />
 
   <hr />
 
   <div style="text-align: left">
-    <a
-      href="chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/home.html#settings/advanced"
-      target="blank"
-    >🦊🩹 Reset MetaMask account after restarting network</a>
+    <a href="chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/home.html#settings/advanced" target="blank">🦊🩹 Reset
+      MetaMask account after restarting network</a>
   </div>
 
   <hr />
@@ -447,11 +427,13 @@ h3 {
 a {
   color: #42b983;
 }
+
 table {
   font-family: monospace;
   /* font-size: xx-large; */
   text-align: left;
 }
+
 .info th::after {
   content: ":";
 }

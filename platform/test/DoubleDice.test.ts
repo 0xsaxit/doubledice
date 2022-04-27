@@ -103,9 +103,9 @@ describe('DoubleDice', function () {
     await (await tokenUSDC.connect(user3Signer).approve(contract.address, $(400))).wait();
     await (await tokenUSDC.connect(vfCreatorSigner).approve(contract.address, $(100))).wait();
 
-    const virtualFloorId = 0x123450000000000n; // lower 5 bytes must be all 00
+    const vfId = 0x123450000000000n; // lower 5 bytes must be all 00
     const betaOpen = BigNumber.from(10).pow(18).mul(13); // 1 unit per hour
-    const creationFeeRate = BigNumber.from(10).pow(18).mul(15).div(1000); // 1.5%
+    const totalFeeRate = BigNumber.from(10).pow(18).mul(15).div(1000); // 1.5%
     const tOpen = toTimestamp('2032-01-01T00:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
@@ -128,9 +128,9 @@ describe('DoubleDice', function () {
         events,
         blockHash
       } = await (await contract.createVirtualFloor({
-        virtualFloorId,
+        vfId,
         betaOpen_e18: betaOpen,
-        creationFeeRate_e18: creationFeeRate,
+        totalFeeRate_e18: totalFeeRate,
         tOpen,
         tClose,
         tResolve,
@@ -145,7 +145,7 @@ describe('DoubleDice', function () {
       expect(timestamp).to.eq(toTimestamp('2032-01-01T00:00:00'));
 
       const vfCreatedEventArgs = findContractEventArgs(events, 'VirtualFloorCreation');
-      expect(vfCreatedEventArgs.virtualFloorId).to.eq(virtualFloorId);
+      expect(vfCreatedEventArgs.vfId).to.eq(vfId);
     }
 
     const contractBalanceBeforeCommitments = await tokenUSDC.balanceOf(contract.address);
@@ -156,7 +156,7 @@ describe('DoubleDice', function () {
 
       await evm.setNextBlockTimestamp('2032-01-01T01:00:00');
 
-      const { events, blockHash } = await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+      const { events, blockHash } = await (await contract.connect(user1Signer).commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
 
       const vfCommitmentArgs = findUserCommitmentEventArgs(events);
       allUserCommitments.push(vfCommitmentArgs);
@@ -170,7 +170,7 @@ describe('DoubleDice', function () {
       const nftId = token1155TransferArgs.id;
       // console.log(`nftId = ${nftId}`)
 
-      expect(vfCommitmentArgs.virtualFloorId).to.eq(virtualFloorId);
+      expect(vfCommitmentArgs.vfId).to.eq(vfId);
       expect(vfCommitmentArgs.outcomeIndex).to.eq(outcomeIndex);
       expect(vfCommitmentArgs.amount).to.eq(amount);
       expect(vfCommitmentArgs.tokenId).to.eq(nftId);
@@ -183,13 +183,13 @@ describe('DoubleDice', function () {
 
     await evm.setNextBlockTimestamp('2032-01-01T02:00:00');
     {
-      const { events } = await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+      const { events } = await (await contract.connect(user2Signer).commitToVirtualFloor(vfId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
       const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T02:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
     {
-      const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+      const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(vfId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
       const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T02:00:01'));
       allUserCommitments.push(userCommitmentArgs);
@@ -197,13 +197,13 @@ describe('DoubleDice', function () {
 
     await evm.setNextBlockTimestamp('2032-01-01T06:00:00');
     {
-      const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+      const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(vfId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
       const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T06:00:00'));
       allUserCommitments.push(userCommitmentArgs);
     }
     {
-      const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+      const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(vfId, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
       const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T06:00:01'));
       allUserCommitments.push(userCommitmentArgs);
@@ -211,7 +211,7 @@ describe('DoubleDice', function () {
 
     await evm.setNextBlockTimestamp('2032-01-01T10:00:00');
     {
-      const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+      const { events } = await (await contract.connect(user3Signer).commitToVirtualFloor(vfId, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
       const userCommitmentArgs = findUserCommitmentEventArgs(events);
       expect(userCommitmentArgs.timeslot).to.eq(toTimestamp('2032-01-01T10:00:00'));
       allUserCommitments.push(userCommitmentArgs);
@@ -223,9 +223,9 @@ describe('DoubleDice', function () {
     }
 
     const outcomeTotals: OutcomeTotals[] = await Promise.all([
-      contract.getVirtualFloorOutcomeTotals(virtualFloorId, 0),
-      contract.getVirtualFloorOutcomeTotals(virtualFloorId, 1),
-      contract.getVirtualFloorOutcomeTotals(virtualFloorId, 2),
+      contract.getVirtualFloorOutcomeTotals(vfId, 0),
+      contract.getVirtualFloorOutcomeTotals(vfId, 1),
+      contract.getVirtualFloorOutcomeTotals(vfId, 2),
     ]);
 
     const betaAt = (datetime: string) => {
@@ -273,16 +273,16 @@ describe('DoubleDice', function () {
     await (await contract.connect(user3Signer).safeTransferFrom(
       user3Signer.address,
       user2Signer.address,
-      tokenIdOf({ vfId: virtualFloorId, outcomeIndex: 1, timeslot: toTimestamp('2032-01-01T02:00:01') }),
+      tokenIdOf({ vfId, outcomeIndex: 1, timeslot: toTimestamp('2032-01-01T02:00:01') }),
       $(5),
       '0x'
     )).wait();
 
     await evm.setNextBlockTimestamp('2032-01-02T00:00:00');
     {
-      const { events } = await (await contract.setResult(virtualFloorId, 1)).wait();
-      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
-      expect(vfId).to.eq(virtualFloorId);
+      const { events } = await (await contract.setResult(vfId, 1)).wait();
+      const { vfId: eventVfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      expect(eventVfId).to.eq(vfId);
       expect(operator).to.eq(ownerSigner.address);
       expect(action).to.eq(ResultUpdateAction.CreatorSetResult);
       expect(outcomeIndex).to.eq(1);
@@ -290,17 +290,17 @@ describe('DoubleDice', function () {
 
     await evm.setNextBlockTimestamp('2032-01-02T01:30:00');
     {
-      const { events } = await (await contract.confirmUnchallengedResult(virtualFloorId)).wait();
+      const { events } = await (await contract.confirmUnchallengedResult(vfId)).wait();
       {
-        const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
-        expect(vfId).to.eq(virtualFloorId);
+        const { vfId: eventVfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+        expect(eventVfId).to.eq(vfId);
         expect(operator).to.eq(ownerSigner.address);
         expect(action).to.eq(ResultUpdateAction.SomeoneConfirmedUnchallengedResult);
         expect(outcomeIndex).to.eq(1);
       }
 
       {
-        const { state: resolutionState } = await contract.resolutions(virtualFloorId);
+        const { state: resolutionState } = await contract.resolutions(vfId);
         expect(resolutionState).to.eq(ResolutionState.Complete);
       }
 
@@ -328,7 +328,7 @@ describe('DoubleDice', function () {
         let contractBalanceAfterTx3: BigNumber;
 
         {
-          const { events } = await (await contract.connect(user1Signer).claimPayouts(virtualFloorId, allCommitmentBalanceIds)).wait();
+          const { events } = await (await contract.connect(user1Signer).claimPayouts(vfId, allCommitmentBalanceIds)).wait();
           contractBalanceAfterTx1 = await tokenUSDC.balanceOf(contract.address);
           const transferBatch = findContractEventArgs(events, 'TransferBatch');
           const [, , , ids, amounts] = transferBatch;
@@ -336,7 +336,7 @@ describe('DoubleDice', function () {
         }
 
         {
-          const { events } = await (await contract.connect(user2Signer).claimPayouts(virtualFloorId, allCommitmentBalanceIds)).wait();
+          const { events } = await (await contract.connect(user2Signer).claimPayouts(vfId, allCommitmentBalanceIds)).wait();
           contractBalanceAfterTx2 = await tokenUSDC.balanceOf(contract.address);
           const transferBatch = findContractEventArgs(events, 'TransferBatch');
           const [, , , ids, amounts] = transferBatch;
@@ -344,7 +344,7 @@ describe('DoubleDice', function () {
         }
 
         {
-          const { events } = await (await contract.connect(user3Signer).claimPayouts(virtualFloorId, allCommitmentBalanceIds)).wait();
+          const { events } = await (await contract.connect(user3Signer).claimPayouts(vfId, allCommitmentBalanceIds)).wait();
           contractBalanceAfterTx3 = await tokenUSDC.balanceOf(contract.address);
           const transferBatch = findContractEventArgs(events, 'TransferBatch');
           const [, , , ids, amounts] = transferBatch;
@@ -363,21 +363,21 @@ describe('DoubleDice', function () {
   });
 
   describe('Create Virtual Floor', function () {
-    const virtualFloorId = generateRandomVirtualFloorId();
+    const vfId = generateRandomVirtualFloorId();
     const tOpen = toTimestamp('2032-01-01T12:00:00');
     const tClose = toTimestamp('2033-01-01T12:00:00');
     const tResolve = toTimestamp('2033-01-02T00:00:00');
     const nOutcomes = 3;
     const bonusAmount = 0;
-    const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
+    const totalFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
     const betaOpen_e18 = BigNumber.from(10)
       .pow(18)
       .mul(13); // 1 unit per hour
 
     const virtualFloorCreationParams: VirtualFloorCreationParamsStruct = {
-      virtualFloorId,
+      vfId,
       betaOpen_e18,
-      creationFeeRate_e18,
+      totalFeeRate_e18,
       tOpen,
       tClose,
       tResolve,
@@ -437,12 +437,12 @@ describe('DoubleDice', function () {
     it('Should revert if betaOpen is greater than 1e18', async function () {
       const betaOpenGreaterThan1e18 = BigNumber.from(1).pow(19);
 
-      const _virtualFloorId = generateRandomVirtualFloorId();
+      const _vfId = generateRandomVirtualFloorId();
 
       await expect(
         contract.createVirtualFloor({
           ...virtualFloorCreationParams,
-          virtualFloorId: _virtualFloorId,
+          vfId: _vfId,
           betaOpen_e18: betaOpenGreaterThan1e18,
           paymentToken: tokenUSDC.address,
         })
@@ -483,17 +483,17 @@ describe('DoubleDice', function () {
         'VirtualFloorCreation'
       );
 
-      expect(virtualFloorCreationEventArgs.virtualFloorId).to.eq(
-        BigNumber.from(virtualFloorCreationParams.virtualFloorId)
+      expect(virtualFloorCreationEventArgs.vfId).to.eq(
+        BigNumber.from(virtualFloorCreationParams.vfId)
       );
     });
 
     it('Should revert because VF creation quota is exceeded', async function () {
-      const _virtualFloorId = generateRandomVirtualFloorId();
+      const _vfId = generateRandomVirtualFloorId();
 
       const params: VirtualFloorCreationParamsStruct = {
         ...virtualFloorCreationParams,
-        virtualFloorId: _virtualFloorId,
+        vfId: _vfId,
         paymentToken: tokenUSDC.address,
       };
       await expect(contract.connect(noQuotaSigner).createVirtualFloor(params)).to.be.reverted;
@@ -514,7 +514,7 @@ describe('DoubleDice', function () {
 
   describe('Commit To Virtual Floor', function () {
     // Random virtual floor for each test case
-    let virtualFloorId: BigNumberish;
+    let vfId: BigNumberish;
     const tOpen = toTimestamp('2032-01-01T12:00:00');
     const tClose = toTimestamp('2033-01-01T12:00:00');
     const tResolve = toTimestamp('2033-01-10T00:00:00');
@@ -532,17 +532,17 @@ describe('DoubleDice', function () {
 
     const outcomeIndex = 0;
     const amount = $(10);
-    const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
+    const totalFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
     let virtualFloorCreationParams: VirtualFloorCreationParamsStruct;
 
     beforeEach(async () => {
-      virtualFloorId = generateRandomVirtualFloorId();
+      vfId = generateRandomVirtualFloorId();
 
       virtualFloorCreationParams = {
-        virtualFloorId,
+        vfId,
         betaOpen_e18,
-        creationFeeRate_e18,
+        totalFeeRate_e18,
         tOpen,
         tClose,
         tResolve,
@@ -559,7 +559,7 @@ describe('DoubleDice', function () {
       ).wait();
     });
 
-    it('Should revert if virtualFloorId doesn’t exist', async function () {
+    it('Should revert if vfId doesn’t exist', async function () {
       const randomVirtualFloorId = '0x00000000000000000000000000000000000000000000000000dead0000000000';
       const outcomeIndex = 0;
       const amount = $(10);
@@ -578,7 +578,7 @@ describe('DoubleDice', function () {
       await expect(
         contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Closed_ResolvableNever})`);
       await checkpoint.revertTo();
     });
@@ -588,7 +588,7 @@ describe('DoubleDice', function () {
       await expect(
         contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, wrongOutComeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, wrongOutComeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).to.be.revertedWith('OutcomeIndexOutOfRange()');
     });
 
@@ -597,7 +597,7 @@ describe('DoubleDice', function () {
       await expect(
         contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, wrongAmount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, wrongAmount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).to.be.revertedWith('CommitmentAmountOutOfRange()');
     });
 
@@ -607,7 +607,7 @@ describe('DoubleDice', function () {
         contract
           .connect(user1Signer)
           .commitToVirtualFloor(
-            virtualFloorId,
+            vfId,
             outcomeIndex,
             amountBiggerThanAllowance,
             UNSPECIFIED_COMMITMENT_DEADLINE
@@ -619,12 +619,12 @@ describe('DoubleDice', function () {
       const { events } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
 
       const userCommitmentEventArgs = findUserCommitmentEventArgs(events);
 
-      expect(userCommitmentEventArgs.virtualFloorId).to.eq(virtualFloorId);
+      expect(userCommitmentEventArgs.vfId).to.eq(vfId);
       expect(userCommitmentEventArgs.outcomeIndex).to.eq(outcomeIndex);
       expect(userCommitmentEventArgs.amount).to.eq(amount);
     });
@@ -636,7 +636,7 @@ describe('DoubleDice', function () {
       await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const balanceOfContractAfterCommit = await tokenUSDC.balanceOf(
         contract.address
@@ -647,7 +647,7 @@ describe('DoubleDice', function () {
     });
 
     it('Should generate unique token id for the granularity level of time slot duration after open time', async function () {
-      const virtualFloorId1 = generateRandomVirtualFloorId();
+      const vfId1 = generateRandomVirtualFloorId();
 
       const { timestamp } = await ethers.provider.getBlock('latest');
 
@@ -658,7 +658,7 @@ describe('DoubleDice', function () {
       await (
         await contract.createVirtualFloor({
           ...virtualFloorCreationParams,
-          virtualFloorId: virtualFloorId1,
+          vfId: vfId1,
           tOpen: _tOpen,
           paymentToken: tokenUSDC.address,
         })
@@ -670,7 +670,7 @@ describe('DoubleDice', function () {
       const { events: commitment1Events, blockHash: blockHash1 } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId1, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId1, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const commitment1EventArgs = findUserCommitmentEventArgs(
         commitment1Events
@@ -684,7 +684,7 @@ describe('DoubleDice', function () {
       const { events: commitment2Events, blockHash: blockHash2 } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId1, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId1, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const commitment2EventArgs = findUserCommitmentEventArgs(
         commitment2Events
@@ -705,7 +705,7 @@ describe('DoubleDice', function () {
         contract
           .connect(user1Signer)
           .commitToVirtualFloor(
-            virtualFloorId,
+            vfId,
             outcomeIndex,
             amountExceedUint256Limit,
             UNSPECIFIED_COMMITMENT_DEADLINE
@@ -720,7 +720,7 @@ describe('DoubleDice', function () {
         contract
           .connect(user1Signer)
           .commitToVirtualFloor(
-            virtualFloorId,
+            vfId,
             outcomeIndex,
             amountExceedUint256Limit,
             UNSPECIFIED_COMMITMENT_DEADLINE
@@ -732,7 +732,7 @@ describe('DoubleDice', function () {
       const { events } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const userCommitmentEventArgs = findUserCommitmentEventArgs(events);
 
@@ -746,9 +746,9 @@ describe('DoubleDice', function () {
 
   describe('Resolve Virtual Floor', function () {
     // Random virtual floor for each test case
-    const virtualFloorId = generateRandomVirtualFloorId();
-    const virtualFloorId2 = generateRandomVirtualFloorId();
-    const virtualFloorId3 = generateRandomVirtualFloorId();
+    const vfId = generateRandomVirtualFloorId();
+    const vfId2 = generateRandomVirtualFloorId();
+    const vfId3 = generateRandomVirtualFloorId();
     const tOpen = toTimestamp('2032-01-01T12:00:00');
     const tClose = toTimestamp('2033-01-01T12:00:00');
     const tResolve = toTimestamp('2033-01-10T00:00:00');
@@ -761,13 +761,13 @@ describe('DoubleDice', function () {
 
 
       const virtualFloorCreationParams: VirtualFloorCreationParamsStruct = {
-        virtualFloorId,
+        vfId,
         tOpen,
         tClose,
         tResolve,
         nOutcomes,
         betaOpen_e18,
-        creationFeeRate_e18: 50000_000000_000000n, // 0.05 = 5%,
+        totalFeeRate_e18: 50000_000000_000000n, // 0.05 = 5%,
         bonusAmount: 0,
         optionalMinCommitmentAmount: 0,
         optionalMaxCommitmentAmount: 0,
@@ -780,22 +780,22 @@ describe('DoubleDice', function () {
       await (
         await contract.connect(vfCreatorSigner).createVirtualFloor({
           ...virtualFloorCreationParams,
-          virtualFloorId: virtualFloorId2,
+          vfId: vfId2,
         })
       ).wait();
       await (
         await contract.connect(vfCreatorSigner).createVirtualFloor({
           ...virtualFloorCreationParams,
-          virtualFloorId: virtualFloorId3,
+          vfId: vfId3,
         })
       ).wait();
       {
-        await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
-        await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
-        await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId2, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
-        await (await contract.connect(user3Signer).commitToVirtualFloor(virtualFloorId2, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
-        await (await contract.connect(user1Signer).commitToVirtualFloor(virtualFloorId3, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
-        await (await contract.connect(user2Signer).commitToVirtualFloor(virtualFloorId3, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+        await (await contract.connect(user1Signer).commitToVirtualFloor(vfId, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+        await (await contract.connect(user3Signer).commitToVirtualFloor(vfId, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+        await (await contract.connect(user2Signer).commitToVirtualFloor(vfId2, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+        await (await contract.connect(user3Signer).commitToVirtualFloor(vfId2, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+        await (await contract.connect(user1Signer).commitToVirtualFloor(vfId3, 1, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
+        await (await contract.connect(user2Signer).commitToVirtualFloor(vfId3, 2, $(10), UNSPECIFIED_COMMITMENT_DEADLINE)).wait();
 
       }
     });
@@ -806,43 +806,43 @@ describe('DoubleDice', function () {
     });
 
     it('Should revert if resolve time has not reached', async function () {
-      await expect(contract.connect(vfCreatorSigner).setResult(virtualFloorId, 0)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
+      await expect(contract.connect(vfCreatorSigner).setResult(vfId, 0)).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Open_ResolvableLater})`);
     });
 
     it('Should set the VF result correctly with outcomes', async function () {
       await evm.setNextBlockTimestamp('2033-01-10T00:10:00');
 
-      const { events } = await (await contract.connect(vfCreatorSigner).setResult(virtualFloorId, 1)).wait();
-      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
-      expect(vfId).to.eq(virtualFloorId);
+      const { events } = await (await contract.connect(vfCreatorSigner).setResult(vfId, 1)).wait();
+      const { vfId: eventVfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      expect(eventVfId).to.eq(vfId);
       expect(operator).to.eq(vfCreatorSigner.address);
       expect(action).to.eq(ResultUpdateAction.CreatorSetResult);
       expect(outcomeIndex).to.eq(1);
     });
 
     it('Should revert if you try to confrim challenge before 1 hour is over', async function () {
-      await expect(contract.connect(user1Signer).confirmUnchallengedResult(virtualFloorId)).to.be.revertedWith('TooEarly()');
+      await expect(contract.connect(user1Signer).confirmUnchallengedResult(vfId)).to.be.revertedWith('TooEarly()');
     });
 
     it('Should revert if you try to challenge a set result when it is too late', async function () {
       const checkpoint = await EvmCheckpoint.create();
-      await (await contract.connect(vfCreatorSigner).setResult(virtualFloorId3, 1)).wait();
+      await (await contract.connect(vfCreatorSigner).setResult(vfId3, 1)).wait();
       await evm.setNextBlockTimestamp('2033-01-12T01:10:00');
 
-      await expect(contract.connect(user1Signer).challengeSetResult(virtualFloorId3, 2)).to.be.revertedWith('TooLate()');
+      await expect(contract.connect(user1Signer).challengeSetResult(vfId3, 2)).to.be.revertedWith('TooLate()');
       await checkpoint.revertTo();
     });
 
 
     it('Should challenge a set result', async function () {
 
-      await (await contract.connect(vfCreatorSigner).setResult(virtualFloorId2, 1)).wait();
+      await (await contract.connect(vfCreatorSigner).setResult(vfId2, 1)).wait();
       await evm.setNextBlockTimestamp('2033-01-10T01:10:00');
       const challengerBalanceBeforeResolution = await tokenUSDC.balanceOf(user3Signer.address);
-      const { events } = await (await contract.connect(user3Signer).challengeSetResult(virtualFloorId2, 2)).wait();
+      const { events } = await (await contract.connect(user3Signer).challengeSetResult(vfId2, 2)).wait();
       const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
       const challengerBalanceAfterResolution = await tokenUSDC.balanceOf(user3Signer.address);
-      expect(vfId).to.eq(virtualFloorId2);
+      expect(vfId).to.eq(vfId2);
       expect(operator).to.eq(user3Signer.address);
       expect(action).to.eq(ResultUpdateAction.SomeoneChallengedSetResult);
       expect(outcomeIndex).to.eq(2);
@@ -851,10 +851,10 @@ describe('DoubleDice', function () {
 
     it('Confirm unchallenged result by anyone after 1 hour', async function () {
       await evm.setNextBlockTimestamp('2033-01-10T01:11:00');
-      const { events } = await (await contract.connect(user1Signer).confirmUnchallengedResult(virtualFloorId)).wait();
+      const { events } = await (await contract.connect(user1Signer).confirmUnchallengedResult(vfId)).wait();
 
-      const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
-      expect(vfId).to.eq(virtualFloorId);
+      const { vfId: eventVfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
+      expect(eventVfId).to.eq(vfId);
       expect(operator).to.eq(user1Signer.address);
       expect(action).to.eq(ResultUpdateAction.SomeoneConfirmedUnchallengedResult);
       expect(outcomeIndex).to.eq(1);
@@ -862,7 +862,7 @@ describe('DoubleDice', function () {
 
     it('Should revert if vf creator tries to finalize result', async function () {
       const OPERATOR_ROLE = await contract.OPERATOR_ROLE();
-      await expect(contract.connect(vfCreatorSigner).finalizeChallenge(virtualFloorId2, 2)).to.be.revertedWith(`AccessControl: account ${vfCreatorSigner.address.toLowerCase()} is missing role ${OPERATOR_ROLE}`);
+      await expect(contract.connect(vfCreatorSigner).finalizeChallenge(vfId2, 2)).to.be.revertedWith(`AccessControl: account ${vfCreatorSigner.address.toLowerCase()} is missing role ${OPERATOR_ROLE}`);
     });
 
     it('Should finalize set result to favor challenger', async function () {
@@ -870,11 +870,11 @@ describe('DoubleDice', function () {
       await evm.setNextBlockTimestamp('2033-01-11T00:00:00');
       const challengerBalanceBeforeResolution = await tokenUSDC.balanceOf(user3Signer.address);
       const VFCreatorBalanceBeforeResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
-      const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(virtualFloorId2, 2)).wait();
+      const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(vfId2, 2)).wait();
       const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
       const challengerBalanceAfterResolution = await tokenUSDC.balanceOf(user3Signer.address);
       const VFCreatorBalanceAfterResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
-      expect(vfId).to.eq(virtualFloorId2);
+      expect(vfId).to.eq(vfId2);
       expect(operator).to.eq(ownerSigner.address);
       expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
       expect(outcomeIndex).to.eq(2);
@@ -888,11 +888,11 @@ describe('DoubleDice', function () {
       await evm.setNextBlockTimestamp('2033-01-11T00:00:00');
       const challengerBalanceBeforeResolution = await tokenUSDC.balanceOf(user3Signer.address);
       const VFCreatorBalanceBeforeResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
-      const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(virtualFloorId2, 1)).wait();
+      const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(vfId2, 1)).wait();
       const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
       const challengerBalanceAfterResolution = await tokenUSDC.balanceOf(user3Signer.address);
       const VFCreatorBalanceAfterResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
-      expect(vfId).to.eq(virtualFloorId2);
+      expect(vfId).to.eq(vfId2);
       expect(operator).to.eq(ownerSigner.address);
       expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
       expect(outcomeIndex).to.eq(1);
@@ -906,11 +906,11 @@ describe('DoubleDice', function () {
       await evm.setNextBlockTimestamp('2033-01-11T00:00:00');
       const challengerBalanceBeforeResolution = await tokenUSDC.balanceOf(user3Signer.address);
       const VFCreatorBalanceBeforeResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
-      const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(virtualFloorId2, 0)).wait();
+      const { events } = await (await contract.connect(ownerSigner).finalizeChallenge(vfId2, 0)).wait();
       const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
       const challengerBalanceAfterResolution = await tokenUSDC.balanceOf(user3Signer.address);
       const VFCreatorBalanceAfterResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
-      expect(vfId).to.eq(virtualFloorId2);
+      expect(vfId).to.eq(vfId2);
       expect(operator).to.eq(ownerSigner.address);
       expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
       expect(outcomeIndex).to.eq(0);
@@ -922,9 +922,9 @@ describe('DoubleDice', function () {
     it('Should let platform admin set result that was not set by vf owner', async function () {
       const checkpoint = await EvmCheckpoint.create();
       await evm.setNextBlockTimestamp('2033-01-12T01:10:00');
-      const { events } = await (await contract.connect(ownerSigner).finalizeUnsetResult(virtualFloorId3, 2)).wait();
+      const { events } = await (await contract.connect(ownerSigner).finalizeUnsetResult(vfId3, 2)).wait();
       const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
-      expect(vfId).to.eq(virtualFloorId3);
+      expect(vfId).to.eq(vfId3);
       expect(operator).to.eq(ownerSigner.address);
       expect(action).to.eq(ResultUpdateAction.AdminFinalizedUnsetResult);
       expect(outcomeIndex).to.eq(2);

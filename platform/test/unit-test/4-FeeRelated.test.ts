@@ -28,7 +28,7 @@ chai.use(chaiSubset);
 
 let helper: DoubleDicePlatformHelper;
 
-const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
+const totalFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
 describe('DoubleDice/FeeRelated', function () {
   let ownerSigner: SignerWithAddress;
@@ -95,7 +95,7 @@ describe('DoubleDice/FeeRelated', function () {
   });
 
   describe('Fee related tests', function () {
-    let virtualFloorId: BigNumberish;
+    let vfId: BigNumberish;
     const betaOpen_e18 = BigNumber.from(10)
       .pow(18)
       .mul(13); // 1 unit per hour
@@ -108,11 +108,11 @@ describe('DoubleDice/FeeRelated', function () {
 
     beforeEach(async () => {
       // Random virtual floor for each test case
-      virtualFloorId = generateRandomVirtualFloorId();
+      vfId = generateRandomVirtualFloorId();
       virtualFloorCreationParams = {
-        virtualFloorId,
+        vfId,
         betaOpen_e18,
-        creationFeeRate_e18,
+        totalFeeRate_e18,
         tOpen,
         tClose,
         tResolve,
@@ -145,21 +145,21 @@ describe('DoubleDice/FeeRelated', function () {
       });
 
       // winners commitment
-      const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user1Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
-      const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
+      const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(vfId, 1, user1Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
+      const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(vfId, 1, user2Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
 
       // loser commitment
-      await helper.commitToVirtualFloor(virtualFloorId, 0, user3Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
+      await helper.commitToVirtualFloor(vfId, 0, user3Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
 
       await evm.setNextBlockTimestamp(tResolve);
 
-      const [resolutionEvent] = await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 1);
+      const [resolutionEvent] = await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, vfId, 1);
 
       const user1BalanceBeforeClaim = await token.balanceOf(user1Signer.address);
       const user2BalanceBeforeClaim = await token.balanceOf(user1Signer.address);
 
-      await helper.claimPayouts(user1Signer, virtualFloorId, [user1CommitmentEventArgs.tokenId]);
-      await helper.claimPayouts(user2Signer, virtualFloorId, [user2CommitmentEventArgs.tokenId]);
+      await helper.claimPayouts(user1Signer, vfId, [user1CommitmentEventArgs.tokenId]);
+      await helper.claimPayouts(user2Signer, vfId, [user2CommitmentEventArgs.tokenId]);
 
       const user1BalanceAfterClaim = await token.balanceOf(user1Signer.address);
       const user2BalanceAfterClaim = await token.balanceOf(user1Signer.address);
@@ -200,11 +200,11 @@ describe('DoubleDice/FeeRelated', function () {
       // set to open time
       await evm.setNextBlockTimestamp('2022-06-01T10:00:00');
       // winners commitment
-      const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user1Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
+      const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(vfId, 1, user1Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
       await evm.setNextBlockTimestamp('2028-06-01T10:00:00');
-      const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user2Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
+      const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(vfId, 1, user2Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
       await evm.setNextBlockTimestamp('2029-06-01T10:00:00');
-      const user3CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(virtualFloorId, 1, user3Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
+      const user3CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(vfId, 1, user3Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
 
       console.log('user1 commitment', user1CommitmentEventArgs.timeslot.toNumber());
       console.log('user2 commitment', user2CommitmentEventArgs.timeslot.toNumber());
@@ -214,21 +214,21 @@ describe('DoubleDice/FeeRelated', function () {
       console.log('beta commitment', user3CommitmentEventArgs.beta_e18);
 
       // loser commitment
-      await helper.commitToVirtualFloor(virtualFloorId, 0, user4Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
+      await helper.commitToVirtualFloor(vfId, 0, user4Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
 
 
       expect(user3CommitmentEventArgs.tokenId).to.not.be.eq(user1CommitmentEventArgs.tokenId);
       expect(user3CommitmentEventArgs.beta_e18).to.not.be.eq(user1CommitmentEventArgs.beta_e18);
 
       await evm.setNextBlockTimestamp('2032-01-02T00:00:00');
-      const [resolutionEvent] = await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, virtualFloorId, 1);
+      const [resolutionEvent] = await helper.setResultThenLaterConfirmUnchallengedResult(ownerSigner, vfId, 1);
 
       const user1BalanceBeforeClaim = await token.balanceOf(user1Signer.address);
       const user2BalanceBeforeClaim = await token.balanceOf(user1Signer.address);
 
-      await helper.claimPayouts(user1Signer, virtualFloorId, [user1CommitmentEventArgs.tokenId]);
-      await helper.claimPayouts(user2Signer, virtualFloorId, [user2CommitmentEventArgs.tokenId]);
-      await helper.claimPayouts(user3Signer, virtualFloorId, [user3CommitmentEventArgs.tokenId]);
+      await helper.claimPayouts(user1Signer, vfId, [user1CommitmentEventArgs.tokenId]);
+      await helper.claimPayouts(user2Signer, vfId, [user2CommitmentEventArgs.tokenId]);
+      await helper.claimPayouts(user3Signer, vfId, [user3CommitmentEventArgs.tokenId]);
 
       const user1BalanceAfterClaim = await token.balanceOf(user1Signer.address);
       const user2BalanceAfterClaim = await token.balanceOf(user1Signer.address);

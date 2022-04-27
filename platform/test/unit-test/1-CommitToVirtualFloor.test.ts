@@ -30,7 +30,7 @@ chai.use(chaiSubset);
 
 let helper: DoubleDicePlatformHelper;
 
-const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
+const totalFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
 describe('DoubleDice/Commit', function () {
   let ownerSigner: SignerWithAddress;
@@ -100,7 +100,7 @@ describe('DoubleDice/Commit', function () {
 
   describe('Commit To Virtual Floor', function () {
     // Random virtual floor for each test case
-    let virtualFloorId: BigNumberish;
+    let vfId: BigNumberish;
     const tOpen = toTimestamp('2022-06-01T12:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
@@ -146,12 +146,12 @@ describe('DoubleDice/Commit', function () {
         await token.connect(user3Signer).approve(contract.address, $(100))
       ).wait();
 
-      virtualFloorId = generateRandomVirtualFloorId();
+      vfId = generateRandomVirtualFloorId();
 
       virtualFloorCreationParams = {
-        virtualFloorId,
+        vfId,
         betaOpen_e18,
-        creationFeeRate_e18,
+        totalFeeRate_e18,
         tOpen,
         tClose,
         tResolve,
@@ -171,7 +171,7 @@ describe('DoubleDice/Commit', function () {
       ).wait();
     });
 
-    it('Should revert if virtualFloorId doesn’t exist', async function () {
+    it('Should revert if vfId doesn’t exist', async function () {
       const randomVirtualFloorId = '0x00000000000000000000000000000000000000000000000000dead0000000000';
       const outcomeIndex = 0;
       const amount = $(10);
@@ -190,7 +190,7 @@ describe('DoubleDice/Commit', function () {
       await expect(
         contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).to.be.revertedWith(`WrongVirtualFloorState(${VirtualFloorState.Active_Closed_ResolvableNever})`);
       await checkpoint.revertTo();
     });
@@ -200,7 +200,7 @@ describe('DoubleDice/Commit', function () {
       await expect(
         contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, wrongOutComeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, wrongOutComeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).to.be.revertedWith('OutcomeIndexOutOfRange()');
     });
 
@@ -209,7 +209,7 @@ describe('DoubleDice/Commit', function () {
       await expect(
         contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, wrongAmount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, wrongAmount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).to.be.revertedWith('CommitmentAmountOutOfRange()');
     });
 
@@ -219,7 +219,7 @@ describe('DoubleDice/Commit', function () {
         contract
           .connect(user1Signer)
           .commitToVirtualFloor(
-            virtualFloorId,
+            vfId,
             outcomeIndex,
             amountBiggerThanAllowance,
             UNSPECIFIED_COMMITMENT_DEADLINE
@@ -231,12 +231,12 @@ describe('DoubleDice/Commit', function () {
       const { events } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
 
       const userCommitmentEventArgs = findUserCommitmentEventArgs(events);
 
-      expect(userCommitmentEventArgs.virtualFloorId).to.eq(virtualFloorId);
+      expect(userCommitmentEventArgs.vfId).to.eq(vfId);
       expect(userCommitmentEventArgs.outcomeIndex).to.eq(outcomeIndex);
       expect(userCommitmentEventArgs.amount).to.eq(amount);
     });
@@ -248,7 +248,7 @@ describe('DoubleDice/Commit', function () {
       await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const balanceOfContractAfterCommit = await token.balanceOf(
         contract.address
@@ -260,16 +260,16 @@ describe('DoubleDice/Commit', function () {
 
     it('Should increase the VF aggregate commitment by the amount', async function () {
       const aggregateBalanceBeforeCommit = await contract.getVirtualFloorOutcomeTotals(
-        virtualFloorId,
+        vfId,
         outcomeIndex
       );
       await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const aggregateBalanceAfterCommit = await contract.getVirtualFloorOutcomeTotals(
-        virtualFloorId,
+        vfId,
         outcomeIndex
       );
       expect(
@@ -287,7 +287,7 @@ describe('DoubleDice/Commit', function () {
       const { events: commitment1Events } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const commitment1EventArgs = findUserCommitmentEventArgs(
         commitment1Events
@@ -298,7 +298,7 @@ describe('DoubleDice/Commit', function () {
       const { events: commitment2Events } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const commitment2EventArgs = findUserCommitmentEventArgs(
         commitment2Events
@@ -312,7 +312,7 @@ describe('DoubleDice/Commit', function () {
     });
 
     it('Should generate unique token id for the granularity level of time slot duration after open time', async function () {
-      const virtualFloorId1 = generateRandomVirtualFloorId();
+      const vfId1 = generateRandomVirtualFloorId();
 
       const { timestamp } = await ethers.provider.getBlock('latest');
 
@@ -323,7 +323,7 @@ describe('DoubleDice/Commit', function () {
       await (
         await contract.createVirtualFloor({
           ...virtualFloorCreationParams,
-          virtualFloorId: virtualFloorId1,
+          vfId: vfId1,
           tOpen: _tOpen,
           paymentToken: paymentTokenAddress,
         })
@@ -335,7 +335,7 @@ describe('DoubleDice/Commit', function () {
       const { events: commitment1Events, blockHash: blockHash1 } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId1, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId1, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const commitment1EventArgs = findUserCommitmentEventArgs(
         commitment1Events
@@ -349,7 +349,7 @@ describe('DoubleDice/Commit', function () {
       const { events: commitment2Events, blockHash: blockHash2 } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId1, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId1, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const commitment2EventArgs = findUserCommitmentEventArgs(
         commitment2Events
@@ -370,7 +370,7 @@ describe('DoubleDice/Commit', function () {
         contract
           .connect(user1Signer)
           .commitToVirtualFloor(
-            virtualFloorId,
+            vfId,
             outcomeIndex,
             amountExceedUint256Limit,
             UNSPECIFIED_COMMITMENT_DEADLINE
@@ -385,7 +385,7 @@ describe('DoubleDice/Commit', function () {
         contract
           .connect(user1Signer)
           .commitToVirtualFloor(
-            virtualFloorId,
+            vfId,
             outcomeIndex,
             amountExceedUint256Limit,
             UNSPECIFIED_COMMITMENT_DEADLINE
@@ -397,7 +397,7 @@ describe('DoubleDice/Commit', function () {
       const { events } = await (
         await contract
           .connect(user1Signer)
-          .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
+          .commitToVirtualFloor(vfId, outcomeIndex, amount, UNSPECIFIED_COMMITMENT_DEADLINE)
       ).wait();
       const userCommitmentEventArgs = findUserCommitmentEventArgs(events);
 

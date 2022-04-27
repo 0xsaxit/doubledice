@@ -24,7 +24,7 @@ import {
 
 chai.use(chaiSubset);
 
-const creationFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
+const totalFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
 const MIN_POSSIBLE_T_RESOLVE_MINUS_T_CLOSE = 10 * 60;
 
@@ -36,7 +36,7 @@ describe('DoubleDice/Create', function () {
   let token: DummyUSDCoin | DummyWrappedBTC;
   let evm: EvmHelper;
   let checkpoint: EvmCheckpoint;
-  const virtualFloorId = '0x0000000000000000000000000000000000000000000000000123450000000000';
+  const vfId = '0x0000000000000000000000000000000000000000000000000123450000000000';
   const tOpen = toTimestamp('2032-01-01T00:00:00');
   const tClose = toTimestamp('2032-01-01T12:00:00');
   const tResolve = toTimestamp('2032-01-02T00:00:00');
@@ -92,9 +92,9 @@ describe('DoubleDice/Create', function () {
     }
 
     vfParams = {
-      virtualFloorId,
+      vfId,
       betaOpen_e18,
-      creationFeeRate_e18,
+      totalFeeRate_e18,
       tOpen,
       tClose,
       tResolve,
@@ -157,9 +157,9 @@ describe('DoubleDice/Create', function () {
     await expect(contract.createVirtualFloor({ ...vfParams, betaOpen_e18: 1_000000_000000_000000n })).to.emit(contract, 'VirtualFloorCreation');
   });
 
-  it('creationFeeRate <= 1.0', async () => {
-    await expect(contract.createVirtualFloor({ ...vfParams, creationFeeRate_e18: 1_000000_000000_000001n })).to.be.revertedWith('CreationFeeRateTooLarge()');
-    await expect(contract.createVirtualFloor({ ...vfParams, creationFeeRate_e18: 1_000000_000000_000000n })).to.emit(contract, 'VirtualFloorCreation');
+  it('totalFeeRate <= 1.0', async () => {
+    await expect(contract.createVirtualFloor({ ...vfParams, totalFeeRate_e18: 1_000000_000000_000001n })).to.be.revertedWith('CreationFeeRateTooLarge()');
+    await expect(contract.createVirtualFloor({ ...vfParams, totalFeeRate_e18: 1_000000_000000_000000n })).to.emit(contract, 'VirtualFloorCreation');
   });
 
   it('Creation must happen up to 10% into the Running period', async () => {
@@ -181,21 +181,21 @@ describe('DoubleDice/Create', function () {
 
     evm.setNextBlockTimestamp(tCreateMax);
     const { events } = await (await contract.createVirtualFloor(params)).wait();
-    const { virtualFloorId } = findContractEventArgs(events, 'VirtualFloorCreation');
-    expect(virtualFloorId).to.eq(params.virtualFloorId);
+    const { vfId } = findContractEventArgs(events, 'VirtualFloorCreation');
+    expect(vfId).to.eq(params.vfId);
     await localCheckpoint.revertTo();
   });
 
   it('Should assign creator correctly', async () => {
     await (await contract.connect(ownerSigner).adjustCreationQuotas([{ creator: secondCreator.address, relativeAmount: 1 }])).wait();
     await (await contract.connect(secondCreator).createVirtualFloor(vfParams)).wait();
-    expect(await contract.getVirtualFloorCreator(virtualFloorId)).to.eq(secondCreator.address);
+    expect(await contract.getVirtualFloorCreator(vfId)).to.eq(secondCreator.address);
   });
 
   it('Should create VF if right arguments passed', async () => {
     const { events } = await (await contract.createVirtualFloor(vfParams)).wait();
     const virtualFloorCreationEventArgs = findContractEventArgs(events, 'VirtualFloorCreation');
-    expect(virtualFloorCreationEventArgs.virtualFloorId).to.eq(virtualFloorId);
+    expect(virtualFloorCreationEventArgs.vfId).to.eq(vfId);
   });
 
   it('Should revert if VF with same id created before', async () => {

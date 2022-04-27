@@ -112,7 +112,7 @@ function migrateMetadataCategory(old: string): string {
 
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
   // Although this is "info" or "debug", we log as "warning" as it is easier to find because there are less
-  log.warning('Creating VirtualFloorCreation({})...', [event.params.virtualFloorId.toString()]);
+  log.warning('Creating VirtualFloorCreation({})...', [event.params.vfId.toString()]);
 
   {
     const aggregate = loadOrCreateEntity<VirtualFloorsAggregate>(VirtualFloorsAggregate.load, SINGLETON_AGGREGATE_ENTITY_ID);
@@ -122,7 +122,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   const metadata = decodeMetadata(event.params.metadata);
 
-  const vfId = genVfEntityId(event.params.virtualFloorId);
+  const vfId = genVfEntityId(event.params.vfId);
 
   const vf = createNewEntity<Vf>(Vf.load, vfId);
 
@@ -134,7 +134,7 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   const subcategory = assertSubcategoryEntity(category, metadata.subcategory);
   vf.subcategory = subcategory.id;
 
-  vf.intId = event.params.virtualFloorId;
+  vf.intId = event.params.vfId;
   vf.title = metadata.title;
   vf.description = metadata.description;
   vf.isListed = metadata.isListed;
@@ -151,7 +151,8 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   vf.paymentToken = event.params.paymentToken.toHex();
 
   vf.betaOpen = toBigDecimal(event.params.betaOpen_e18);
-  vf.creationFeeRate = toBigDecimal(event.params.creationFeeRate_e18);
+  vf.totalFeeRate = toBigDecimal(event.params.totalFeeRate_e18);
+  vf.creationFeeRate = vf.totalFeeRate; // ToDo: Drop
   vf.platformFeeRate = toBigDecimal(event.params.platformFeeRate_e18);
   vf.tCreated = event.block.timestamp;
   vf.tOpen = event.params.tOpen;
@@ -192,7 +193,7 @@ function convertPaymentTokenAmountToDecimal(vf: Vf, amount: BigInt): BigDecimal 
 }
 
 export function handleUserCommitment(event: UserCommitmentEvent): void {
-  const vfOutcome = loadExistentVfOutcomeEntity(event.params.virtualFloorId, event.params.outcomeIndex);
+  const vfOutcome = loadExistentVfOutcomeEntity(event.params.vfId, event.params.outcomeIndex);
 
   const beta = toBigDecimal(event.params.beta_e18);
   assertVfOutcomeTimeslotEntity(vfOutcome, event.params.timeslot, event.params.tokenId, beta);
@@ -303,7 +304,7 @@ function creditEntityHierarchy(vfOutcomeTimeslot: VfOutcomeTimeslot, user: User,
 }
 
 export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCancellationUnresolvableEvent): void {
-  const vf = loadExistentVfEntity(event.params.virtualFloorId);
+  const vf = loadExistentVfEntity(event.params.vfId);
   const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_ResolvableNever;
@@ -311,7 +312,7 @@ export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCa
 }
 
 export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancellationFlaggedEvent): void {
-  const vf = loadExistentVfEntity(event.params.virtualFloorId);
+  const vf = loadExistentVfEntity(event.params.vfId);
   const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_Flagged;
@@ -320,7 +321,7 @@ export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancell
 }
 
 export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent): void {
-  const vf = loadExistentVfEntity(event.params.virtualFloorId);
+  const vf = loadExistentVfEntity(event.params.vfId);
   const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   switch (event.params.resolutionType) {
@@ -331,7 +332,7 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
       vf.state = VirtualFloorState__Claimable_Payouts;
       break;
   }
-  vf.winningOutcome = loadExistentVfOutcomeEntity(event.params.virtualFloorId, event.params.winningOutcomeIndex).id;
+  vf.winningOutcome = loadExistentVfOutcomeEntity(event.params.vfId, event.params.winningOutcomeIndex).id;
   vf.winnerProfits = convertPaymentTokenAmountToDecimal(vf, event.params.winnerProfits);
   vf.save();
 }

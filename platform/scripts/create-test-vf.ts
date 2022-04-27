@@ -37,9 +37,9 @@ async function main() {
   const tResolve = timestamp + 2 * 86400;
 
   await (await platform.createVirtualFloor({
-    virtualFloorId: vfId,
+    vfId,
     betaOpen_e18: 100_000000_000000_000000n, // = 100.0
-    creationFeeRate_e18: 12500_000000_000000n, // = 0.0125 = 1.25%
+    totalFeeRate_e18: 12500_000000_000000n, // = 0.0125 = 1.25%
     tOpen,
     tClose,
     tResolve,

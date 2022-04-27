@@ -1,6 +1,6 @@
 # DoubleDice platform contract
 
-The DoubleDice (DD) platform allows users to commit an amount of money (ERC-20 tokens) to a prediction that specific future event resolves to a specific outcome from a predefined list of 2 or more mutually-exclusive possible outcomes. E.g. the specific event could be “FIFA World Cup 2022 final qualifiers winner” and 16 outcomes would represent the 16 participating football teams.
+The DoubleDice (DD) platform allows users to commit an amount of money (ERC-20 tokens) to a prediction that a specific future event resolves to a specific outcome from a predefined list of 2 or more mutually-exclusive possible outcomes. E.g. the specific event could be “FIFA World Cup 2022 final qualifiers winner” and 16 outcomes would represent the 16 participating football teams.
 
 The DD platform enables a group of users to *virtually* gather on a *floor* and announce their commitments to different outcomes: “Put me 10$ on a Brazil win”, “Put me 100$ on an Argentina win”. In keeping with this imagery, the entire set of data pertaining to an event and its associated commitments are termed a *virtual-floor* (VF).
 

@@ -126,7 +126,7 @@ You can choose commit all changes either in one big step, or on a project-by-pro
 
 # Fees
 
-During VF-creation, the VF creator specifies the "rake" in the UI. This is referred to in the contract code as the `creationFeeRate`. Not "creator", but "creation". It is the “net” fee-rate applied to a virtual-floor’s profits. If 100$ are lost in total on a bet, and the `creationFeeRate` is 15% (`0.1500`), then (in the simple case) a creation-fee of 15$ will be taken, leaving 85$ to be distributed among winners as profit. In the contract code, this 15$ is referred to as the `creationFeeAmount`.
+During VF-creation, the VF creator specifies the "rake" in the UI. This is referred to in the contract code as the `totalFeeRate`. Not "creator", but "creation". It is the “net” fee-rate applied to a virtual-floor’s profits. If 100$ are lost in total on a bet, and the `totalFeeRate` is 15% (`0.1500`), then (in the simple case) a creation-fee of 15$ will be taken, leaving 85$ to be distributed among winners as profit. In the contract code, this 15$ is referred to as the `totalFeeAmount`.
 
 There is a contract-wide `platformFeeRate` setting stored on the contract. During the VF-creation transaction, this global setting is read from the contract and “frozen” into the VF. In this way, VFs that happen to be unresolved at the instant at which the gobal `platformFeeRate` setting is updated (which will happen very rarely), will be bound with the rate as it was when those VFs were created.
 
@@ -136,9 +136,9 @@ The remaining 10$ will go to the VF _owner_ (`ownerFeeAmount`).
 
 In summary:
 ```
-creationFeeAmount = 15% × total losses = 15$
-platformFeeAmount = 33.33% × creationFeeAmount = 5$
-ownerFeeAmount = creationFeeAmount - platformFeeAmount = 10$
+totalFeeAmount = 15% × total losses = 15$
+platformFeeAmount = 33.33% × totalFeeAmount = 5$
+ownerFeeAmount = totalFeeAmount - platformFeeAmount = 10$
 ```
 
 Unless the original VF creator has transferred the VF to someone else, the VF owner will be the original VF creator. Otherwise, it will be the new owner to whom the VF creator transferred the VF. In general, whoever owns the VF at the moment of resolution, receives the `ownerFeeAmount` (the 10$ in our example).

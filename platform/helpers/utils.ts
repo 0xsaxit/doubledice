@@ -40,7 +40,7 @@ export const findContractEventArgs = <T = any>(events: ContractReceipt['events']
 };
 
 export interface UserCommitment {
-  virtualFloorId: BigNumber;
+  vfId: BigNumber;
   committer: string;
   outcomeIndex: BigNumber;
   timeslot: BigNumber;
@@ -56,7 +56,7 @@ enum VirtualFloorResolutionType {
 }
 
 export interface VirtualFloorResolution {
-  virtualFloorId: BigNumber;
+  vfId: BigNumber;
   winningOutcomeIndex: BigNumber;
   resolutionType: VirtualFloorResolutionType;
   winnerProfits: BigNumber;

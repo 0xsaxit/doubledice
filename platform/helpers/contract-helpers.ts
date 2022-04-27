@@ -84,7 +84,7 @@ export class DoubleDicePlatformHelper {
   // }
 
   async commitToVirtualFloor(
-    virtualFloorId: BigNumberish,
+    vfId: BigNumberish,
     outcomeIndex: number,
     userSigner: SignerWithAddress,
     amount: BigNumberish,
@@ -93,7 +93,7 @@ export class DoubleDicePlatformHelper {
     const { events } = await (
       await this.contract
         .connect(userSigner)
-        .commitToVirtualFloor(virtualFloorId, outcomeIndex, amount, deadline)
+        .commitToVirtualFloor(vfId, outcomeIndex, amount, deadline)
     ).wait();
 
     return (findUserCommitmentEventArgs(
@@ -102,14 +102,14 @@ export class DoubleDicePlatformHelper {
   }
 
   async resolveVirtualFloor(
-    virtualFloorId: BigNumberish,
+    vfId: BigNumberish,
     outcomeIndex: number,
     ownerSigner: SignerWithAddress
   ): Promise<VirtualFloorResolution> {
     const { events } = await (
       await this.contract
         .connect(ownerSigner)
-        .setResult(virtualFloorId, outcomeIndex)
+        .setResult(vfId, outcomeIndex)
     ).wait();
 
     return (findVFResolutionEventArgs(

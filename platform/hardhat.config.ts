@@ -2,7 +2,6 @@ import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-etherscan';
 import '@nomiclabs/hardhat-waffle';
 import '@typechain/hardhat';
-import assert from 'assert';
 import dotenv from 'dotenv';
 import 'hardhat-abi-exporter';
 import 'hardhat-gas-reporter';
@@ -38,10 +37,9 @@ const config: HardhatUserConfig = {
     flat: true,
     only: [
       ':DoubleDice$',
+      ':DummyERC20$',
       ':DummyUSDCoin$',
       ':GraphHelper$',
-      ':IDoubleDice$',
-      ':IDoubleDiceAdmin$',
       ':IERC20Metadata$',
     ],
     runOnCompile: true,
@@ -94,7 +92,7 @@ const config: HardhatUserConfig = {
   gasReporter: {
     outputFile: 'gas-report.txt',
     noColors: true,
-    excludeContracts: ['mock/'],
+    excludeContracts: ['other/'],
   },
   etherscan: {
     apiKey: ETHERSCAN_API_KEY

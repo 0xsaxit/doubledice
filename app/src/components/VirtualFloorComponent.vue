@@ -2,16 +2,10 @@
   <tbody class="virtual-floor">
     <tr :id="`virtual-floor-${virtualFloor.id}`">
       <td :colspan="(showVfJsonCol ? 1 : 0) + 9 + maxOutcomes">
-        <Timeline
-          :min="minVirtualFloorTimestamp"
-          :start="Number(virtualFloor.tCreated)"
-          :open="Number(virtualFloor.tOpen)"
-          :close="Number(virtualFloor.tClose)"
-          :resolve="Number((virtualFloor.tResultSetMin))"
-          :max="maxVirtualFloorTimestamp"
-          :locked="fastforwarding"
-          :now="nextBlockTimestamp"
-        />
+        <Timeline :min="minVirtualFloorTimestamp" :start="Number(virtualFloor.tCreated)"
+          :open="Number(virtualFloor.tOpen)" :close="Number(virtualFloor.tClose)"
+          :resolve="Number((virtualFloor.tResultSetMin))" :max="maxVirtualFloorTimestamp" :locked="fastforwarding"
+          :now="nextBlockTimestamp" />
         <div>
           <h2>
             {{ virtualFloor.title }}
@@ -27,10 +21,7 @@
           <p>{{ virtualFloor.description }}</p>
           <p>
             <span>Result sources:&nbsp;</span>
-            <span
-              v-for="(resultSource, index) in virtualFloor.resultSources"
-              :key="resultSource.id"
-            >
+            <span v-for="(resultSource, index) in virtualFloor.resultSources" :key="resultSource.id">
               <span v-if="index > 0">,&nbsp;</span>
               <a :href="resultSource.url">{{ resultSource.title }}</a>
             </span>
@@ -38,10 +29,8 @@
           </p>
           <div>
             <template v-for="(opponent, index) in virtualFloor.opponents" :key="opponent.id">
-              <div
-                style="display: inline-block; font-size: xx-large; font-style: italic; padding: 30px"
-                v-if="index > 0"
-              >
+              <div style="display: inline-block; font-size: xx-large; font-style: italic; padding: 30px"
+                v-if="index > 0">
                 <span>VS</span>
               </div>
               <div style="display: inline-block">
@@ -54,10 +43,8 @@
           </div>
         </div>
         <div style="text-align: right">
-          <button
-            :disabled="!isCancellableBecauseUnresolvable"
-            @click="cancelVirtualFloorUnresolvable"
-          >Cancel VF because unresolvable</button>
+          <button :disabled="!isCancellableBecauseUnresolvable" @click="cancelVirtualFloorUnresolvable">Cancel VF
+            because unresolvable</button>
         </div>
       </td>
     </tr>
@@ -93,34 +80,22 @@
           </tr>
         </table>
       </td>
-      <td rowspan="2">{{ `${Number(virtualFloor.creationFeeRate) * 100}%` }}</td>
+      <td rowspan="2">{{ `${Number(virtualFloor.totalFeeRate) * 100}%` }}</td>
       <td rowspan="2">{{ `${Number(virtualFloor.platformFeeRate) * 100}%` }}</td>
-      <td
-        rowspan="2"
-      >{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
-      <td
-        rowspan="2"
-      >{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
+      <td rowspan="2">{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
+      <td rowspan="2">{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
       <td rowspan="2">{{ beta.toFixed(6) }}</td>
       <td rowspan="2">{{ virtualFloor.totalSupply }}</td>
       <template v-for="outcome in virtualFloor.outcomes" :key="outcome.id">
-        <Outcome
-          :contract="contract"
-          :virtualFloor="virtualFloor"
-          :outcome="outcome"
-          :nextBlockTimestamp="nextBlockTimestamp"
-          :isVirtualFloorUnresolvable="isUnresolvable"
-          @balanceChange="$emit('balanceChange')"
-        />
+        <Outcome :contract="contract" :virtualFloor="virtualFloor" :outcome="outcome"
+          :nextBlockTimestamp="nextBlockTimestamp" :isVirtualFloorUnresolvable="isUnresolvable"
+          @balanceChange="$emit('balanceChange')" />
       </template>
     </tr>
     <tr>
       <td :colspan="virtualFloor.outcomes.length">
         <div v-if="preparedClaim">
-          <button
-            @click="claim"
-            style="width: 100%; height: 30px; font-size: larger"
-          >{{ claimButtonText }}</button>
+          <button @click="claim" style="width: 100%; height: 30px; font-size: larger">{{ claimButtonText }}</button>
         </div>
         <div v-else style="text-align: center;">Not possible to claim</div>
       </td>

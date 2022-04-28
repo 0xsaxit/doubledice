@@ -876,7 +876,7 @@ describe('DoubleDice', function () {
       const VFCreatorBalanceAfterResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
       expect(vfId).to.eq(vfId2);
       expect(operator).to.eq(ownerSigner.address);
-      expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
+      expect(action).to.eq(ResultUpdateAction.OperatorFinalizedChallenge);
       expect(outcomeIndex).to.eq(2);
       expect(challengerBalanceAfterResolution).to.be.gt(challengerBalanceBeforeResolution);
       expect(VFCreatorBalanceAfterResolution).to.eq(VFCreatorBalanceBeforeResolution);
@@ -894,7 +894,7 @@ describe('DoubleDice', function () {
       const VFCreatorBalanceAfterResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
       expect(vfId).to.eq(vfId2);
       expect(operator).to.eq(ownerSigner.address);
-      expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
+      expect(action).to.eq(ResultUpdateAction.OperatorFinalizedChallenge);
       expect(outcomeIndex).to.eq(1);
       expect(challengerBalanceBeforeResolution).to.eq(challengerBalanceAfterResolution);
       expect(VFCreatorBalanceAfterResolution).to.be.gt(VFCreatorBalanceBeforeResolution);
@@ -912,7 +912,7 @@ describe('DoubleDice', function () {
       const VFCreatorBalanceAfterResolution = await tokenUSDC.balanceOf(vfCreatorSigner.address);
       expect(vfId).to.eq(vfId2);
       expect(operator).to.eq(ownerSigner.address);
-      expect(action).to.eq(ResultUpdateAction.AdminFinalizedChallenge);
+      expect(action).to.eq(ResultUpdateAction.OperatorFinalizedChallenge);
       expect(outcomeIndex).to.eq(0);
       expect(challengerBalanceBeforeResolution).to.eq(challengerBalanceAfterResolution);
       expect(VFCreatorBalanceAfterResolution).to.eq(VFCreatorBalanceBeforeResolution);
@@ -926,7 +926,7 @@ describe('DoubleDice', function () {
       const { vfId, operator, action, outcomeIndex } = findContractEventArgs(events, 'ResultUpdate');
       expect(vfId).to.eq(vfId3);
       expect(operator).to.eq(ownerSigner.address);
-      expect(action).to.eq(ResultUpdateAction.AdminFinalizedUnsetResult);
+      expect(action).to.eq(ResultUpdateAction.OperatorFinalizedUnsetResult);
       expect(outcomeIndex).to.eq(2);
       await checkpoint.revertTo();
     });

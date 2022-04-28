@@ -19,11 +19,11 @@ export enum VirtualFloorState {
 }
 
 export enum ResultUpdateAction {
-  AdminFinalizedUnsetResult,
+  OperatorFinalizedUnsetResult,
   CreatorSetResult,
   SomeoneConfirmedUnchallengedResult,
   SomeoneChallengedSetResult,
-  AdminFinalizedChallenge
+  OperatorFinalizedChallenge
 }
 
 export enum ResolutionState {

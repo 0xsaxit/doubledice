@@ -373,9 +373,9 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
       vf.challenger = assertUserEntity(event.params.operator).id;
       break;
     }
-    case ResultUpdateAction.AdminFinalizedUnsetResult:
+    case ResultUpdateAction.OperatorFinalizedUnsetResult:
     case ResultUpdateAction.SomeoneConfirmedUnchallengedResult:
-    case ResultUpdateAction.AdminFinalizedChallenge:
+    case ResultUpdateAction.OperatorFinalizedChallenge:
       // No need to handle these, as these will all result in a separate `VirtualFloorResolution` event,
       // which will be handled by `handleVirtualFloorResultion`
       break;

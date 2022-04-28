@@ -11,11 +11,11 @@ import "./BaseDoubleDice.sol";
 
 
 enum ResultUpdateAction {
-    AdminFinalizedUnsetResult,
+    OperatorFinalizedUnsetResult,
     CreatorSetResult,
     SomeoneConfirmedUnchallengedResult,
     SomeoneChallengedSetResult,
-    AdminFinalizedChallenge
+    OperatorFinalizedChallenge
 }
 
 enum ResolutionState {
@@ -122,7 +122,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         if (!(block.timestamp > tResultSetMax)) revert TooEarly();
 
         resolution.state = ResolutionState.Complete;
-        emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.AdminFinalizedUnsetResult, finalOutcomeIndex);
+        emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.OperatorFinalizedUnsetResult, finalOutcomeIndex);
 
         // nonReentrant
         // Since finalizeUnsetResult is guarded by require(state == None)
@@ -272,7 +272,7 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
             challengeBondBeneficiary = platformFeeBeneficiary();
         }
         resolution.state = ResolutionState.Complete;
-        emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.AdminFinalizedChallenge, finalOutcomeIndex);
+        emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.OperatorFinalizedChallenge, finalOutcomeIndex);
 
         // nonReentrant
         // Since finalizeChallenge is guarded by require(state == Challenged)

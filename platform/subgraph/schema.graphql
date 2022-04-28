@@ -52,11 +52,11 @@ enum VirtualFloorState {
 }
 
 enum ResultUpdateAction {
-  AdminFinalizedUnsetResult,
+  OperatorFinalizedUnsetResult,
   CreatorSetResult,
   SomeoneConfirmedUnchallengedResult,
   SomeoneChallengedSetResult,
-  AdminFinalizedChallenge
+  OperatorFinalizedChallenge
 }
 
 type VirtualFloor @entity {

@@ -7,6 +7,10 @@ import "./library/Utils.sol";
 
 /**
  * @notice In v1 the metadata is a direct ABI-encoding of this structure.
+ * @dev Potential alternative encodings:
+ * - Direct JSON-encoding
+ * - SHA-256 of JSON-encoding
+ * - SHA-256 of JSON-encoding + validation signature
  */
 struct VirtualFloorMetadataV1 {
     string category;

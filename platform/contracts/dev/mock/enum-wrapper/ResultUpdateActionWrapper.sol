@@ -6,10 +6,10 @@ import "../../../ChallengeableCreatorOracle.sol";
 
 contract ResultUpdateActionWrapper {
     /* solhint-disable const-name-snakecase */
-    ResultUpdateAction constant public OperatorFinalizedUnsetResult = ResultUpdateAction.OperatorFinalizedUnsetResult;
-    ResultUpdateAction constant public CreatorSetResult = ResultUpdateAction.CreatorSetResult;
-    ResultUpdateAction constant public SomeoneConfirmedUnchallengedResult = ResultUpdateAction.SomeoneConfirmedUnchallengedResult;
-    ResultUpdateAction constant public SomeoneChallengedSetResult = ResultUpdateAction.SomeoneChallengedSetResult;
-    ResultUpdateAction constant public OperatorFinalizedChallenge = ResultUpdateAction.OperatorFinalizedChallenge;
+    ChallengeableCreatorOracle.ResultUpdateAction constant public OperatorFinalizedUnsetResult = ChallengeableCreatorOracle.ResultUpdateAction.OperatorFinalizedUnsetResult;
+    ChallengeableCreatorOracle.ResultUpdateAction constant public CreatorSetResult = ChallengeableCreatorOracle.ResultUpdateAction.CreatorSetResult;
+    ChallengeableCreatorOracle.ResultUpdateAction constant public SomeoneConfirmedUnchallengedResult = ChallengeableCreatorOracle.ResultUpdateAction.SomeoneConfirmedUnchallengedResult;
+    ChallengeableCreatorOracle.ResultUpdateAction constant public SomeoneChallengedSetResult = ChallengeableCreatorOracle.ResultUpdateAction.SomeoneChallengedSetResult;
+    ChallengeableCreatorOracle.ResultUpdateAction constant public OperatorFinalizedChallenge = ChallengeableCreatorOracle.ResultUpdateAction.OperatorFinalizedChallenge;
     /* solhint-enable const-name-snakecase */
 }

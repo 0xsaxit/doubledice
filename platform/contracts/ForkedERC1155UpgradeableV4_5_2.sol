@@ -14,7 +14,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 
 // ----------------------------------------🎲🎲 ABOUT THIS FORK 🎲🎲----------------------------------------
-// DOUBLEDICE FORK IS IDENTICAL TO ORIGINAL IMPLEMENTATION IN openzeppelin/contracts-upgradeable@4.5.2,
+// THIS FORK IS IDENTICAL TO ORIGINAL IMPLEMENTATION IN openzeppelin/contracts-upgradeable@4.5.2,
 // BUT WITH VISIBILITY OF `_balances` ALTERED FROM `private` TO `internal`,
 // AND WITH `pragma solidity ^0.8.0` RESTRICTED TO `pragma solidity 0.8.12`
 

@@ -36,7 +36,7 @@ import "./MultipleInheritanceOptimization.sol";
  *
  * @title Base DoubleDice protocol contract
  * @author 🎲🎲 <dev@doubledice.com>
- * @notice Enables users to commit an amount of ERC-20 tokens to a prediction that a specific future event,
+ * @notice Enables accounts to commit an amount of ERC-20 tokens to a prediction that a specific future event,
  * or VirtualFloor (VF), resolves to a specific outcome from a predefined list of 2 or more mutually-exclusive
  * possible outcomes.
  * Users committing funds to a specific VF outcome at a specific timepoint are issued with a commitment receipt
@@ -775,7 +775,7 @@ abstract contract BaseDoubleDice is
      * original ERC-20 amounts back to the caller.
      * A tokenId may be included multiple times, but it will count only once.
      * @param vfId The id of VF to claim refunds for. This must be a VF in one of the Claimable states.
-     * @param tokenIds the ERC-1155 token-ids on which the user has ERC-1155 balances to claim. They must match the supplied `vfId`.
+     * @param tokenIds the ERC-1155 token-ids on which the account has ERC-1155 balances to claim. They must match the supplied `vfId`.
      */
     function claimRefunds(uint256 vfId, uint256[] calldata tokenIds)
         public
@@ -810,7 +810,7 @@ abstract contract BaseDoubleDice is
      * The transaction will burn all the ERC-1155 balances the caller has on `tokenIds` and transfer any corresponding ERC-20 payouts to the caller.
      * A tokenId may be included multiple times, but it will count only once.
      * @param vfId The id of VF to claim refunds for. This must be a VF in one of the Claimable states.
-     * @param tokenIds the ERC-1155 token-ids on which the user has ERC-1155 balances to claim. They must match the supplied `vfId`.
+     * @param tokenIds the ERC-1155 token-ids on which the account has ERC-1155 balances to claim. They must match the supplied `vfId`.
      */
     function claimPayouts(uint256 vfId, uint256[] calldata tokenIds)
         public

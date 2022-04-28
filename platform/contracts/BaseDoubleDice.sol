@@ -153,7 +153,6 @@ abstract contract BaseDoubleDice is
 
     /**
      * @notice Account to which protocol-fee is transferred
-     * @custom:todo Rename to protocolFeeBeneficiary
      */
     function platformFeeBeneficiary() public view returns (address) {
         return _protocolFeeBeneficiary;
@@ -161,15 +160,11 @@ abstract contract BaseDoubleDice is
 
     /**
      * @notice Admin: Set protocolFeeBeneficiary
-     * @custom:todo Rename to setProtocolFeeBeneficiary
      */
     function setPlatformFeeBeneficiary(address protocolFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setProtocolFeeBeneficiary(protocolFeeBeneficiary_);
     }
 
-    /**
-     * @custom:todo Rename to ProtocolFeeBeneficiaryUpdate
-     */
     event PlatformFeeBeneficiaryUpdate(address protocolFeeBeneficiary);
 
     function _setProtocolFeeBeneficiary(address protocolFeeBeneficiary_) internal {
@@ -573,8 +568,6 @@ abstract contract BaseDoubleDice is
         override
         virtual
     {
-        // Skip empty "super._beforeTokenTransfer(operator, from, to, ids, amounts, data);"
-
         // No restrictions on mint/burn
         if (from == address(0) || to == address(0)) {
             return;
@@ -633,9 +626,6 @@ abstract contract BaseDoubleDice is
         string reason
     );
 
-    /**
-     * @notice Operator: Cancel Active VF with id `vfId` that has been flagged for `reason`.
-     */
     function cancelVirtualFloorFlagged(uint256 vfId, string calldata reason)
         public
         onlyRole(OPERATOR_ROLE)

@@ -373,10 +373,6 @@ abstract contract BaseDoubleDice is
 
         // Validation against block
 
-        // CR-01: If block.timestamp is just a few seconds before tCreateMax,
-        // manipulating block.timestamp by a few seconds to be > tCreateMax
-        // would cause this transaction to fail,
-        // and the creator would have to re-attempt the transaction.
         // solhint-disable-next-line not-rely-on-time
         if (!(block.timestamp <= params.tCreateMax())) revert TooLate();
 
@@ -494,9 +490,6 @@ abstract contract BaseDoubleDice is
         // Note: if-condition is a minor gas optimization; it costs ~20 gas more to test the if-condition,
         // but if it deadline is left unspecified, it saves ~400 gas.
         if (optionalDeadline != 0) {
-            // CR-01: To avoid a scenario where a commitment is mined so late that it might no longer favourable
-            // to the committer to make that commitment, it is possible to specify the maximum time
-            // until which the commitment may be mined.
             // solhint-disable-next-line not-rely-on-time
             if (!(block.timestamp <= optionalDeadline)) revert CommitmentDeadlineExpired();
         }
@@ -518,9 +511,6 @@ abstract contract BaseDoubleDice is
         // will be minted as balances on the the same ERC-1155 tokenId, which means that
         // these balances will be exchangeable/tradeable/fungible between themselves,
         // but they will not be fungible with commitments to the same outcome that arrive later.
-        //
-        // CR-01: Manipulating block.timestamp to be a few seconds later would
-        // result in a fractionally lower beta.
         // solhint-disable-next-line not-rely-on-time
         uint256 timeslot = MathUpgradeable.max(vf.tOpen, block.timestamp);
 
@@ -586,10 +576,6 @@ abstract contract BaseDoubleDice is
         // Skip empty "super._beforeTokenTransfer(operator, from, to, ids, amounts, data);"
 
         // No restrictions on mint/burn
-        //        
-        // EN-01: Since this hook is invoked routinely as part of the regular commit/claim process,
-        // this check is performed before all other checks, even before checking paused(),
-        // to avoid wasting gas on SLOADs or on other relatively expensive operations.
         if (from == address(0) || to == address(0)) {
             return;
         }

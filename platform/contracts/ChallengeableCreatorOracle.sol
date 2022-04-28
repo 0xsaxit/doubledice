@@ -111,10 +111,6 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         CreatedVirtualFloorParams memory vfParams = getVirtualFloorParams(vfId);
         uint256 tResultSetMax = vfParams.tResolve + SET_WINDOW_DURATION;
 
-        // CR-01: If block.timestamp is just a few seconds past tResultSetMax,
-        // manipulating block.timestamp by a few seconds to be <= tResultSetMax
-        // will cause this transaction to fail.
-        // If that were to happen, this transaction could simply be reattempted later.
         // solhint-disable-next-line not-rely-on-time
         if (!(block.timestamp > tResultSetMax)) revert TooEarly();
 
@@ -146,18 +142,11 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         if (!(resolution.state == ResolutionState.None)) revert WrongResolutionState(resolution.state);
         uint256 tResultSetMax = vfParams.tResolve + SET_WINDOW_DURATION;
 
-        // CR-01: If block.timestamp is at just a few seconds before tResultSetMax,
-        // manipulating block.timestamp by a few seconds to be > tResultSetMax
-        // will cause this transaction to fail.
-        // In that were to happen, it would then become the DoubleDice admin's reponsibility
-        // to set the result via finalizeUnsetResult.
         // solhint-disable-next-line not-rely-on-time
         if (!(block.timestamp <= tResultSetMax)) revert TooLate();
 
         if (!(setOutcomeIndex < vfParams.nOutcomes)) revert OutcomeIndexOutOfRange();
 
-        // CR-01: Regardless of whether block.timestamp has been manipulated by a few seconds or not,
-        // tResultChallengeMax will always be set to CHALLENGE_WINDOW_DURATION seconds later.
         // solhint-disable-next-line not-rely-on-time
         resolution.tResultChallengeMax = (block.timestamp + CHALLENGE_WINDOW_DURATION).toUint32();
 
@@ -178,10 +167,6 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         Resolution storage resolution = resolutions[vfId];
         if (!(resolution.state == ResolutionState.Set)) revert WrongResolutionState(resolution.state);
 
-        // CR-01: If block.timestamp is just a few seconds past tResultChallengeMax,
-        // manipulating block.timestamp by a few seconds to be <= tResultChallengeMax
-        // will cause this transaction to fail.
-        // If that were to happen, this transaction could simply be reattempted later.
         // solhint-disable-next-line not-rely-on-time
         if (!(block.timestamp > resolution.tResultChallengeMax)) revert TooEarly();
 
@@ -226,13 +211,6 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         if (!(challengeOutcomeIndex < vfParams.nOutcomes)) revert OutcomeIndexOutOfRange();
         if (!(challengeOutcomeIndex != resolution.setOutcomeIndex)) revert ChallengeOutcomeIndexEqualToSet();
 
-        // CR-01: If block.timestamp is at just a few seconds before tResultChallengeMax,
-        // manipulating block.timestamp by a few seconds to be > tResultChallengeMax
-        // will cause this transaction to fail.
-        // If that were to happen, it would then become possible for the unchallenged result
-        // to be confirmed via confirmUnchallengedResult, thus concluding the VF.
-        // To protect against this scenario, CHALLENGE_WINDOW_DURATION is configured to be
-        // much larger than the amount of time by which a miner could possibly manipulate block.timestamp.
         // solhint-disable-next-line not-rely-on-time
         if (!(block.timestamp <= resolution.tResultChallengeMax)) revert TooLate();
 

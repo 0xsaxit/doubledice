@@ -70,8 +70,8 @@ describe('DoubleDice', function () {
       initializeArgs: [
         {
           tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
-          platformFeeRate_e18: toFp18(0.25),
-          platformFeeBeneficiary: feeBeneficiarySigner.address,
+          protocolFeeRate_e18: toFp18(0.25),
+          protocolFeeBeneficiary: feeBeneficiarySigner.address,
           contractURI: 'http://localhost:8080/contract-metadata.json'
         },
         tokenUSDC.address,
@@ -305,7 +305,7 @@ describe('DoubleDice', function () {
       }
 
       {
-        const { winnerProfits, platformFeeAmount, creatorFeeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
+        const { winnerProfits, protocolFeeAmount, creatorFeeAmount } = findContractEventArgs(events, 'VirtualFloorResolution');
 
         const tcf = sumOf(...outcomeTotals.map(({ amount }) => amount));
 
@@ -316,7 +316,7 @@ describe('DoubleDice', function () {
 
         console.log(`tcf               = ${formatUsdc(tcf)}`);
         console.log(`winnerProfits     = ${formatUsdc(winnerProfits)}`);
-        console.log(`platformFeeAmount = ${formatUsdc(platformFeeAmount)}`);
+        console.log(`protocolFeeAmount = ${formatUsdc(protocolFeeAmount)}`);
         console.log(`creatorFeeAmount  = ${formatUsdc(creatorFeeAmount)}`);
 
         const allCommitmentBalanceIds = allUserCommitments.map(({ tokenId }) => tokenId);

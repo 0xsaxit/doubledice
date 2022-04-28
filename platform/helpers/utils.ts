@@ -60,7 +60,7 @@ export interface VirtualFloorResolution {
   winningOutcomeIndex: BigNumber;
   resolutionType: VirtualFloorResolutionType;
   winnerProfits: BigNumber;
-  platformFeeAmount: BigNumber;
+  protocolFeeAmount: BigNumber;
   creatorFeeAmount: BigNumber;
 }
 

@@ -31,7 +31,7 @@ const MIN_POSSIBLE_T_RESOLVE_MINUS_T_CLOSE = 10 * 60;
 describe('DoubleDice/Create', function () {
   let ownerSigner: SignerWithAddress;
   let secondCreator: SignerWithAddress;
-  let platformFeeBeneficiarySigner: SignerWithAddress;
+  let protocolFeeBeneficiarySigner: SignerWithAddress;
   let contract: DoubleDice;
   let token: DummyUSDCoin | DummyWrappedBTC;
   let evm: EvmHelper;
@@ -51,7 +51,7 @@ describe('DoubleDice/Create', function () {
 
     [
       ownerSigner,
-      platformFeeBeneficiarySigner,
+      protocolFeeBeneficiarySigner,
       secondCreator
     ] = await ethers.getSigners();
 
@@ -64,8 +64,8 @@ describe('DoubleDice/Create', function () {
       initializeArgs: [
         {
           tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
-          platformFeeRate_e18: toFp18(0.50), // 50%
-          platformFeeBeneficiary: platformFeeBeneficiarySigner.address,
+          protocolFeeRate_e18: toFp18(0.50), // 50%
+          protocolFeeBeneficiary: protocolFeeBeneficiarySigner.address,
           contractURI: 'http://localhost:8080/contract-metadata.json'
         },
         token.address,
@@ -75,7 +75,7 @@ describe('DoubleDice/Create', function () {
     expect(await contract.platformFeeRate_e18()).to.eq(500000_000000_000000n);
 
     // Assert fee beneficiary
-    expect(await contract.platformFeeBeneficiary()).to.eq(platformFeeBeneficiarySigner.address);
+    expect(await contract.platformFeeBeneficiary()).to.eq(protocolFeeBeneficiarySigner.address);
 
     {
       expect(

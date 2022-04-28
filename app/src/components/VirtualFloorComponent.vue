@@ -81,7 +81,7 @@
         </table>
       </td>
       <td rowspan="2">{{ `${Number(virtualFloor.totalFeeRate) * 100}%` }}</td>
-      <td rowspan="2">{{ `${Number(virtualFloor.platformFeeRate) * 100}%` }}</td>
+      <td rowspan="2">{{ `${Number(virtualFloor.protocolFeeRate) * 100}%` }}</td>
       <td rowspan="2">{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
       <td rowspan="2">{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
       <td rowspan="2">{{ beta.toFixed(6) }}</td>

@@ -35,7 +35,7 @@
     </tr>
     <tr>
       <th>Platform-fee beneficiary</th>
-      <td>{{ platformFeeBeneficiary }}</td>
+      <td>{{ protocolFeeBeneficiary }}</td>
     </tr>
     <tr v-if="paymentTokens && contract && accountSigner">
       <th>Tokens</th>
@@ -83,7 +83,7 @@
         <th>state</th>
         <th>timeline</th>
         <th>totalFeeRate</th>
-        <th>platformFeeRate</th>
+        <th>protocolFeeRate</th>
         <th>paymentToken</th>
         <th>owner</th>
         <th>beta</th>
@@ -148,7 +148,7 @@ const VIRTUAL_FLOORS_QUERY = gql`query userVirtualFloors($userId: String!) {
       symbol
       decimals
     }
-    platformFeeRate
+    protocolFeeRate
     tCreated
     tOpen
     tClose
@@ -283,7 +283,7 @@ export default class App extends Vue {
 
   networkDescription?: string
 
-  platformFeeBeneficiary?: string
+  protocolFeeBeneficiary?: string
 
   beta?: number
 
@@ -392,7 +392,7 @@ export default class App extends Vue {
 
     this.owner = await mainContract.hasRole(await mainContract.DEFAULT_ADMIN_ROLE(), this.accountAddress)
 
-    this.platformFeeBeneficiary = await mainContract.platformFeeBeneficiary()
+    this.protocolFeeBeneficiary = await mainContract.platformFeeBeneficiary()
 
     await this.refreshBalances()
 

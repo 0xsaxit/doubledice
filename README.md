@@ -128,17 +128,17 @@ You can choose commit all changes either in one big step, or on a project-by-pro
 
 During VF-creation, the VF creator specifies the "rake" in the UI. This is referred to in the contract code as the `totalFeeRate`. Not "creator", but "creation". It is the “net” fee-rate applied to a virtual-floor’s profits. If 100$ are lost in total on a bet, and the `totalFeeRate` is 15% (`0.1500`), then (in the simple case) a creation-fee of 15$ will be taken, leaving 85$ to be distributed among winners as profit. In the contract code, this 15$ is referred to as the `totalFeeAmount`.
 
-There is a contract-wide `platformFeeRate` setting stored on the contract. During the VF-creation transaction, this global setting is read from the contract and “frozen” into the VF. In this way, VFs that happen to be unresolved at the instant at which the gobal `platformFeeRate` setting is updated (which will happen very rarely), will be bound with the rate as it was when those VFs were created.
+There is a contract-wide `protocolFeeRate` setting stored on the contract. During the VF-creation transaction, this global setting is read from the contract and “frozen” into the VF. In this way, VFs that happen to be unresolved at the instant at which the gobal `protocolFeeRate` setting is updated (which will happen very rarely), will be bound with the rate as it was when those VFs were created.
 
-Now, suppose that the VF with 100$ losses has `platformFeeRate` of 33.33%. Then at resolve-time, 5$ of the 15$ will be transferred to the `platformFeeBeneficiary` (contract-wide setting). The 5$ is referred to in the contract code as the `platformFeeAmount`.
+Now, suppose that the VF with 100$ losses has `protocolFeeRate` of 33.33%. Then at resolve-time, 5$ of the 15$ will be transferred to the `protocolFeeBeneficiary` (contract-wide setting). The 5$ is referred to in the contract code as the `protocolFeeAmount`.
 
 The remaining 10$ will go to the VF _owner_ (`ownerFeeAmount`).
 
 In summary:
 ```
 totalFeeAmount = 15% × total losses = 15$
-platformFeeAmount = 33.33% × totalFeeAmount = 5$
-ownerFeeAmount = totalFeeAmount - platformFeeAmount = 10$
+protocolFeeAmount = 33.33% × totalFeeAmount = 5$
+ownerFeeAmount = totalFeeAmount - protocolFeeAmount = 10$
 ```
 
 Unless the original VF creator has transferred the VF to someone else, the VF owner will be the original VF creator. Otherwise, it will be the new owner to whom the VF creator transferred the VF. In general, whoever owns the VF at the moment of resolution, receives the `ownerFeeAmount` (the 10$ in our example).

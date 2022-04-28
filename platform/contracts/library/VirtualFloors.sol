@@ -62,7 +62,7 @@ struct VirtualFloor {
     // Storage slot 1
     UFixed32x6 betaOpenMinusBetaClose;        // +  4 bytes ; fits with 6-decimal-place precision entire range [0.000000, 4294.967295]
     UFixed16x4 totalFeeRate;                  // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    UFixed16x4 platformFeeRate;               // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
+    UFixed16x4 protocolFeeRate;               // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
     uint8 nOutcomes;                          // +  1 byte
     VirtualFloorInternalState _internalState; // +  1 byte
     uint8 nonzeroOutcomeCount;                // +  1 byte  ; number of outcomes having aggregate commitments > 0

@@ -34,7 +34,7 @@ import "./MultipleInheritanceOptimization.sol";
  * |D|__/DD|  \OOO/   \UUU/  |BBBB/  |LLLLL| |EEEEE|   |DDDD/  |IIII|  \CCCC| |EE|____
  * |DDDDDD/  ================================================================ |EEEEEEE|
  *
- * @title Base DoubleDice contract
+ * @title Base DoubleDice protocol contract
  * @author 🎲🎲 <dev@doubledice.com>
  * @notice Enables users to commit an amount of ERC-20 tokens to a prediction that a specific future event,
  * or VirtualFloor (VF), resolves to a specific outcome from a predefined list of 2 or more mutually-exclusive
@@ -83,9 +83,9 @@ abstract contract BaseDoubleDice is
 
     mapping(uint256 => VirtualFloor) private _vfs;
 
-    address private _platformFeeBeneficiary;
+    address private _protocolFeeBeneficiary;
 
-    UFixed16x4 private _platformFeeRate;
+    UFixed16x4 private _protocolFeeRate;
 
     string private _contractURI;
 
@@ -99,8 +99,8 @@ abstract contract BaseDoubleDice is
 
     struct BaseDoubleDiceInitParams {
         string tokenMetadataUriTemplate;
-        address platformFeeBeneficiary;
-        UFixed256x18 platformFeeRate_e18;
+        address protocolFeeBeneficiary;
+        UFixed256x18 protocolFeeRate_e18;
         string contractURI;
     }
 
@@ -114,16 +114,19 @@ abstract contract BaseDoubleDice is
         __Pausable_init();
         __ReentrancyGuard_init();
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setPlatformFeeBeneficiary(params.platformFeeBeneficiary);
-        _setPlatformFeeRate(params.platformFeeRate_e18);
+        _setProtocolFeeBeneficiary(params.protocolFeeBeneficiary);
+        _setProtocolFeeRate(params.protocolFeeRate_e18);
         _setContractURI(params.contractURI);
     }
 
 
-    // ----------🎲 Config: platformFeeBeneficiary 🎲----------
+    // ----------🎲 Config: protocolFeeBeneficiary 🎲----------
 
+    /**
+     * @custom:todo Rename to protocolFeeBeneficiary
+     */
     function platformFeeBeneficiary() public view returns (address) {
-        return _platformFeeBeneficiary;
+        return _protocolFeeBeneficiary;
     }
 
     function setTokenMetadataUriTemplate(string calldata template) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -131,50 +134,54 @@ abstract contract BaseDoubleDice is
     }
 
     /**
-     * @notice Admin: Set platformFeeBeneficiary
+     * @notice Admin: Set protocolFeeBeneficiary
+     * @custom:todo Rename to setProtocolFeeBeneficiary
      */
-    function setPlatformFeeBeneficiary(address platformFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
+    function setPlatformFeeBeneficiary(address protocolFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setProtocolFeeBeneficiary(protocolFeeBeneficiary_);
     }
-
-    event PlatformFeeBeneficiaryUpdate(address platformFeeBeneficiary);
-
-    function _setPlatformFeeBeneficiary(address platformFeeBeneficiary_) internal {
-        emit OwnershipTransferred(_platformFeeBeneficiary, platformFeeBeneficiary_);
-        _platformFeeBeneficiary = platformFeeBeneficiary_;
-        emit PlatformFeeBeneficiaryUpdate(platformFeeBeneficiary_);
-    }
-
-
-    // ----------🎲 Config: platformFeeRate 🎲----------
 
     /**
-     * @notice The current platform-fee rate as a proportion of the total-fee applied on VF resolution.
+     * @custom:todo Rename to ProtocolFeeBeneficiaryUpdate
+     */
+    event PlatformFeeBeneficiaryUpdate(address protocolFeeBeneficiary);
+
+    function _setProtocolFeeBeneficiary(address protocolFeeBeneficiary_) internal {
+        emit OwnershipTransferred(_protocolFeeBeneficiary, protocolFeeBeneficiary_);
+        _protocolFeeBeneficiary = protocolFeeBeneficiary_;
+        emit PlatformFeeBeneficiaryUpdate(protocolFeeBeneficiary_);
+    }
+
+
+    // ----------🎲 Config: protocolFeeRate 🎲----------
+
+    /**
+     * @notice The current protocol-fee rate as a proportion of the total-fee applied on VF resolution.
      * E.g. 1.25% would be returned as 0.0125e18
      */
     function platformFeeRate_e18() external view returns (UFixed256x18) {
-        return _platformFeeRate.toUFixed256x18();
+        return _protocolFeeRate.toUFixed256x18();
     }
 
     /**
-     * @notice Admin: Set platformFeeRate to be used by VFs created from now onwards.
-     * @param platformFeeRate_e18_ The rate as a proportion, scaled by 1e18, e.g. 1.25% or 0.0125 should be entered as 12500000000000000.
+     * @notice Admin: Set protocolFeeRate to be used by VFs created from now onwards.
+     * @param protocolFeeRate_e18_ The rate as a proportion, scaled by 1e18, e.g. 1.25% or 0.0125 should be entered as 12500000000000000.
      */
-    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setPlatformFeeRate(platformFeeRate_e18_);
+    function setPlatformFeeRate_e18(UFixed256x18 protocolFeeRate_e18_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setProtocolFeeRate(protocolFeeRate_e18_);
     }
 
     /**
-     * @notice platformFeeRate <= 1.0 not satisfied
+     * @notice protocolFeeRate <= 1.0 not satisfied
      */
     error PlatformFeeRateTooLarge();
 
-    event PlatformFeeRateUpdate(UFixed256x18 platformFeeRate_e18);
+    event PlatformFeeRateUpdate(UFixed256x18 protocolFeeRate_e18);
 
-    function _setPlatformFeeRate(UFixed256x18 platformFeeRate) internal {
-        if (!platformFeeRate.lte(UFIXED256X18_ONE)) revert PlatformFeeRateTooLarge();
-        _platformFeeRate = platformFeeRate.toUFixed16x4();
-        emit PlatformFeeRateUpdate(platformFeeRate);
+    function _setProtocolFeeRate(UFixed256x18 protocolFeeRate) internal {
+        if (!protocolFeeRate.lte(UFIXED256X18_ONE)) revert PlatformFeeRateTooLarge();
+        _protocolFeeRate = protocolFeeRate.toUFixed16x4();
+        emit PlatformFeeRateUpdate(protocolFeeRate);
     }
 
 
@@ -246,7 +253,7 @@ abstract contract BaseDoubleDice is
     struct CreatedVirtualFloorParams {
         UFixed256x18 betaOpen_e18;
         UFixed256x18 totalFeeRate_e18;
-        UFixed256x18 platformFeeRate_e18;
+        UFixed256x18 protocolFeeRate_e18;
         uint32 tOpen;
         uint32 tClose;
         uint32 tResolve;
@@ -267,7 +274,7 @@ abstract contract BaseDoubleDice is
         return CreatedVirtualFloorParams({
             betaOpen_e18: vf.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
             totalFeeRate_e18: vf.totalFeeRate.toUFixed256x18(),
-            platformFeeRate_e18: vf.platformFeeRate.toUFixed256x18(),
+            protocolFeeRate_e18: vf.protocolFeeRate.toUFixed256x18(),
             tOpen: vf.tOpen,
             tClose: vf.tClose,
             tResolve: vf.tResolve,
@@ -314,7 +321,7 @@ abstract contract BaseDoubleDice is
         address indexed creator,
         UFixed256x18 betaOpen_e18,
         UFixed256x18 totalFeeRate_e18,
-        UFixed256x18 platformFeeRate_e18,
+        UFixed256x18 protocolFeeRate_e18,
         uint32 tOpen,
         uint32 tClose,
         uint32 tResolve,
@@ -356,7 +363,7 @@ abstract contract BaseDoubleDice is
         vf.creator = _msgSender();
         vf.betaOpenMinusBetaClose = params.betaOpen_e18.sub(_BETA_CLOSE).toUFixed32x6();
         vf.totalFeeRate = params.totalFeeRate_e18.toUFixed16x4();
-        vf.platformFeeRate = _platformFeeRate; // freeze current global platformFeeRate
+        vf.protocolFeeRate = _protocolFeeRate; // freeze current global protocolFeeRate
         vf.tOpen = params.tOpen;
         vf.tClose = params.tClose;
         vf.tResolve = params.tResolve;
@@ -400,7 +407,7 @@ abstract contract BaseDoubleDice is
             creator: vf.creator,
             betaOpen_e18: params.betaOpen_e18,
             totalFeeRate_e18: params.totalFeeRate_e18,
-            platformFeeRate_e18: _platformFeeRate.toUFixed256x18(),
+            protocolFeeRate_e18: _protocolFeeRate.toUFixed256x18(),
             tOpen: params.tOpen,
             tClose: params.tClose,
             tResolve: params.tResolve,
@@ -667,7 +674,7 @@ abstract contract BaseDoubleDice is
         uint8 winningOutcomeIndex,
         VirtualFloorResolutionType resolutionType,
         uint256 winnerProfits,
-        uint256 platformFeeAmount,
+        uint256 protocolFeeAmount,
         uint256 creatorFeeAmount
     );
 
@@ -697,7 +704,7 @@ abstract contract BaseDoubleDice is
         assert(totalCommitmentsToWinningOutcome != totalCommitmentsToAllOutcomesPlusBonus);
 
         VirtualFloorResolutionType resolutionType;
-        uint256 platformFeeAmount;
+        uint256 protocolFeeAmount;
         uint256 creatorFeeAmount;
         uint256 totalWinnerProfits;
 
@@ -707,10 +714,10 @@ abstract contract BaseDoubleDice is
             // In this case, the current ERC-1155 commitment-type token owner becomes eligible
             // to reclaim the equivalent original ERC-20 token amount,
             // i.e. to withdraw the current ERC-1155 balance as ERC-20 tokens.
-            // Neither the creator nor the platform take any fees in this circumstance.
+            // Neither the creator nor the protocol take any fees in this circumstance.
             vf._internalState = VirtualFloorInternalState.Claimable_Refunds_ResolvedNoWinners;
             resolutionType = VirtualFloorResolutionType.NoWinners;
-            platformFeeAmount = 0;
+            protocolFeeAmount = 0;
             creatorFeeAmount = 0;
             totalWinnerProfits = 0;
 
@@ -732,11 +739,11 @@ abstract contract BaseDoubleDice is
             }
             vf.winnerProfits = totalWinnerProfits.toUint192();
 
-            platformFeeAmount = vf.platformFeeRate.toUFixed256x18().mul0(totalFeeAmount).floorToUint256();
-            vf.paymentToken.safeTransfer(_platformFeeBeneficiary, platformFeeAmount);
+            protocolFeeAmount = vf.protocolFeeRate.toUFixed256x18().mul0(totalFeeAmount).floorToUint256();
+            vf.paymentToken.safeTransfer(_protocolFeeBeneficiary, protocolFeeAmount);
 
-            unchecked { // because platformFeeRate <= 1.0
-                creatorFeeAmount = totalFeeAmount - platformFeeAmount;
+            unchecked { // because protocolFeeRate <= 1.0
+                creatorFeeAmount = totalFeeAmount - protocolFeeAmount;
             }
 
             vf.paymentToken.safeTransfer(creatorFeeBeneficiary, creatorFeeAmount);
@@ -747,7 +754,7 @@ abstract contract BaseDoubleDice is
             winningOutcomeIndex: winningOutcomeIndex,
             resolutionType: resolutionType,
             winnerProfits: totalWinnerProfits,
-            platformFeeAmount: platformFeeAmount,
+            protocolFeeAmount: protocolFeeAmount,
             creatorFeeAmount: creatorFeeAmount
         });
 
@@ -873,11 +880,11 @@ abstract contract BaseDoubleDice is
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
-     * @notice Does not control anything on the contract, but simply exposes the platformFeeBeneficiary as the `Ownable.owner()`
+     * @notice Does not control anything on the contract, but simply exposes the protocolFeeBeneficiary as the `Ownable.owner()`
      * to enable this contract to interface with 3rd-party tools.
      */
     function owner() external view returns (address) {
-        return _platformFeeBeneficiary;
+        return _protocolFeeBeneficiary;
     }
 
 

@@ -153,7 +153,8 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   vf.betaOpen = toBigDecimal(event.params.betaOpen_e18);
   vf.totalFeeRate = toBigDecimal(event.params.totalFeeRate_e18);
   vf.creationFeeRate = vf.totalFeeRate; // ToDo: Drop
-  vf.platformFeeRate = toBigDecimal(event.params.platformFeeRate_e18);
+  vf.protocolFeeRate = toBigDecimal(event.params.protocolFeeRate_e18);
+  vf.platformFeeRate = vf.protocolFeeRate; // ToDo: Drop
   vf.tCreated = event.block.timestamp;
   vf.tOpen = event.params.tOpen;
   vf.tClose = event.params.tClose;

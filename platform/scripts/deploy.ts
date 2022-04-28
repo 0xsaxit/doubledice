@@ -20,8 +20,8 @@ const {
   OWNER_ADDRESS,
   INIT_TOKEN_METADATA_URI_TEMPLATE,
   INIT_CONTRACT_URI,
-  INIT_PLATFORM_FEE_RATE,
-  INIT_PLATFORM_FEE_BENEFICIARY,
+  INIT_PROTOCOL_FEE_RATE,
+  INIT_PROTOCOL_FEE_BENEFICIARY,
   DEPLOYED_USDC_ADDRESS = '',
   DEPLOYED_WBTC_ADDRESS = '',
   SKIP_DEPLOY_GRAPH_HELPER = ''
@@ -32,8 +32,8 @@ async function main() {
   assert(CHAIN_ID);
   assert(OWNER_ADDRESS);
   assert(INIT_TOKEN_METADATA_URI_TEMPLATE);
-  assert(INIT_PLATFORM_FEE_RATE);
-  assert(INIT_PLATFORM_FEE_BENEFICIARY);
+  assert(INIT_PROTOCOL_FEE_RATE);
+  assert(INIT_PROTOCOL_FEE_BENEFICIARY);
   assert(INIT_CONTRACT_URI);
 
   const { chainId } = await ethers.provider.getNetwork();
@@ -61,8 +61,8 @@ async function main() {
     initializeArgs: [
       {
         tokenMetadataUriTemplate: INIT_TOKEN_METADATA_URI_TEMPLATE,
-        platformFeeRate_e18: toFp18(INIT_PLATFORM_FEE_RATE),
-        platformFeeBeneficiary: INIT_PLATFORM_FEE_BENEFICIARY,
+        protocolFeeRate_e18: toFp18(INIT_PROTOCOL_FEE_RATE),
+        protocolFeeBeneficiary: INIT_PROTOCOL_FEE_BENEFICIARY,
         contractURI: INIT_CONTRACT_URI,
       },
       tokenUSDC.address,

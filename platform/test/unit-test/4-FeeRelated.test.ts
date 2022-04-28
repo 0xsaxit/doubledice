@@ -32,7 +32,7 @@ const totalFeeRate_e18 = 50000_000000_000000n; // 0.05 = 5%
 
 describe('DoubleDice/FeeRelated', function () {
   let ownerSigner: SignerWithAddress;
-  let platformFeeBeneficiarySigner: SignerWithAddress;
+  let protocolFeeBeneficiarySigner: SignerWithAddress;
   let user1Signer: SignerWithAddress;
   let user2Signer: SignerWithAddress;
   let user3Signer: SignerWithAddress;
@@ -47,7 +47,7 @@ describe('DoubleDice/FeeRelated', function () {
 
     [
       ownerSigner,
-      platformFeeBeneficiarySigner,
+      protocolFeeBeneficiarySigner,
       user1Signer,
       user2Signer,
       user3Signer,
@@ -63,8 +63,8 @@ describe('DoubleDice/FeeRelated', function () {
       initializeArgs: [
         {
           tokenMetadataUriTemplate: 'http://localhost:8080/token/{id}',
-          platformFeeRate_e18: toFp18(0.50), // 50%
-          platformFeeBeneficiary: platformFeeBeneficiarySigner.address,
+          protocolFeeRate_e18: toFp18(0.50), // 50%
+          protocolFeeBeneficiary: protocolFeeBeneficiarySigner.address,
           contractURI: 'http://localhost:8080/contract-metadata.json'
         },
         token.address,
@@ -76,7 +76,7 @@ describe('DoubleDice/FeeRelated', function () {
     helper = new DoubleDicePlatformHelper(contract);
 
     // Assert fee beneficiary
-    expect(await contract.platformFeeBeneficiary()).to.eq(platformFeeBeneficiarySigner.address);
+    expect(await contract.platformFeeBeneficiary()).to.eq(protocolFeeBeneficiarySigner.address);
 
     {
       expect(
@@ -169,12 +169,12 @@ describe('DoubleDice/FeeRelated', function () {
       const user1Profit = user1BalanceAfterClaim.sub(user1BalanceBeforeClaim);
       const user2Profit = user2BalanceAfterClaim.sub(user2BalanceBeforeClaim);
 
-      expect(collectedFee).to.be.eq(resolutionEvent.platformFeeAmount);
+      expect(collectedFee).to.be.eq(resolutionEvent.protocolFeeAmount);
 
       // Assert loser commitment is equal to winners profit + fee
       expect(amountToCommit).to.be.eq(
         resolutionEvent.winnerProfits
-          .add(resolutionEvent.platformFeeAmount)
+          .add(resolutionEvent.protocolFeeAmount)
           .add(resolutionEvent.creatorFeeAmount)
       );
 
@@ -240,12 +240,12 @@ describe('DoubleDice/FeeRelated', function () {
       const user2Profit = user2BalanceAfterClaim.sub(user2BalanceBeforeClaim);
       console.log('user2Profit', user2Profit);
 
-      expect(collectedFee).to.be.eq(resolutionEvent.platformFeeAmount);
+      expect(collectedFee).to.be.eq(resolutionEvent.protocolFeeAmount);
 
       // Assert loser commitment is equal to winners profit + fee
       expect(amountToCommit).to.be.eq(
         resolutionEvent.winnerProfits
-          .add(resolutionEvent.platformFeeAmount)
+          .add(resolutionEvent.protocolFeeAmount)
           .add(resolutionEvent.creatorFeeAmount)
       );
 

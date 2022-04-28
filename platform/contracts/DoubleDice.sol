@@ -21,9 +21,9 @@ import "./VirtualFloorMetadataValidator.sol";
  * |D|__/DD|  \OOO/   \UUU/  |BBBB/  |LLLLL| |EEEEE|   |DDDD/  |IIII|  \CCCC| |EE|____
  * |DDDDDD/  ================================================================ |EEEEEEE|
  *
- * @title DoubleDice contract
+ * @title DoubleDice protocol contract
  * @author 🎲🎲 <dev@doubledice.com>
- * @dev Merges all the multiple BaseDoubleDice extensions into one final contract.
+ * @dev Merges all the multiple BaseDoubleDice contract extensions into one final contract.
  */
 contract DoubleDice is
     ChallengeableCreatorOracle,

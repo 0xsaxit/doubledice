@@ -91,7 +91,11 @@ type VirtualFloor @entity {
   """Deprecated in favour of `totalFeeRate`."""
   creationFeeRate: BigDecimal!
 
+  protocolFeeRate: BigDecimal!
+
+  """Deprecated in favour of `protocolFeeRate`."""
   platformFeeRate: BigDecimal!
+
   tCreated: BigInt!
   tOpen: BigInt!
   tClose: BigInt!

@@ -2,7 +2,9 @@ const path = require('path');
 const webpack = require('webpack');
 
 module.exports = {
-  entry: './src/index.ts',
+  entry: {
+    vfbot: './src/vfbot.ts',
+  },
   target: 'node',
   mode: 'development',
   devtool: 'cheap-module-source-map',
@@ -31,7 +33,7 @@ module.exports = {
     new webpack.IgnorePlugin({ resourceRegExp: /dotenv/ }),
   ],
   output: {
-    filename: 'index.js',
+    filename: '[name]/index.js',
     path: path.resolve(__dirname, 'dist'),
     library: { type: 'commonjs2' }
   },

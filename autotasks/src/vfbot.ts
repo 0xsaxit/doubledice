@@ -11,8 +11,14 @@ import moment from 'moment';
 import { zipArrays3 } from './utils';
 /* eslint-disable indent */
 
+const DD_ENV = process.env.DD_ENV;
+
+if (!(DD_ENV === 'beta' || DD_ENV === 'live')) {
+  throw new Error(`Unexpected DD_ENV "${DD_ENV}"; must be "beta" or "live"`);
+}
+
 const configs = {
-  mumbai: {
+  beta: {
     GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/doubledicedev/doubledice-mumbai2',
     APP_BASE_URL: 'https://beta.doubledice.com/bet/',
     // See https://doubledice.slack.com/services/B03AUCBPLJU
@@ -21,7 +27,7 @@ const configs = {
     DOUBLEDICE_CONTRACT_ADDRESS: '0x5848A6Df71aE96e9C7544fC07815Ab5B13530c6b',
     LOG_NO_ACTION: false,
   },
-  polygon: {
+  live: {
     GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/ddvfs-com/ddvfs-polygon',
     APP_BASE_URL: 'https://ddvfs.com/bet/',
     // See https://doubledice.slack.com/services/B03AUCBPLJU
@@ -32,7 +38,6 @@ const configs = {
   },
 };
 
-// ToDo: For now switch manually between configs.polygon and configs.mumbai before building/deploying
 const {
   GRAPHQL_ENDPOINT,
   APP_BASE_URL,
@@ -40,7 +45,7 @@ const {
   BLOCK_EXPLORER_HOST,
   DOUBLEDICE_CONTRACT_ADDRESS,
   LOG_NO_ACTION,
-} = configs.polygon;
+} = configs[DD_ENV];
 
 const QUERY_UNSET = gql`
   query ($now: BigInt) {
@@ -108,6 +113,8 @@ const splitVfs = async ({
   unchallengedConfirmables: VirtualFloor[],
   challenged: VirtualFloor[],
 }> => {
+  process.stdout.write(`DD_ENV: ${DD_ENV}\n`);
+
   const vfStates = await Promise.all(virtualFloors.map(({ intId }) => ddContract.getVirtualFloorState(intId)));
   const vfResolutions = (await Promise.all(virtualFloors.map(({ intId }) => ddContract.resolutions(intId))));
   const vfsWithOnChainData = zipArrays3(virtualFloors, vfStates, vfResolutions)

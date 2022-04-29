@@ -29,6 +29,9 @@ module.exports = {
   ],
   externalsType: 'commonjs2',
   plugins: [
+    // Read DD_ENV from current compile-time env, and replace process.env.DD_ENV with this value (stringified) in built code
+    new webpack.EnvironmentPlugin(['DD_ENV']),
+
     // List here all dependencies that are not run in the Autotask environment
     new webpack.IgnorePlugin({ resourceRegExp: /dotenv/ }),
   ],

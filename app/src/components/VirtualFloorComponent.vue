@@ -59,7 +59,13 @@
         <br />
         <a :href="`http://localhost:3000/bet/#!/${virtualFloor.intId}`">{{ virtualFloor.intId }}</a>
       </td>
-      <td rowspan="2">{{ virtualFloor.state }}</td>
+      <td rowspan="2">
+        <template v-if="virtualFloor.resolutionOrCancellationTxHash">
+          <a href="#" @click="showResolutionOrCancellationTxHash" :title="virtualFloor.resolutionOrCancellationTxHash">
+            {{ virtualFloor.state }}
+          </a></template>
+        <template v-else>{{ virtualFloor.state }}</template>
+      </td>
       <td rowspan="2">
         <table>
           <tr :title="`tCreated = ${virtualFloor.tCreated}`">
@@ -247,6 +253,10 @@ export default class VirtualFloorComponent extends Vue {
       console.log(`⛏ Mined ${txUrl}`)
       this.$emit('balanceChange') // tx will probably result in balance change
     })
+  }
+
+  showResolutionOrCancellationTxHash(): void {
+    alert(this.virtualFloor.resolutionOrCancellationTxHash)
   }
 }
 </script>

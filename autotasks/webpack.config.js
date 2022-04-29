@@ -4,6 +4,7 @@ const webpack = require('webpack');
 module.exports = {
   entry: {
     vfbot: './src/vfbot.ts',
+    'vf-creation-notifier': './src/vf-creation-notifier.ts',
   },
   target: 'node',
   mode: 'development',

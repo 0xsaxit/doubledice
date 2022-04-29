@@ -34,7 +34,7 @@ module.exports = {
     new webpack.EnvironmentPlugin(['DD_ENV']),
 
     // List here all dependencies that are not run in the Autotask environment
-    new webpack.IgnorePlugin({ resourceRegExp: /dotenv/ }),
+    new webpack.IgnorePlugin({ resourceRegExp: /dotenv|sample-vf-creation-sentinel-trigger/ }),
   ],
   output: {
     filename: '[name]/index.js',

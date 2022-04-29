@@ -83,7 +83,7 @@
       <td rowspan="2">{{ `${Number(virtualFloor.totalFeeRate) * 100}%` }}</td>
       <td rowspan="2">{{ `${Number(virtualFloor.protocolFeeRate) * 100}%` }}</td>
       <td rowspan="2">{{ virtualFloor.paymentToken.symbol }}/{{ virtualFloor.paymentToken.decimals }}</td>
-      <td rowspan="2">{{ virtualFloor.owner.id.slice(0, 10) }}{{ isOwnedByConnectedAccount ? ' (you)' : '' }}</td>
+      <td rowspan="2">{{ virtualFloor.creator.id.slice(0, 10) }}{{ isCreatorConnectedAccount ? ' (you)' : '' }}</td>
       <td rowspan="2">{{ beta.toFixed(6) }}</td>
       <td rowspan="2">{{ virtualFloor.totalSupply }}</td>
       <template v-for="outcome in virtualFloor.outcomes" :key="outcome.id">
@@ -169,8 +169,8 @@ export default class VirtualFloorComponent extends Vue {
     return Number(this.virtualFloor.tResultSetMin)
   }
 
-  get isOwnedByConnectedAccount(): boolean {
-    return this.virtualFloor.owner.id === this.connectedAccountAddress?.toLowerCase()
+  get isCreatorConnectedAccount(): boolean {
+    return this.virtualFloor.creator.id === this.connectedAccountAddress?.toLowerCase()
   }
 
   get beta(): number {

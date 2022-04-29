@@ -36,10 +36,10 @@ import { Options, Vue } from 'vue-class-component'
       query: gql`query {
         categories {
           id
-          slug
+          subid
           subcategories {
             id
-            slug
+            subid
             virtualFloors {
               id
               title
@@ -60,6 +60,7 @@ export default class CategoriesComponent extends Vue {
 ul {
   list-style-type: "> ";
 }
+
 li {
   display: list-item;
 }

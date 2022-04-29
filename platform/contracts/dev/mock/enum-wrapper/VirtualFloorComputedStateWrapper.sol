@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.12;
 
-import "../../interface/IDoubleDice.sol";
+import "../../../library/VirtualFloors.sol";
 
 contract VirtualFloorStateWrapper {
     /* solhint-disable const-name-snakecase */

@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.12;
 
-import "../../ChallengeableCreatorOracle.sol";
+import "../../../ChallengeableCreatorOracle.sol";
 
 contract ResultUpdateActionWrapper {
     /* solhint-disable const-name-snakecase */

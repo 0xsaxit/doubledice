@@ -11,7 +11,6 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./ExtraStorageGap.sol";
-import "./interface/IDoubleDice.sol";
 import "./library/ERC1155TokenIds.sol";
 import "./library/FixedPointTypes.sol";
 import "./library/Utils.sol";
@@ -19,65 +18,33 @@ import "./library/VirtualFloorCreationParamsUtils.sol";
 import "./library/VirtualFloors.sol";
 import "./MultipleInheritanceOptimization.sol";
 
-/// @dev 255 not 256, because we store nOutcomes in a uint8
-uint256 constant _MAX_OUTCOMES_PER_VIRTUAL_FLOOR = 255;
 
-UFixed256x18 constant _BETA_CLOSE = UFIXED256X18_ONE;
-
-struct OutcomeTotals {
-    uint256 amount;
-    UFixed256x18 amountTimesBeta_e18;
-}
-
-enum VirtualFloorInternalState {
-    None,
-    Active,                              // formerly RunningOrClosed
-    Claimable_Payouts,                   // formerly ResolvedWinners
-    Claimable_Refunds_ResolvedNoWinners, // formerly CancelledResolvedNoWinners
-    Claimable_Refunds_ResolvableNever,   // formerly CancelledUnresolvable
-    Claimable_Refunds_Flagged            // formerly CancelledFlagged
-}
-
-struct VirtualFloor {
-
-    // Storage slot 0
-    address creator; //   20 bytes
-    uint32 tOpen;    // +  4 bytes
-    uint32 tClose;   // +  4 bytes 
-    uint32 tResolve; // +  4 bytes
-                     // = 32 bytes => packed into 1 32-byte slot
-
-    // Storage slot 1
-    UFixed32x6 betaOpenMinusBetaClose;        // +  4 bytes ; fits with 6-decimal-place precision all values up to ~4000.000000
-    UFixed16x4 creationFeeRate;               // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    UFixed16x4 platformFeeRate;               // +  2 bytes ; fits with 4-decimal-place precision entire range [0.0000, 1.0000]
-    uint8 nOutcomes;                          // +  1 byte
-    VirtualFloorInternalState _internalState; // +  1 byte
-    uint8 nonzeroOutcomeCount;                // +  1 byte  ; number of outcomes having aggregate commitments > 0
-    IERC20Upgradeable paymentToken;           // + 20 bytes
-                                              // = 31 bytes => packed into 1 32-byte slot
-
-    // Storage slot 2: Not written to, but used in calculation of outcome-specific slots
-    // Note: A fixed-length array is used to not an entire 32-byte slot to write array-length,
-    // but instead store the length in 1 byte in `nOutcomes`
-    OutcomeTotals[_MAX_OUTCOMES_PER_VIRTUAL_FLOOR] outcomeTotals;
-
-    // Storage slot 3: Slot written to during resolve
-    uint8 winningOutcomeIndex; // +  1 byte
-    uint192 winnerProfits;     // + 24 bytes ; fits with 18-decimal-place precision all values up to ~1.5e30 (and with less decimals, more)
-                               // = 25 bytes => packed into 1 32-byte slot
-
-    uint256 bonusAmount;
-
-    // Pack into 1 storage slot
-    // _prefixed as they are not meant to be read directly,
-    // but through .minMaxCommitmentAmounts() 
-    uint128 _optionalMinCommitmentAmount;
-    uint128 _optionalMaxCommitmentAmount;
-}
-
+/**
+ *                            ________
+ *                 ________  / o   o /\
+ *                /     o /\/   o   /o \
+ *               /   o   /  \o___o_/o   \
+ *              /_o_____/o   \     \   o/
+ *              \ o   o \   o/  o   \ o/
+ *  ______     __\ o   o \  /\_______\/       _____     ____    ____    ____   _______
+ * |  __  \   /   \_o___o_\/ |  _ \  | |     |  ___|   |  _ \  |_  _|  / ___| |   ____|
+ * | |  \  | | / \ | | | | | | |_| | | |     | |_      | | \ |   ||   | /     |  |
+ * | |   | | | | | | | | | | |  _ <  | |     |  _|     | | | |   I|   | |     |  |__
+ * |D|   |D| |O\_/O| |U|_|U| |B|_|B| |L|___  |E|___    |D|_/D|  _I|_  |C\___  |EEEEE|
+ * |D|__/DD|  \OOO/   \UUU/  |BBBB/  |LLLLL| |EEEEE|   |DDDD/  |IIII|  \CCCC| |EE|____
+ * |DDDDDD/  ================================================================ |EEEEEEE|
+ *
+ * @title Base DoubleDice contract
+ * @author 🎲🎲 <dev@doubledice.com>
+ * @notice Enables users to commit an amount of ERC-20 tokens to a prediction that a specific future event,
+ * or VirtualFloor (VF), resolves to a specific outcome from a predefined list of 2 or more mutually-exclusive
+ * possible outcomes.
+ * Users committing funds to a specific VF outcome at a specific timepoint are issued with a commitment receipt
+ * in the form of a ERC-1155 commitment-balance.
+ * If a VF is resolved to a winning outcome and winner profits are available, the commitment-balance may be redeemed
+ * by its holder for the corresponding share of the profit.
+ */
 abstract contract BaseDoubleDice is
-    IDoubleDice,
     ForkedERC1155UpgradeableV4_5_2,
     AccessControlUpgradeable,
     PausableUpgradeable,
@@ -85,7 +52,6 @@ abstract contract BaseDoubleDice is
     ExtraStorageGap,
     MultipleInheritanceOptimization
 {
-    using ERC1155TokenIds for uint256;
     using FixedPointTypes for UFixed16x4;
     using FixedPointTypes for UFixed256x18;
     using FixedPointTypes for UFixed32x6;
@@ -94,9 +60,26 @@ abstract contract BaseDoubleDice is
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using Utils for uint256;
     using VirtualFloorCreationParamsUtils for VirtualFloorCreationParams;
+    using ERC1155TokenIds for uint256;
     using VirtualFloors for VirtualFloor;
 
-    // ---------- Storage ----------
+    error UnauthorizedMsgSender();
+
+    error WrongVirtualFloorState(VirtualFloorState actualState);
+
+    error TooEarly();
+
+    error TooLate();
+
+    /**
+     * @notice outcomeIndex < nOutcomes not satisfied
+     */
+    error OutcomeIndexOutOfRange();
+
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+
+
+    // ----------🎲🎲 STORAGE 🎲🎲----------
 
     mapping(uint256 => VirtualFloor) private _vfs;
 
@@ -109,7 +92,10 @@ abstract contract BaseDoubleDice is
     mapping(IERC20Upgradeable => bool) private _paymentTokenWhitelist;
 
 
-    // ---------- Setup & config ----------
+    // ----------🎲🎲 SETUP & CONFIG 🎲🎲----------
+
+
+    // ----------🎲 Initial config 🎲----------
 
     struct BaseDoubleDiceInitParams {
         string tokenMetadataUriTemplate;
@@ -134,30 +120,24 @@ abstract contract BaseDoubleDice is
     }
 
 
-    // ---------- External setters, exclusive to ADMIN ----------
+    // ----------🎲 Config: platformFeeBeneficiary 🎲----------
+
+    function platformFeeBeneficiary() public view returns (address) {
+        return _platformFeeBeneficiary;
+    }
 
     function setTokenMetadataUriTemplate(string calldata template) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setURI(template);
     }
 
+    /**
+     * @notice Admin: Set platformFeeBeneficiary
+     */
     function setPlatformFeeBeneficiary(address platformFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setPlatformFeeBeneficiary(platformFeeBeneficiary_);
     }
 
-    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setPlatformFeeRate(platformFeeRate_e18_);
-    }
-
-    function setContractURI(string memory contractURI_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _setContractURI(contractURI_);
-    }
-
-    function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _updatePaymentTokenWhitelist(token, isWhitelisted);
-    }
-
-
-    // ---------- Internal setters ----------
+    event PlatformFeeBeneficiaryUpdate(address platformFeeBeneficiary);
 
     function _setPlatformFeeBeneficiary(address platformFeeBeneficiary_) internal {
         emit OwnershipTransferred(_platformFeeBeneficiary, platformFeeBeneficiary_);
@@ -165,16 +145,81 @@ abstract contract BaseDoubleDice is
         emit PlatformFeeBeneficiaryUpdate(platformFeeBeneficiary_);
     }
 
+
+    // ----------🎲 Config: platformFeeRate 🎲----------
+
+    /**
+     * @notice The current platform-fee rate as a proportion of the total-fee applied on VF resolution.
+     * E.g. 1.25% would be returned as 0.0125e18
+     */
+    function platformFeeRate_e18() external view returns (UFixed256x18) {
+        return _platformFeeRate.toUFixed256x18();
+    }
+
+    /**
+     * @notice Admin: Set platformFeeRate to be used by VFs created from now onwards.
+     * @param platformFeeRate_e18_ The rate as a proportion, scaled by 1e18, e.g. 1.25% or 0.0125 should be entered as 12500000000000000.
+     */
+    function setPlatformFeeRate_e18(UFixed256x18 platformFeeRate_e18_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setPlatformFeeRate(platformFeeRate_e18_);
+    }
+
+    /**
+     * @notice platformFeeRate <= 1.0 not satisfied
+     */
+    error PlatformFeeRateTooLarge();
+
+    event PlatformFeeRateUpdate(UFixed256x18 platformFeeRate_e18);
+
     function _setPlatformFeeRate(UFixed256x18 platformFeeRate) internal {
         if (!platformFeeRate.lte(UFIXED256X18_ONE)) revert PlatformFeeRateTooLarge();
         _platformFeeRate = platformFeeRate.toUFixed16x4();
         emit PlatformFeeRateUpdate(platformFeeRate);
     }
 
+
+    // ----------🎲 Config: contractURI 🎲----------
+
+    /**
+     * @notice Returns a URL for the OpenSea storefront-level metadata for this contract
+     * @dev See https://docs.opensea.io/docs/contract-level-metadata
+     */
+    function contractURI() external view returns (string memory) {
+        return _contractURI;
+    }
+
+    /**
+     * @notice Admin: Set contractURI
+     */
+    function setContractURI(string memory contractURI_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _setContractURI(contractURI_);
+    }
+
+    event ContractURIUpdate(string contractURI);
+
     function _setContractURI(string memory contractURI_) internal {
         _contractURI = contractURI_;
         emit ContractURIUpdate(contractURI_);
     }
+
+
+    // ----------🎲 Config: paymentTokenWhitelist 🎲----------
+
+    /**
+     * @notice Returns whether a specific ERC-20 token can be set as a VF's payment-token during createVirtualFloor.
+     */
+    function isPaymentTokenWhitelisted(IERC20Upgradeable token) public view returns (bool) {
+        return _paymentTokenWhitelist[token];
+    }
+
+    /**
+     * @notice Admin: Update payment-token whitelist status. Does not VFs already created with this token.
+     */
+    function updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _updatePaymentTokenWhitelist(token, isWhitelisted);
+    }
+
+    event PaymentTokenWhitelistUpdate(IERC20Upgradeable indexed token, bool whitelisted);
 
     function _updatePaymentTokenWhitelist(IERC20Upgradeable token, bool isWhitelisted) internal {
         _paymentTokenWhitelist[token] = isWhitelisted;
@@ -182,47 +227,46 @@ abstract contract BaseDoubleDice is
     }
 
 
-    // ---------- Public getters ----------
+    // ----------🎲🎲 PUBLIC VIRTUAL-FLOOR GETTERS 🎲🎲----------
 
-    /// @dev The term ADMIN reserves a special significance within the AccessControl framework,
-    /// so we avoid using it in the role name.
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-
-    function platformFeeBeneficiary() public view returns (address) {
-        return _platformFeeBeneficiary;
-    }
-
-    /// @notice The current platform-fee rate as a proportion of the creator-fee taken
-    /// on virtualfloor resolution.
-    /// E.g. 1.25% would be returned as 0.0125e18
-    function platformFeeRate_e18() external view returns (UFixed256x18) {
-        return _platformFeeRate.toUFixed256x18();
-    }
-
-    /// @notice Returns a URL for the OpenSea storefront-level metadata for this contract
-    /// @dev See https://docs.opensea.io/docs/contract-level-metadata
-    function contractURI() external view returns (string memory) {
-        return _contractURI;
-    }
-
-    function isPaymentTokenWhitelisted(IERC20Upgradeable token) public view returns (bool) {
-        return _paymentTokenWhitelist[token];
-    }
-
+    /**
+     * @notice Get state of VF with id `vfId`.
+     */
     function getVirtualFloorState(uint256 vfId) public view returns (VirtualFloorState) {
         return _vfs[vfId].state();
     }
 
+    /**
+     * @notice Get account that created VF with id `vfId`.
+     */
     function getVirtualFloorCreator(uint256 vfId) public view returns (address) {
         return _vfs[vfId].creator;
     }
 
+    struct CreatedVirtualFloorParams {
+        UFixed256x18 betaOpen_e18;
+        UFixed256x18 totalFeeRate_e18;
+        UFixed256x18 platformFeeRate_e18;
+        uint32 tOpen;
+        uint32 tClose;
+        uint32 tResolve;
+        uint8 nOutcomes;
+        IERC20Upgradeable paymentToken;
+        uint256 bonusAmount;
+        uint256 minCommitmentAmount;
+        uint256 maxCommitmentAmount;
+        address creator;
+    }
+
+    /**
+     * @notice Get parameters of VF with id `vfId`.
+     */
     function getVirtualFloorParams(uint256 vfId) public view returns (CreatedVirtualFloorParams memory) {
         VirtualFloor storage vf = _vfs[vfId];
         (uint256 minCommitmentAmount, uint256 maxCommitmentAmount) = vf.minMaxCommitmentAmounts();
         return CreatedVirtualFloorParams({
             betaOpen_e18: vf.betaOpenMinusBetaClose.toUFixed256x18().add(_BETA_CLOSE),
-            creationFeeRate_e18: vf.creationFeeRate.toUFixed256x18(),
+            totalFeeRate_e18: vf.totalFeeRate.toUFixed256x18(),
             platformFeeRate_e18: vf.platformFeeRate.toUFixed256x18(),
             tOpen: vf.tOpen,
             tClose: vf.tClose,
@@ -236,13 +280,55 @@ abstract contract BaseDoubleDice is
         });
     }
 
+    /**
+     * @notice Get total ERC-20 payment-token amount, as well as total weighted amount,
+     * committed to outcome with 0-based index `outcomeIndex` of VF with id `vfId`.
+     */
     function getVirtualFloorOutcomeTotals(uint256 vfId, uint8 outcomeIndex) public view returns (OutcomeTotals memory) {
         return _vfs[vfId].outcomeTotals[outcomeIndex];
     }
 
 
-    // ---------- Virtual-floor lifecycle ----------
+    // ----------🎲🎲 VIRTUAL-FLOOR LIFECYCLE 🎲🎲----------
 
+
+    // ----------🎲 Lifecycle: Creating a VF 🎲----------
+
+    /**
+     * @notice A VF with the same id already exists.
+     */
+    error DuplicateVirtualFloorId();
+
+    /**
+     * @notice Trying to create a VF with a non-whitelisted ERC-20 payment-token
+     */
+    error PaymentTokenNotWhitelisted();
+
+    /**
+     * @notice _MIN_POSSIBLE <= min <= max <= _MAX_POSSIBLE not satisfied
+     */
+    error InvalidMinMaxCommitmentAmounts();
+
+    event VirtualFloorCreation(
+        uint256 indexed vfId,
+        address indexed creator,
+        UFixed256x18 betaOpen_e18,
+        UFixed256x18 totalFeeRate_e18,
+        UFixed256x18 platformFeeRate_e18,
+        uint32 tOpen,
+        uint32 tClose,
+        uint32 tResolve,
+        uint8 nOutcomes,
+        IERC20Upgradeable paymentToken,
+        uint256 bonusAmount,
+        uint256 minCommitmentAmount,
+        uint256 maxCommitmentAmount,
+        EncodedVirtualFloorMetadata metadata
+    );
+
+    /**
+     * @notice Create a VF with params `params`.
+     */
     function createVirtualFloor(VirtualFloorCreationParams calldata params)
         public
         whenNotPaused
@@ -260,7 +346,7 @@ abstract contract BaseDoubleDice is
         // solhint-disable-next-line not-rely-on-time
         if (!(block.timestamp <= params.tCreateMax())) revert TooLate();
 
-        VirtualFloor storage vf = _vfs[params.virtualFloorId];
+        VirtualFloor storage vf = _vfs[params.vfId];
 
         // Validation against storage
         if (!(vf._internalState == VirtualFloorInternalState.None)) revert DuplicateVirtualFloorId();
@@ -269,7 +355,7 @@ abstract contract BaseDoubleDice is
         vf._internalState = VirtualFloorInternalState.Active;
         vf.creator = _msgSender();
         vf.betaOpenMinusBetaClose = params.betaOpen_e18.sub(_BETA_CLOSE).toUFixed32x6();
-        vf.creationFeeRate = params.creationFeeRate_e18.toUFixed16x4();
+        vf.totalFeeRate = params.totalFeeRate_e18.toUFixed16x4();
         vf.platformFeeRate = _platformFeeRate; // freeze current global platformFeeRate
         vf.tOpen = params.tOpen;
         vf.tClose = params.tClose;
@@ -310,10 +396,10 @@ abstract contract BaseDoubleDice is
         EncodedVirtualFloorMetadata calldata metadata = params.metadata;
 
         emit VirtualFloorCreation({
-            virtualFloorId: params.virtualFloorId,
+            vfId: params.vfId,
             creator: vf.creator,
             betaOpen_e18: params.betaOpen_e18,
-            creationFeeRate_e18: params.creationFeeRate_e18,
+            totalFeeRate_e18: params.totalFeeRate_e18,
             platformFeeRate_e18: _platformFeeRate.toUFixed256x18(),
             tOpen: params.tOpen,
             tClose: params.tClose,
@@ -335,6 +421,37 @@ abstract contract BaseDoubleDice is
         _onVirtualFloorCreation(params);
     }
 
+
+    // ----------🎲 Lifecycle: Committing ERC-20 tokens to an Active VF's outcome and receiving ERC-1155 token balance in return 🎲----------
+
+    /**
+     * @notice Commitment transaction not mined within the specified deadline.
+     */
+    error CommitmentDeadlineExpired();
+
+    /**
+     * @notice minCommitmentAmount <= amount <= maxCommitmentAmount not satisfied
+     */
+    error CommitmentAmountOutOfRange();
+
+    event UserCommitment(
+        uint256 indexed vfId,
+        address indexed committer,
+        uint8 outcomeIndex,
+        uint256 timeslot,
+        uint256 amount,
+        UFixed256x18 beta_e18,
+        uint256 tokenId
+    );
+
+    /**
+     * @notice Commit a non-zero amount of payment-token to one of the VF's outcomes.
+     * Calling account must have pre-approved the amount as spending allowance to this contract.
+     * @param vfId Id of VF to which to commit.
+     * @param outcomeIndex 0-based index of VF outcome to which to commit. Must be < nOutcomes.
+     * @param amount Amount of ERC-20 payment-token vf.paymentToken to commit.
+     * @param optionalDeadline Latest timestamp at which transaction can be mined. Pass 0 to not enforce a deadline.
+     */
     function commitToVirtualFloor(uint256 vfId, uint8 outcomeIndex, uint256 amount, uint256 optionalDeadline)
         public
         whenNotPaused
@@ -342,7 +459,7 @@ abstract contract BaseDoubleDice is
     {
         // Note: if-condition is a minor gas optimization; it costs ~20 gas more to perform the if-test,
         // but it is ~400 gas cheaper if the deadline is left specified.
-        if (optionalDeadline != UNSPECIFIED_ZERO) {
+        if (optionalDeadline != 0) {
             // CR-01: To avoid a scenario where a commitment is mined so late that it might no longer favourable
             // to the committer to make that commitment, it is possible to specify the maximum time
             // until which the commitment may be mined.
@@ -379,7 +496,7 @@ abstract contract BaseDoubleDice is
         // Only increment this counter the first time an outcome is committed to.
         // In this way, this counter will be updated maximum nOutcome times over the entire commitment period.
         // Some gas could be saved here by marking as unchecked, and by not counting beyond 2,
-        // but we choose to forfeit these micro-optimizations to retain simplicity.
+        // but these micro-optimizations are forfeited to retain simplicity.
         if (outcomeTotals.amount == 0) {
             vf.nonzeroOutcomeCount += 1;
         }
@@ -389,10 +506,11 @@ abstract contract BaseDoubleDice is
 
         uint256 tokenId = ERC1155TokenIds.vfOutcomeTimeslotIdOf(vfId, outcomeIndex, timeslot);
 
-        // From the Graph's point of view...
-        // First we declare the parameters bound to a particular tokenId...
+        // It is useful to the Graph indexer for the commitment-parameters to bound to a particular tokenId
+        // before that same tokenId is referenced in a transfer.
+        // For this reason, the UserCommitment event is emitted before _mint emits TransferSingle
         emit UserCommitment({
-            virtualFloorId: vfId,
+            vfId: vfId,
             committer: _msgSender(),
             outcomeIndex: outcomeIndex,
             timeslot: timeslot,
@@ -400,8 +518,6 @@ abstract contract BaseDoubleDice is
             beta_e18: beta_e18,
             tokenId: tokenId
         });
-
-        // ... and only then do we refer to it in transfers.
         _mint({
             to: _msgSender(),
             id: tokenId,
@@ -410,9 +526,17 @@ abstract contract BaseDoubleDice is
         });
     }
 
-    /// @dev Hook into transfer process to block transfers of
-    /// commitment-type token balances that are tied to virtual-floors
-    /// that are in the wrong state and time-period.
+
+    // ----------🎲 Lifecycle: Transferring commitment-balance held on an Active VF 🎲----------
+
+    error CommitmentBalanceTransferWhilePaused();
+
+    error CommitmentBalanceTransferRejection(uint256 id, VirtualFloorState state);
+
+    /**
+     * @dev Hook into ERC-1155 transfer process to allow commitment-balances to be transferred only if VF
+     * in states `Active_Open_ResolvableLater` and `Active_Closed_ResolvableLater`.
+     */
     function _beforeTokenTransfer(
         address /*operator*/,
         address from,
@@ -447,14 +571,28 @@ abstract contract BaseDoubleDice is
         }
     }
 
-    /// @notice A virtual-floor's commitment period closes at `tClose`.
-    /// If at this point there are zero commitments to zero outcomes,
-    /// or there are > 0 commitments, but all to a single outcome,
-    /// then this virtual-floor is considered unconcludeable.
-    /// For such a virtual-floor:
-    /// 1. The only possible action for this virtual-floor is to cancel it via this function,
-    ///    which may be invoked by anyone without restriction.
-    /// 2. Any ERC-1155 commitment-type token balance associated with this virtual-floor is untransferable
+
+    // ----------🎲 Lifecycle: Cancelling an Active VF that could never possibly be resolved 🎲----------
+
+    event VirtualFloorCancellationUnresolvable(
+        uint256 indexed vfId
+    );
+
+    /**
+     * @notice Cancel a closed VF that is unresolvable because it doesn't have enough commitments to enough outcomes.
+     * This function may be called by anyone to move that VF into a Claimable state.
+     */
+
+    /**
+     * @notice A VF's commitment period closes at `tClose`.
+     * If at this point there are zero commitments to zero outcomes,
+     * or there are > 0 commitments, but all to a single outcome,
+     * then this virtual-floor is considered unconcludeable.
+     * For such a virtual-floor:
+     * 1. The only possible action for this virtual-floor is to cancel it via this function,
+     * which may be invoked by anyone without restriction.
+     * 2. Any ERC-1155 commitment-type token balance associated with this virtual-floor is untransferable
+     */
     function cancelVirtualFloorUnresolvable(uint256 vfId)
         public
         whenNotPaused
@@ -475,6 +613,17 @@ abstract contract BaseDoubleDice is
         _onVirtualFloorConclusion(vfId);
     }
 
+
+    // ----------🎲 Lifecycle: Cancelling an Active VF that was flagged 🎲----------
+
+    event VirtualFloorCancellationFlagged(
+        uint256 indexed vfId,
+        string reason
+    );
+
+    /**
+     * @notice Called by account with `OPERATOR_ROLE` to cancel an active VF flagged because of `reason`.
+     */
     function cancelVirtualFloorFlagged(uint256 vfId, string calldata reason)
         public
         onlyRole(OPERATOR_ROLE)
@@ -494,6 +643,38 @@ abstract contract BaseDoubleDice is
         _onVirtualFloorConclusion(vfId);
     }
 
+
+    // ----------🎲 Lifecycle: Resolving a VF to the winning outcome 🎲----------
+
+    error ResolveWhilePaused();
+
+    enum VirtualFloorResolutionType {
+        /**
+         * @notice VF resolved to an outcome to which there were 0 commitments,
+         * so the VF will be cancelled.
+         */
+        NoWinners,
+
+        /**
+         * @notice VF resolved to an outcome to which there were commitments,
+         * so all commitments to that outcome will be able to claim payouts.
+         */
+        Winners
+    }
+
+    event VirtualFloorResolution(
+        uint256 indexed vfId,
+        uint8 winningOutcomeIndex,
+        VirtualFloorResolutionType resolutionType,
+        uint256 winnerProfits,
+        uint256 platformFeeAmount,
+        uint256 creatorFeeAmount
+    );
+
+    /**
+     * @dev This base function only requires that the VF is in the correct state to be resolved,
+     * but it is up to the extending contract to decide how to restrict further the conditions under which VF is resolved.
+     */
     function _resolve(uint256 vfId, uint8 winningOutcomeIndex, address creatorFeeBeneficiary) internal {
         if (paused()) revert ResolveWhilePaused();
 
@@ -509,11 +690,10 @@ abstract contract BaseDoubleDice is
         uint256 totalCommitmentsToAllOutcomesPlusBonus = vf.totalCommitmentsToAllOutcomesPlusBonus();
         uint256 totalCommitmentsToWinningOutcome = vf.outcomeTotals[winningOutcomeIndex].amount;
 
-        // This used to be handled on this contract as a VirtualFloorResolution of type AllWinners,
-        // but it can no longer happen, because if all commitments are to a single outcome,
-        // transaction would have already been reverted because of
-        // the condition nonzeroOutcomeCount == 1, which is < 2.
-        // We retain this assertion as a form of documentation.
+        // If all funds under this VF were to be under a single outcome,
+        // then nonzeroOutcomeCount would be == 1 and
+        // the VF would not be in state Active_Closed_ResolvableNow.
+        // Therefore the following assertion should never fail.
         assert(totalCommitmentsToWinningOutcome != totalCommitmentsToAllOutcomesPlusBonus);
 
         VirtualFloorResolutionType resolutionType;
@@ -540,7 +720,7 @@ abstract contract BaseDoubleDice is
             resolutionType = VirtualFloorResolutionType.Winners;
 
             // Winner commitments refunded, fee taken, then remainder split between winners proportionally by `commitment * beta`.
-            uint256 maxTotalFeeAmount = vf.creationFeeRate.toUFixed256x18().mul0(totalCommitmentsToAllOutcomesPlusBonus).floorToUint256();
+            uint256 maxTotalFeeAmount = vf.totalFeeRate.toUFixed256x18().mul0(totalCommitmentsToAllOutcomesPlusBonus).floorToUint256();
 
             // If needs be, limit the fee to ensure that there enough funds to be able to refund winner commitments in full.
             uint256 totalFeePlusTotalWinnerProfits = totalCommitmentsToAllOutcomesPlusBonus - totalCommitmentsToWinningOutcome;
@@ -563,7 +743,7 @@ abstract contract BaseDoubleDice is
         }
 
         emit VirtualFloorResolution({
-            virtualFloorId: vfId,
+            vfId: vfId,
             winningOutcomeIndex: winningOutcomeIndex,
             resolutionType: resolutionType,
             winnerProfits: totalWinnerProfits,
@@ -575,10 +755,21 @@ abstract contract BaseDoubleDice is
     }
 
 
-    // ---------- Claims ----------
+    // ----------🎲 Lifecycle: Claiming ERC-20 refunds/payouts for commitment balance held on a Claimable VF 🎲----------
 
-    /// @notice Claim multiple refunds from a VF that has been cancelled.
-    /// A tokenId may be included multiple times, but it will count only once.
+    /**
+     * @notice One of the token ids passed to a claim does not match the passed vfId
+     */
+    error MismatchedVirtualFloorId(uint256 tokenId);
+
+    /**
+     * @notice Claim back the original ERC-20 amounts that were committed to the outcomes of a VF that has been cancelled.
+     * The transaction will burn all the ERC-1155 balances the caller has on `tokenIds` and transfer the
+     * original ERC-20 amounts back to the caller.
+     * A tokenId may be included multiple times, but it will count only once.
+     * @param vfId The id of VF to claim refunds for. This must be a VF in one of the Claimable states.
+     * @param tokenIds the ERC-1155 token-ids on which the user has ERC-1155 balances to claim. They must match the supplied `vfId`.
+     */
     function claimRefunds(uint256 vfId, uint256[] calldata tokenIds)
         public
         whenNotPaused
@@ -602,13 +793,18 @@ abstract contract BaseDoubleDice is
         emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
 
         // nonReentrant
-        // Since at this point in claimRefunds the ERC-1155 balances have already been drained,
-        // the following external safeTransfer call cannot re-enter claimRefunds.
+        // Since at this point in claimRefunds the ERC-1155 balances have already been burned,
+        // the following external safeTransfer call cannot re-enter claimRefunds and re-claim.
         vf.paymentToken.safeTransfer(msgSender, totalPayout);
     }
 
-    /// @notice Claim payouts from a VF that has been resolved with winners.
-    /// A tokenId may be included multiple times, but it will count only once.
+    /**
+     * @notice For a VF in the `Claimable_Payouts` state, claim the share of the total winner-profits corresponding to the supplied `tokenIds`.
+     * The transaction will burn all the ERC-1155 balances the caller has on `tokenIds` and transfer any corresponding ERC-20 payouts to the caller.
+     * A tokenId may be included multiple times, but it will count only once.
+     * @param vfId The id of VF to claim refunds for. This must be a VF in one of the Claimable states.
+     * @param tokenIds the ERC-1155 token-ids on which the user has ERC-1155 balances to claim. They must match the supplied `vfId`.
+     */
     function claimPayouts(uint256 vfId, uint256[] calldata tokenIds)
         public
         whenNotPaused
@@ -641,37 +837,27 @@ abstract contract BaseDoubleDice is
         emit TransferBatch(msgSender, msgSender, address(0), tokenIds, amounts);
 
         // nonReentrant
-        // Since at this point in claimPayouts the ERC-1155 balances have already been drained,
-        // the following external safeTransfer call cannot re-enter claimPayouts.
+        // Since at this point in claimPayouts the ERC-1155 balances have already been burned,
+        // the following external safeTransfer call cannot re-enter claimPayouts and re-claim.
         vf.paymentToken.safeTransfer(msgSender, totalPayout);
     }
 
 
-    // ---------- ERC-165 support ----------
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(IERC165Upgradeable, ForkedERC1155UpgradeableV4_5_2, AccessControlUpgradeable)
-        virtual // Leave door open for extending contracts to support further interfaces
-        returns (bool)
-    {
-        return ForkedERC1155UpgradeableV4_5_2.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
-    }
-
-
-    // ---------- Lifecycle hooks ----------
+    // ----------🎲 Lifecycle: Overrideable VF lifecycle hooks 🎲----------
 
     // solhint-disable-next-line no-empty-blocks
     function _onVirtualFloorCreation(VirtualFloorCreationParams calldata params) internal virtual {
     }
 
     // solhint-disable-next-line no-empty-blocks
-    function _onVirtualFloorConclusion(uint256 vfId) internal virtual {        
+    function _onVirtualFloorConclusion(uint256 vfId) internal virtual {
     }
 
 
-    // ---------- Pausability ----------
+    // ----------🎲🎲 FURTHER INTEROPERABILITY 🎲🎲----------
+
+
+    // ----------🎲 Pausable 🎲----------
 
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
@@ -682,17 +868,35 @@ abstract contract BaseDoubleDice is
     }
 
 
-    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-    uint256[50] private __gap;
-
-
-    // ---------- Ownable ----------
+    // ----------🎲 Ownable 🎲----------
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-    /// @dev Does not control anything on the contract,
-    /// only exposed for compatibility with 3rd-party tools.
+    /**
+     * @notice Does not control anything on the contract, but simply exposes the platformFeeBeneficiary as the `Ownable.owner()`
+     * to enable this contract to interface with 3rd-party tools.
+     */
     function owner() external view returns (address) {
         return _platformFeeBeneficiary;
     }
+
+
+    // ----------🎲 ERC-165 🎲----------
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ForkedERC1155UpgradeableV4_5_2, AccessControlUpgradeable)
+        virtual
+        returns (bool)
+    {
+        return ForkedERC1155UpgradeableV4_5_2.supportsInterface(interfaceId) || AccessControlUpgradeable.supportsInterface(interfaceId);
+    }
+
+
+    /**
+     * @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[50] private __gap;
+
 }

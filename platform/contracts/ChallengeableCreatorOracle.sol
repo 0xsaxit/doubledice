@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./BaseDoubleDice.sol";
 
+
 enum ResultUpdateAction {
     AdminFinalizedUnsetResult,
     CreatorSetResult,
@@ -40,29 +41,36 @@ error ChallengeOutcomeIndexEqualToSet();
 
 
 /**
- * @notice This Resolver allows the VF-owner to set the result within 1 hour of tResolve:
- * - If VF-owner does not set it within 1 hour of tResolve, platform-admin may resolve VF via finalizeUnsetResult
- * - If VF-owner sets it within 1 hour of tResolve, say at tSet, then a second 1-hour timer starts counting down:
- *   - If within 1 hour of tSet the VF-owner's result is not challenged by anyone, then after tSet + 1 hour,
- *     *anyone* may `confirmUnchallengedResult`, which will resolve the underlying VF
- *   - If within 1 hour of tSet a challenger challenges the VF-owner's result, then the platform-admin will have to
- *     look into the VF and `finalizeChallenge`.
- */ 
+ * @title ChallengeableCreatorOracle extension of BaseDoubleDice contract
+ * @author 🎲🎲 <dev@doubledice.com>
+ * @notice This contract extends base contract to allow VFs to be resolved by VF-creator within a specific timeframe,
+ * and to subsequently allow that set result to be challenged by a member of the public.
+ */
 contract ChallengeableCreatorOracle is BaseDoubleDice {
 
     using SafeERC20Upgradeable for IERC20MetadataUpgradeable;
     using SafeCastUpgradeable for uint256;
 
+    /**
+     * @dev Potential challengers must pay 100 USDC bond, which is refunded if challenge is correct.
+     */
     uint256 constant public CHALLENGE_BOND_USD_AMOUNT = 100;
 
+    /**
+     * @dev VF-creator should set result until vf.tResolve + 1 hour
+     */
     uint256 constant public SET_WINDOW_DURATION = 1 hours;
 
+    /**
+     * @dev Members of public have until tSet + 1 hour to challenge result set by VF-creator.
+     */
     uint256 constant public CHALLENGE_WINDOW_DURATION = 1 hours;
 
-    /// @dev These variables could be immutable,
-    /// but for now we write them to storage to keep things uniform.
     IERC20MetadataUpgradeable private _bondUsdErc20Token;
 
+    /**
+     * @notice The ERC-20 token in which someone challenging a VF result must pay bond. Configured as USDC.
+     */
     function bondUsdErc20Token() public view returns (IERC20MetadataUpgradeable) {
         return _bondUsdErc20Token;
     }
@@ -91,11 +99,12 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         uint8 outcomeIndex
     );
 
-    /// @notice Can be called by platform-admin on a VF whose owner did not set result
-    /// within SET_WINDOW_DURATION from VF's tResolve.
-    /// @dev We do not impose any requirements on finalOutcomeIndex because if it out-of-range,
-    /// or check whether underlying VF is in the ClosedResolvable state,
-    /// as underlying platform.resolve call will fail anyway if conditions are not correct.
+    /**
+     * @notice Operator: Set VF result if VF-creator has not set it within 1 hour of tResolve.
+     * @dev No checks are made on whether finalOutcomeIndex is in-range,
+     * or on whether underlying VF is in the ClosedResolvable state,
+     * as BaseDoubleDice._resolve call will fail anyway if requirements are not satisfied.
+     */
     function finalizeUnsetResult(uint256 vfId, uint8 finalOutcomeIndex)
         external
         onlyRole(OPERATOR_ROLE)
@@ -122,6 +131,12 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         _resolve(vfId, finalOutcomeIndex, platformFeeBeneficiary());
     }
 
+    /**
+     * @notice VF creator: Set VF result within 1 hour of tResolve.
+     * @dev No checks are made on whether finalOutcomeIndex is in-range,
+     * or on whether underlying VF is in the ClosedResolvable state,
+     * as BaseDoubleDice._resolve call will fail anyway if requirements are not satisfied.
+     */
     function setResult(uint256 vfId, uint8 setOutcomeIndex)
         external
         whenNotPaused
@@ -154,8 +169,11 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         emit ResultUpdate(vfId, _msgSender(), ResultUpdateAction.CreatorSetResult, setOutcomeIndex);
     }
 
-    /// @notice Once 1 hour has passed and the set result remains unchallenged,
-    /// anyone may call this function to resolve the VF.
+    /**
+     * @notice Confirm a VF result that was set by VF-creator more than 1 hour ago,
+     * and was not challenged by anyone.
+     * @dev Callable by anyone.
+     */
     function confirmUnchallengedResult(uint256 vfId)
         external
         whenNotPaused
@@ -181,6 +199,20 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         _resolve(vfId, resolution.setOutcomeIndex, creatorFeeBeneficiary);
     }
 
+    /**
+     * @notice Challenge a VF result that has been set by VF-creator,
+     * but for which 1-hour challenge-period has not yet expired,
+     * and set result has not been yet challenged by anyone else.
+     * Caller must have pre-approved 100 USDC spending allowance to this contract,
+     * and transaction will result in 100 USDC challenge-bond being transferred
+     * from the caller to this contract.
+     * Bond will be returned if challenge is correct,
+     * or if VF ends up being cancelled because it is flagged.
+     * @param vfId VF id
+     * @param challengeOutcomeIndex 0-based index of VF outcome that is the correct result according to challenger.
+     * Must be different than the the result set previously by VF-creator that is being challenged.
+     * @dev Callable by anyone.
+     */
     function challengeSetResult(uint256 vfId, uint8 challengeOutcomeIndex)
         external
         whenNotPaused
@@ -213,6 +245,11 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         _bondUsdErc20Token.safeTransferFrom(_msgSender(), address(this), _bondAmount());
     }
 
+    /**
+     * @notice Operator: Finalize VF result that has been challenged.
+     * @param vfId VF id
+     * @param finalOutcomeIndex 0-based index of correct VF outcome.
+     */
     function finalizeChallenge(uint256 vfId, uint8 finalOutcomeIndex)
         external
         onlyRole(OPERATOR_ROLE)
@@ -246,9 +283,10 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         _resolve(vfId, finalOutcomeIndex, creatorFeeBeneficiary);
     }
 
-    /// @notice If the underlying VF has been cancelled by a DoubleDice admin
-    /// after being flagged by the community, and a challenger has paid a challenge-bond,
-    /// this function may be called by *anyone*, and it will refund the bond to the the challenger.
+    /**
+     * @dev If the underlying VF has been cancelled after being flagged,
+     * and a challenger had paid a challenge-bond, that bond will be refunded to the challenger.
+     */
     function _onVirtualFloorConclusion(uint256 vfId) internal virtual override {
         if (getVirtualFloorState(vfId) == VirtualFloorState.Claimable_Refunds_Flagged) {
             Resolution storage resolution = resolutions[vfId];
@@ -259,6 +297,8 @@ contract ChallengeableCreatorOracle is BaseDoubleDice {
         }
     }
 
-    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    /**
+     * @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
     uint256[50] private __gap;
 }

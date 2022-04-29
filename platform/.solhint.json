@@ -12,6 +12,10 @@
       }
     ],
     "var-name-mixedcase": "off",
-    "func-name-mixedcase": "off"
+    "func-name-mixedcase": "off",
+    "max-line-length": [
+      "error",
+      160
+    ]
   }
 }

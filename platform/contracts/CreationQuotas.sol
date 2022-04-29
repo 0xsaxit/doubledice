@@ -7,7 +7,11 @@ import "./library/Utils.sol";
 
 error CreationQuotaExceeded();
 
-/// @dev Gas-naive implementation
+/**
+ * @title CreationQuotas extension of BaseDoubleDice contract
+ * @author 🎲🎲 <dev@doubledice.com>
+ * @notice This contract extends base contract to restrict VF-creation according to creator quotas.
+ */
 contract CreationQuotas is BaseDoubleDice {
 
     using Utils for uint256;
@@ -18,14 +22,20 @@ contract CreationQuotas is BaseDoubleDice {
 
     mapping(address => uint256) public creationQuotas;
 
+    /**
+     * @dev Decrement creator quota once VF becomes Active.
+     */
     function _onVirtualFloorCreation(VirtualFloorCreationParams calldata params) internal override virtual {
-        address creator = getVirtualFloorCreator(params.virtualFloorId);
+        address creator = getVirtualFloorCreator(params.vfId);
         if (creationQuotas[creator] == 0) revert CreationQuotaExceeded();
         unchecked {
             creationQuotas[creator] -= 1;
         }
     }
 
+    /**
+     * @dev Restore creator quota once Active VF becomes Claimable.
+     */
     function _onVirtualFloorConclusion(uint256 vfId) internal override virtual {
         address creator = getVirtualFloorCreator(vfId);
         creationQuotas[creator] += 1;
@@ -38,6 +48,9 @@ contract CreationQuotas is BaseDoubleDice {
 
     event CreationQuotaAdjustments(QuotaAdjustment[] adjustments);
 
+    /**
+     * @notice Operator: Adjust VF-creation quotas for multiple creators.
+     */
     function adjustCreationQuotas(QuotaAdjustment[] calldata adjustments)
         external
         onlyRole(OPERATOR_ROLE)
@@ -49,7 +62,9 @@ contract CreationQuotas is BaseDoubleDice {
         emit CreationQuotaAdjustments(adjustments);
     }
 
-    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    /**
+     * @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
     uint256[50] private __gap;
 
 }

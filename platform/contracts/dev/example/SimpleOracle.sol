@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.12;
 
-import "../BaseDoubleDice.sol";
+import "../../BaseDoubleDice.sol";
 
 contract SimpleOracle is BaseDoubleDice {
 
@@ -16,6 +16,8 @@ contract SimpleOracle is BaseDoubleDice {
         _resolve(vfId, winningOutcomeIndex, creator);
     }
 
-    /// @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    /**
+     * @dev See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
     uint256[50] private __gap;
 }

@@ -309,6 +309,7 @@ export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCa
   const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_ResolvableNever;
+  vf.resolutionOrCancellationTxHash = event.transaction.hash;
   vf.save();
 }
 
@@ -317,6 +318,7 @@ export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancell
   const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_Flagged;
+  vf.resolutionOrCancellationTxHash = event.transaction.hash;
   vf.flaggingReason = event.params.reason;
   vf.save();
 }
@@ -333,6 +335,7 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
       vf.state = VirtualFloorState__Claimable_Payouts;
       break;
   }
+  vf.resolutionOrCancellationTxHash = event.transaction.hash;
   vf.winningOutcome = loadExistentVfOutcomeEntity(event.params.vfId, event.params.winningOutcomeIndex).id;
   vf.winnerProfits = convertPaymentTokenAmountToDecimal(vf, event.params.winnerProfits);
   vf.save();

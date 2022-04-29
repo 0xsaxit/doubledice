@@ -104,6 +104,9 @@ type VirtualFloor @entity {
   minCommitmentAmount: BigDecimal!
   maxCommitmentAmount: BigDecimal!
 
+  # Optional because it is only set once VF is resolved
+  resolutionOrCancellationTxHash: Bytes
+  
   # Despite being redundant, as it is always equal to tResolve,
   # this could be different in a different Oracle implementation.
   # So we make a distinction between `tResolve` the VF creation parameter,

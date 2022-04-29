@@ -1,3 +1,4 @@
+/* eslint-disable indent */
 import { DoubleDice, DoubleDice__factory, ResolutionState, VirtualFloorState } from '@doubledice/platform/lib/contracts';
 import { VirtualFloor } from '@doubledice/platform/lib/graph';
 import assert from 'assert';
@@ -8,44 +9,16 @@ import { RelayerParams } from 'defender-relay-client/lib/relayer';
 import { ContractTransaction } from 'ethers';
 import { gql, GraphQLClient } from 'graphql-request';
 import moment from 'moment';
-import { zipArrays3 } from './utils';
-/* eslint-disable indent */
-
-const DD_ENV = process.env.DD_ENV;
-
-if (!(DD_ENV === 'beta' || DD_ENV === 'live')) {
-  throw new Error(`Unexpected DD_ENV "${DD_ENV}"; must be "beta" or "live"`);
-}
-
-const configs = {
-  beta: {
-    GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/doubledicedev/doubledice-mumbai2',
-    APP_BASE_URL: 'https://beta.doubledice.com/bet/',
-    // See https://doubledice.slack.com/services/B03AUCBPLJU
-    SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',
-    BLOCK_EXPLORER_HOST: 'https://mumbai.polygonscan.com',
-    DOUBLEDICE_CONTRACT_ADDRESS: '0x5848A6Df71aE96e9C7544fC07815Ab5B13530c6b',
-    LOG_NO_ACTION: false,
-  },
-  live: {
-    GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/ddvfs-com/ddvfs-polygon',
-    APP_BASE_URL: 'https://ddvfs.com/bet/',
-    // See https://doubledice.slack.com/services/B03AUCBPLJU
-    SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',
-    BLOCK_EXPLORER_HOST: 'https://polygonscan.com',
-    DOUBLEDICE_CONTRACT_ADDRESS: '0x29370D56050FaA11f971B9b7Dc498c99Fd57fEc7',
-    LOG_NO_ACTION: false,
-  },
-};
-
-const {
-  GRAPHQL_ENDPOINT,
+import {
   APP_BASE_URL,
-  SLACK_WEBHOOK_ENDPOINT,
   BLOCK_EXPLORER_HOST,
+  DD_ENV,
   DOUBLEDICE_CONTRACT_ADDRESS,
+  GRAPHQL_ENDPOINT,
   LOG_NO_ACTION,
-} = configs[DD_ENV];
+  SLACK_WEBHOOK_ENDPOINT
+} from './config';
+import { zipArrays3 } from './utils';
 
 const QUERY_UNSET = gql`
   query ($now: BigInt) {

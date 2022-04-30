@@ -74,7 +74,7 @@ type VirtualFloor @entity {
   subcategory: Subcategory!
   category: Category!
 
-  """Only set if the result set by the creator has been challenged"""
+  """Optional: Only set if the result set by the creator has been challenged"""
   challenger: User
 
   # children
@@ -104,32 +104,40 @@ type VirtualFloor @entity {
   minCommitmentAmount: BigDecimal!
   maxCommitmentAmount: BigDecimal!
 
-  # Optional because it is only set once VF is resolved
+  """Optional: Only set if VF has been resolved or cancelled."""
   resolutionOrCancellationTxHash: Bytes
-  
-  # Despite being redundant, as it is always equal to tResolve,
-  # this could be different in a different Oracle implementation.
-  # So we make a distinction between `tResolve` the VF creation parameter,
-  # and `tResultSetMin` the value pertaining to the current particular Oracle implementation
+
+  """
+  In current ChallengeableCreatorOracle resolution implementation, this may seem redundant as it is always equal to `tResolve`.
+  However this might not hold for alternative resolution implementations.
+  `tResolve` is a core property of the VF, whereas `tResultSetMin` is specific to `ChallengeableCreatorOracle`.
+  """
   tResultSetMin: BigInt!
 
   # ToDo: Emit per-VF as VirtualFloorCreated event field
-  # Optional because it can only be set once SET_WINDOW starts ticking
+  """Optional: Only set once SET_WINDOW starts ticking."""
   tResultSetMax: BigInt!
 
   # ToDo: Emit per-VF as VirtualFloorCreated event field
-  # Optional because it can only be set once CHALLENGE_WINDOW starts ticking
+  """Optional: Only set once CHALLENGE_WINDOW starts ticking."""
   tResultChallengeMax: BigInt
 
   state: VirtualFloorState!
-  winningOutcome: Outcome   # Optional: Only set if VF is resolved
 
-  """Total commitments to all outcomes + bonus amount - fees"""
+  """Optional: Only set if VF is resolved."""
+  winningOutcome: Outcome   
+
+  """
+  Total commitments to all outcomes + bonus amount - fees.
+  Optional: Only set if VF is resolved.
+  """
   winnerProfits: BigDecimal # Optional: Only set if VF is resolved
 
-  flaggingReason: String    # Optional: Only set if VF is cancelled because it was flagged
+  """Optional: Only set if VF is cancelled because it was flagged."""
+  flaggingReason: String
 
-  resultUpdateAction: ResultUpdateAction # Optional: Only set if VF result has been set
+  """Optional: Only set if VF result has been every set by anyone."""
+  resultUpdateAction: ResultUpdateAction 
 
   # properties (ipfs)
   title: String!
@@ -180,8 +188,10 @@ type Outcome @entity {
   title: String!
   index: Int!
 
-  # aggregates
+  """Total amount over all commitments to this VF outcome."""
   totalSupply: BigDecimal!
+
+  """Total amount×beta over all commitments to this VF outcome."""
   totalWeightedSupply: BigDecimal!
 }
 
@@ -225,6 +235,10 @@ type UserOutcome @entity {
   totalWeightedBalance: BigDecimal!
 }
 
+"""
+Groups commitments to a specific VF outcome that were made at a specific timeslot.
+Every OutcomeTimeslot has a unique ERC-1155 token-id on the DD contract.
+"""
 type OutcomeTimeslot @entity {
   id: ID!
 
@@ -243,6 +257,10 @@ type OutcomeTimeslot @entity {
   beta: BigDecimal!
 }
 
+"""
+Groups commitments to a specific VF outcome that were made at a specific timeslot, for a specific user.
+Synonymous to the specific user’s ERC-1155 balance on the parent `OutcomeTimeslot`.
+"""
 type UserOutcomeTimeslot @entity {
   id: ID!
 
@@ -261,6 +279,10 @@ type UserOutcomeTimeslot @entity {
   balance: BigDecimal!
 }
 
+"""
+Represents a specific ERC-1155 TransferSingle event, incluing mints and burns.
+TransferBatch events are treated as a sequence of TransferSingle events.
+"""
 type OutcomeTimeslotTransfer @entity {
   id: ID!
 
@@ -284,6 +306,7 @@ type OutcomeTimeslotTransfer @entity {
   amount: BigDecimal!
 }
 
+"""ERC-20 token used as VF payment-tokens."""
 type PaymentToken @entity {
   id: ID!
 
@@ -311,7 +334,11 @@ type VirtualFloorsAggregate @entity {
 
 }
 
-
+"""
+The user’s holdings on the VF.
+Once the user claims payouts or refunds, the corresponding balances still remain under the Vf
+and other the VfOutcome, but are transferred to `0x0000000000000000000000000000000000000000`.
+"""
 type UserVirtualFloor @entity {
   id: ID!
 

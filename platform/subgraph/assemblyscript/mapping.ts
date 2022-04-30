@@ -64,8 +64,8 @@ import {
   decodeMetadata
 } from './metadata';
 import {
-  resultUpdateActionEnumToString,
-  resultUpdateActionOrdinalToEnum
+  resultUpdateActionSolEnumToGraphEnum,
+  resultUpdateActionOrdinalToSolEnum
 } from './result-update-action';
 import {
   toBigDecimal
@@ -369,7 +369,7 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
   // but only for latest result.
   vf.winningOutcome = loadExistentVfOutcomeEntity(event.params.vfId, event.params.outcomeIndex).id;
 
-  const action = resultUpdateActionOrdinalToEnum(event.params.action);
+  const action = resultUpdateActionOrdinalToSolEnum(event.params.action);
 
   switch (action) {
     case ResultUpdateAction.CreatorSetResult:
@@ -389,7 +389,7 @@ export function handleResultUpdate(event: ResultUpdateEvent): void {
       break;
   }
 
-  vf.resultUpdateAction = resultUpdateActionEnumToString(action);
+  vf.resultUpdateAction = resultUpdateActionSolEnumToGraphEnum(action);
 
   vf.save();
 }

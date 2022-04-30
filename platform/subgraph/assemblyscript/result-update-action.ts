@@ -10,7 +10,7 @@ const ResultUpdateAction__SomeoneConfirmedUnchallengedResult = 'SomeoneConfirmed
 const ResultUpdateAction__SomeoneChallengedSetResult = 'SomeoneChallengedSetResult';
 const ResultUpdateAction__OperatorFinalizedChallenge = 'OperatorFinalizedChallenge';
 
-export function resultUpdateActionOrdinalToEnum(ordinal: i32): ResultUpdateAction {
+export function resultUpdateActionOrdinalToSolEnum(ordinal: i32): ResultUpdateAction {
   switch (ordinal) {
     case ResultUpdateAction.OperatorFinalizedUnsetResult:
       return ResultUpdateAction.OperatorFinalizedUnsetResult;
@@ -29,7 +29,7 @@ export function resultUpdateActionOrdinalToEnum(ordinal: i32): ResultUpdateActio
 
 }
 
-export function resultUpdateActionEnumToString(action: ResultUpdateAction): string {
+export function resultUpdateActionSolEnumToGraphEnum(action: ResultUpdateAction): string {
   switch (action) {
     case ResultUpdateAction.OperatorFinalizedUnsetResult:
       return ResultUpdateAction__OperatorFinalizedUnsetResult;

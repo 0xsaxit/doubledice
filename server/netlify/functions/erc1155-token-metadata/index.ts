@@ -13,7 +13,7 @@ const handler: Handler = async (event, context) => {
   if (!validateHexDecimal(hexString)) {
     return { statusCode: 400 };
   }
-  const queryResult = await request('http://127.0.0.1:8000/subgraphs/name/doubledice-com/doubledice-platform', getQuery(`0x${hexString}`));
+  const queryResult = await request('http://127.0.0.1:8000/subgraphs/name/local/local', getQuery(`0x${hexString}`));
 
   if (!queryResult.data.virtualFloorOutcomeTimeslot) {
     return { statusCode: 404 };

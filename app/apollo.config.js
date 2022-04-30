@@ -4,7 +4,7 @@ module.exports = {
     service: {
       name: 'my-app',
       // URL to the GraphQL API
-      url: 'http://127.0.0.1:8000/subgraphs/name/doubledice-com/doubledice-platform'
+      url: 'http://127.0.0.1:8000/subgraphs/name/local/local'
     },
     // Files processed by the extension
     includes: [

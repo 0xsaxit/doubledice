@@ -25,7 +25,7 @@ Running `npm start` will:
 
 After this it will be possible to:
 1. Create a test-VirtualFloor programmatically by running `npm run test:local:create-vf`
-2. [Query the graph using GraphQL](http://127.0.0.1:8000/subgraphs/name/doubledice-com/doubledice-platform/graphql)
+2. [Query the graph using GraphQL](http://127.0.0.1:8000/subgraphs/name/local/local/graphql)
 
 
 Finally run the reference-app:

@@ -54,12 +54,6 @@ enum ResultUpdateAction {
   AdminFinalizedChallenge
 }
 
-type TxInfo @entity {
-  id: ID!
-  txHash: Bytes!
-  blockTimestamp: BigInt!
-}
-
 type VirtualFloor @entity {
   id: ID!
 
@@ -92,8 +86,12 @@ type VirtualFloor @entity {
   protocolFeeRate: BigDecimal!
   platformFeeRate: BigDecimal! @deprecated(reason: "Use `protocolFeeRate`")
 
-  creationTxInfo: TxInfo!
-  tCreated: BigInt! @deprecated(reason: "Use `creationTxInfo.blockTimestamp`")
+  # Ideally tx hash and timestamp would be grouped together into a single structure.
+  # However, doing so would make it impossible to filter by create-time or by resolve-time,
+  # for example. So they are kept as top-level properties.  
+  creationTxHash: Bytes!
+  creationTxTimestamp: BigInt!
+  tCreated: BigInt! @deprecated(reason: "Use `creationTxTimestamp`")
 
   tOpen: BigInt!
   tClose: BigInt!
@@ -103,7 +101,9 @@ type VirtualFloor @entity {
   maxCommitmentAmount: BigDecimal!
 
   """Optional: Only set if VF has been resolved or cancelled."""
-  resolutionOrCancellationTxInfo: TxInfo
+  resolutionOrCancellationTxHash: Bytes
+  """Optional: Only set if VF has been resolved or cancelled."""
+  resolutionOrCancellationTxTimestamp: BigInt
 
   """
   In current ChallengeableCreatorOracle resolution implementation, this may seem redundant as it is always equal to `tResolve`.
@@ -290,8 +290,9 @@ type OutcomeTimeslotTransfer @entity {
   # toUserOutcomeTimeslot: UserOutcomeTimeslot!
 
   # properties
-  txInfo: TxInfo!
-  timestamp: BigInt! @deprecated(reason: "Use `txInfo.blockTimestamp`")
+  txHash: Bytes!
+  txTimestamp: BigInt!
+  timestamp: BigInt! @deprecated(reason: "Use `txTimestamp`")
 
   # """
   # Position of the associated event log in the block.

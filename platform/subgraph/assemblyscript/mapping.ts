@@ -33,6 +33,7 @@ import {
   ResultUpdateAction,
   VirtualFloorResolutionType
 } from '../../lib/helpers/sol-enums';
+import { FIRST_NON_TEST_VF_BLOCK } from '../generated/env';
 import {
   CHALLENGE_WINDOW_DURATION,
   SET_WINDOW_DURATION,
@@ -42,7 +43,6 @@ import {
   assertCategoryEntity,
   assertPaymentTokenEntity,
   assertSubcategoryEntity,
-  assertTxInfoEntity,
   assertUserEntity,
   assertVfOutcomeTimeslotEntity,
   assertVfOutcomeTimeslotUserEntity,
@@ -59,13 +59,12 @@ import {
   loadExistentVfOutcomeEntity,
   loadOrCreateEntity
 } from './entities';
-import { FIRST_NON_TEST_VF_BLOCK } from '../generated/env';
 import {
   decodeMetadata
 } from './metadata';
 import {
-  resultUpdateActionSolEnumToGraphEnum,
-  resultUpdateActionOrdinalToSolEnum
+  resultUpdateActionOrdinalToSolEnum,
+  resultUpdateActionSolEnumToGraphEnum
 } from './result-update-action';
 import {
   toBigDecimal
@@ -157,8 +156,9 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   vf.protocolFeeRate = toBigDecimal(event.params.protocolFeeRate_e18);
   vf.platformFeeRate = vf.protocolFeeRate; // ToDo: Drop
 
-  vf.creationTxInfo = assertTxInfoEntity(event).id;
-  vf.tCreated = event.block.timestamp; // ToDo: Drop
+  vf.creationTxHash = event.transaction.hash;
+  vf.creationTxTimestamp = event.block.timestamp;
+  vf.tCreated = vf.creationTxTimestamp; // ToDo: Drop
 
   vf.tOpen = event.params.tOpen;
   vf.tClose = event.params.tClose;
@@ -273,8 +273,9 @@ function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Addre
     vfOutcomeTimeslotTransfer.outcomeTimeslot = vfOutcomeTimeslot.id;
     vfOutcomeTimeslotTransfer.from = fromUser.id;
     vfOutcomeTimeslotTransfer.to = toUser.id;
-    vfOutcomeTimeslotTransfer.txInfo = assertTxInfoEntity(event).id;
-    vfOutcomeTimeslotTransfer.timestamp = event.block.timestamp; // ToDo: Drop
+    vfOutcomeTimeslotTransfer.txHash = event.transaction.hash;
+    vfOutcomeTimeslotTransfer.txTimestamp = event.block.timestamp;
+    vfOutcomeTimeslotTransfer.timestamp = vfOutcomeTimeslotTransfer.txTimestamp; // ToDo: Drop
     vfOutcomeTimeslotTransfer.amount = amount;
     vfOutcomeTimeslotTransfer.save();
   }
@@ -314,7 +315,8 @@ export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCa
   const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_ResolvableNever;
-  vf.resolutionOrCancellationTxInfo = assertTxInfoEntity(event).id;
+  vf.resolutionOrCancellationTxHash = event.transaction.hash;
+  vf.resolutionOrCancellationTxTimestamp = event.block.timestamp;
   vf.save();
 }
 
@@ -323,7 +325,8 @@ export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancell
   const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_Flagged;
-  vf.resolutionOrCancellationTxInfo = assertTxInfoEntity(event).id;
+  vf.resolutionOrCancellationTxHash = event.transaction.hash;
+  vf.resolutionOrCancellationTxTimestamp = event.block.timestamp;
   vf.flaggingReason = event.params.reason;
   vf.save();
 }
@@ -340,7 +343,8 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
       vf.state = VirtualFloorState__Claimable_Payouts;
       break;
   }
-  vf.resolutionOrCancellationTxInfo = assertTxInfoEntity(event).id;
+  vf.resolutionOrCancellationTxHash = event.transaction.hash;
+  vf.resolutionOrCancellationTxTimestamp = event.block.timestamp;
   vf.winningOutcome = loadExistentVfOutcomeEntity(event.params.vfId, event.params.winningOutcomeIndex).id;
   vf.winnerProfits = convertPaymentTokenAmountToDecimal(vf, event.params.winnerProfits);
   vf.save();

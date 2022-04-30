@@ -2,8 +2,7 @@ import {
   Address,
   BigDecimal,
   BigInt,
-  Bytes,
-  ethereum
+  Bytes
 } from '@graphprotocol/graph-ts';
 import { IERC20Metadata } from '../../generated/DoubleDice/IERC20Metadata';
 import {
@@ -15,7 +14,6 @@ import {
   ResultSource as VfResultSource,
   Role,
   Subcategory,
-  TxInfo,
   User,
   UserOutcome as VfOutcomeUser,
   UserOutcomeTimeslot as VfOutcomeTimeslotUser,
@@ -325,29 +323,6 @@ export function assertPaymentTokenEntity(token: Address): PaymentToken {
   } else {
     {
       assertFieldEqual('PaymentToken', id, 'address', loaded.address, token);
-    }
-    return loaded;
-  }
-}
-
-export function assertTxInfoEntity(event: ethereum.Event): TxInfo {
-  const txHash = event.transaction.hash;
-  const blockTimestamp = event.block.timestamp;
-
-  const id = txHash.toHex();
-  const loaded = TxInfo.load(id);
-  if (loaded == null) {
-    const created = new TxInfo(id);
-    {
-      created.txHash = txHash;
-      created.blockTimestamp = blockTimestamp;
-    }
-    created.save();
-    return created;
-  } else {
-    {
-      assertFieldEqual('TxInfo', id, 'txHash', loaded.txHash, txHash);
-      assertFieldEqual('TxInfo', id, 'blockTimestamp', loaded.blockTimestamp, blockTimestamp);
     }
     return loaded;
   }

@@ -7,15 +7,11 @@
 
 type Category @entity {
   id: ID!
+  slug: String! @deprecated(reason: "Use `id`")
 
   # children
   subcategories: [Subcategory!]! @derivedFrom(field: "category")
   virtualFloors: [VirtualFloor!]! @derivedFrom(field: "category")
-
-  # properties
-
-  """Deprecated in favour of `id`."""
-  slug: String!
 }
 
 type Subcategory @entity {
@@ -37,8 +33,7 @@ type Subcategory @entity {
   """Unique only within the parent category."""
   subid: String!
 
-  """Deprecated in favour of `subid`."""
-  slug: String!
+  slug: String! @deprecated(reason: "Use `subid`")
 }
 
 enum VirtualFloorState {
@@ -73,9 +68,7 @@ type VirtualFloor @entity {
   # parents
 
   creator: User!
-
-  """Deprecated in favour of `creator`."""
-  owner: User!
+  owner: User! @deprecated(reason: "Use `creator`")
 
   subcategory: Subcategory!
   category: Category!
@@ -92,19 +85,15 @@ type VirtualFloor @entity {
   # properties (event)
   paymentToken: PaymentToken!
   betaOpen: BigDecimal!
-  totalFeeRate: BigDecimal!
 
-  """Deprecated in favour of `totalFeeRate`."""
-  creationFeeRate: BigDecimal!
+  totalFeeRate: BigDecimal!
+  creationFeeRate: BigDecimal! @deprecated(reason: "Use `totalFeeRate`")
 
   protocolFeeRate: BigDecimal!
-
-  """Deprecated in favour of `protocolFeeRate`."""
-  platformFeeRate: BigDecimal!
+  platformFeeRate: BigDecimal! @deprecated(reason: "Use `protocolFeeRate`")
 
   creationTxInfo: TxInfo!
-  """Deprecated in favour of `creationTxInfo.blockTimestamp`."""
-  tCreated: BigInt!
+  tCreated: BigInt! @deprecated(reason: "Use `creationTxInfo.blockTimestamp`")
 
   tOpen: BigInt!
   tClose: BigInt!
@@ -215,9 +204,7 @@ type User @entity {
   outcomeTimeslotTransfersFrom: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "from")
 
   createdVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "creator")
-
-  """Deprecated in favour of `createdVirtualFloors`."""
-  ownedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "owner")
+  ownedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "owner") @deprecated(reason: "Use `createdVirtualFloors`")
 
   challengedVirtualFloors: [VirtualFloor!]! @derivedFrom(field: "challenger")
 
@@ -304,8 +291,7 @@ type OutcomeTimeslotTransfer @entity {
 
   # properties
   txInfo: TxInfo!
-  """Deprecated in favour of `txInfo.blockTimestamp`."""
-  timestamp: BigInt!
+  timestamp: BigInt! @deprecated(reason: "Use `txInfo.blockTimestamp`")
 
   # """
   # Position of the associated event log in the block.

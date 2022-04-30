@@ -60,8 +60,9 @@
         <a :href="`http://localhost:3000/bet/#!/${virtualFloor.intId}`">{{ virtualFloor.intId }}</a>
       </td>
       <td rowspan="2">
-        <template v-if="virtualFloor.resolutionOrCancellationTxHash">
-          <a href="#" @click="showResolutionOrCancellationTxHash" :title="virtualFloor.resolutionOrCancellationTxHash">
+        <template v-if="virtualFloor.resolutionOrCancellationTxInfo">
+          <a href="#" @click="showResolutionOrCancellationTxHash"
+            :title="virtualFloor.resolutionOrCancellationTxInfo.txHash">
             {{ virtualFloor.state }}
           </a></template>
         <template v-else>{{ virtualFloor.state }}</template>
@@ -256,7 +257,8 @@ export default class VirtualFloorComponent extends Vue {
   }
 
   showResolutionOrCancellationTxHash(): void {
-    alert(this.virtualFloor.resolutionOrCancellationTxHash)
+    assert(this.virtualFloor.resolutionOrCancellationTxInfo)
+    alert(this.virtualFloor.resolutionOrCancellationTxInfo.txHash)
   }
 }
 </script>

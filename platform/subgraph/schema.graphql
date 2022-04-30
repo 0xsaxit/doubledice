@@ -59,6 +59,12 @@ enum ResultUpdateAction {
   OperatorFinalizedChallenge
 }
 
+type TxInfo @entity {
+  id: ID!
+  txHash: Bytes!
+  blockTimestamp: BigInt!
+}
+
 type VirtualFloor @entity {
   id: ID!
 
@@ -96,7 +102,10 @@ type VirtualFloor @entity {
   """Deprecated in favour of `protocolFeeRate`."""
   platformFeeRate: BigDecimal!
 
+  creationTxInfo: TxInfo!
+  """Deprecated in favour of `creationTxInfo.blockTimestamp`."""
   tCreated: BigInt!
+
   tOpen: BigInt!
   tClose: BigInt!
   tResolve: BigInt!
@@ -105,7 +114,7 @@ type VirtualFloor @entity {
   maxCommitmentAmount: BigDecimal!
 
   """Optional: Only set if VF has been resolved or cancelled."""
-  resolutionOrCancellationTxHash: Bytes
+  resolutionOrCancellationTxInfo: TxInfo
 
   """
   In current ChallengeableCreatorOracle resolution implementation, this may seem redundant as it is always equal to `tResolve`.
@@ -294,6 +303,8 @@ type OutcomeTimeslotTransfer @entity {
   # toUserOutcomeTimeslot: UserOutcomeTimeslot!
 
   # properties
+  txInfo: TxInfo!
+  """Deprecated in favour of `txInfo.blockTimestamp`."""
   timestamp: BigInt!
 
   # """

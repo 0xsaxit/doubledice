@@ -24,6 +24,7 @@ dataSources:
         - ResultSource
         - Role
         - Subcategory
+        - TxInfo
         - User
         - UserOutcome
         - UserOutcomeTimeslot

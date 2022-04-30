@@ -42,6 +42,7 @@ import {
   assertCategoryEntity,
   assertPaymentTokenEntity,
   assertSubcategoryEntity,
+  assertTxInfoEntity,
   assertUserEntity,
   assertVfOutcomeTimeslotEntity,
   assertVfOutcomeTimeslotUserEntity,
@@ -155,7 +156,10 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   vf.creationFeeRate = vf.totalFeeRate; // ToDo: Drop
   vf.protocolFeeRate = toBigDecimal(event.params.protocolFeeRate_e18);
   vf.platformFeeRate = vf.protocolFeeRate; // ToDo: Drop
-  vf.tCreated = event.block.timestamp;
+
+  vf.creationTxInfo = assertTxInfoEntity(event).id;
+  vf.tCreated = event.block.timestamp; // ToDo: Drop
+
   vf.tOpen = event.params.tOpen;
   vf.tClose = event.params.tClose;
   vf.tResolve = event.params.tResolve;
@@ -269,7 +273,8 @@ function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Addre
     vfOutcomeTimeslotTransfer.outcomeTimeslot = vfOutcomeTimeslot.id;
     vfOutcomeTimeslotTransfer.from = fromUser.id;
     vfOutcomeTimeslotTransfer.to = toUser.id;
-    vfOutcomeTimeslotTransfer.timestamp = event.block.timestamp;
+    vfOutcomeTimeslotTransfer.txInfo = assertTxInfoEntity(event).id;
+    vfOutcomeTimeslotTransfer.timestamp = event.block.timestamp; // ToDo: Drop
     vfOutcomeTimeslotTransfer.amount = amount;
     vfOutcomeTimeslotTransfer.save();
   }
@@ -309,7 +314,7 @@ export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCa
   const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_ResolvableNever;
-  vf.resolutionOrCancellationTxHash = event.transaction.hash;
+  vf.resolutionOrCancellationTxInfo = assertTxInfoEntity(event).id;
   vf.save();
 }
 
@@ -318,7 +323,7 @@ export function handleVirtualFloorCancellationFlagged(event: VirtualFloorCancell
   const creator = loadExistentEntity<User>(User.load, vf.creator);
   adjustUserConcurrentVirtualFloors(creator, -1);
   vf.state = VirtualFloorState__Claimable_Refunds_Flagged;
-  vf.resolutionOrCancellationTxHash = event.transaction.hash;
+  vf.resolutionOrCancellationTxInfo = assertTxInfoEntity(event).id;
   vf.flaggingReason = event.params.reason;
   vf.save();
 }
@@ -335,7 +340,7 @@ export function handleVirtualFloorResolution(event: VirtualFloorResolutionEvent)
       vf.state = VirtualFloorState__Claimable_Payouts;
       break;
   }
-  vf.resolutionOrCancellationTxHash = event.transaction.hash;
+  vf.resolutionOrCancellationTxInfo = assertTxInfoEntity(event).id;
   vf.winningOutcome = loadExistentVfOutcomeEntity(event.params.vfId, event.params.winningOutcomeIndex).id;
   vf.winnerProfits = convertPaymentTokenAmountToDecimal(vf, event.params.winnerProfits);
   vf.save();

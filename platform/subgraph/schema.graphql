@@ -47,11 +47,11 @@ enum VirtualFloorState {
 }
 
 enum ResultUpdateAction {
-  OperatorFinalizedUnsetResult,
+  AdminFinalizedUnsetResult,
   CreatorSetResult,
   SomeoneConfirmedUnchallengedResult,
   SomeoneChallengedSetResult,
-  OperatorFinalizedChallenge
+  AdminFinalizedChallenge
 }
 
 type TxInfo @entity {

@@ -4,11 +4,11 @@
 import { ResultUpdateAction } from '../../lib/helpers/sol-enums';
 
 // Manually mirrored from schema.graphql
-const ResultUpdateAction__OperatorFinalizedUnsetResult = 'OperatorFinalizedUnsetResult';
+const ResultUpdateAction__AdminFinalizedUnsetResult = 'AdminFinalizedUnsetResult';
 const ResultUpdateAction__CreatorSetResult = 'CreatorSetResult';
 const ResultUpdateAction__SomeoneConfirmedUnchallengedResult = 'SomeoneConfirmedUnchallengedResult';
 const ResultUpdateAction__SomeoneChallengedSetResult = 'SomeoneChallengedSetResult';
-const ResultUpdateAction__OperatorFinalizedChallenge = 'OperatorFinalizedChallenge';
+const ResultUpdateAction__AdminFinalizedChallenge = 'AdminFinalizedChallenge';
 
 export function resultUpdateActionOrdinalToSolEnum(ordinal: i32): ResultUpdateAction {
   switch (ordinal) {
@@ -32,7 +32,7 @@ export function resultUpdateActionOrdinalToSolEnum(ordinal: i32): ResultUpdateAc
 export function resultUpdateActionSolEnumToGraphEnum(action: ResultUpdateAction): string {
   switch (action) {
     case ResultUpdateAction.OperatorFinalizedUnsetResult:
-      return ResultUpdateAction__OperatorFinalizedUnsetResult;
+      return ResultUpdateAction__AdminFinalizedUnsetResult;
     case ResultUpdateAction.CreatorSetResult:
       return ResultUpdateAction__CreatorSetResult;
     case ResultUpdateAction.SomeoneConfirmedUnchallengedResult:
@@ -40,7 +40,7 @@ export function resultUpdateActionSolEnumToGraphEnum(action: ResultUpdateAction)
     case ResultUpdateAction.SomeoneChallengedSetResult:
       return ResultUpdateAction__SomeoneChallengedSetResult;
     case ResultUpdateAction.OperatorFinalizedChallenge:
-      return ResultUpdateAction__OperatorFinalizedChallenge;
+      return ResultUpdateAction__AdminFinalizedChallenge;
     default:
       throw new Error('To avoid "ERROR TS2355: A function whose declared type is not \'void\' must return a value."');
   }

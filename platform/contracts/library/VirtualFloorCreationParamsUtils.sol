@@ -12,7 +12,7 @@ import "./VirtualFloors.sol";
 
 /**
  * @notice Versioned & abi-encoded VF metadata
- * @dev BaseDoubleDicecreateVirtualFloor treats VF metadata as opaque bytes.
+ * @dev BaseDoubleDice.createVirtualFloor treats VF metadata as opaque bytes.
  * In this way, contract can be upgraded to new metadata formats without altering createVirtualFloor signature.
  */
 struct EncodedVirtualFloorMetadata {

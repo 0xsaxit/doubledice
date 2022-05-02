@@ -12,7 +12,7 @@ contract MultipleInheritanceOptimization {
 
     /**
      * @dev Should be diamond-root's last declared modifier.
-     * Ensures that diamond-root intializer is run only once.
+     * Ensures that diamond-root initializer is run only once.
      */
     modifier multipleInheritanceRootInitializer() {
         if (!_rootInitialized) {

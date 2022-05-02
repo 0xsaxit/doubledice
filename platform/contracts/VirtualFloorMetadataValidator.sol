@@ -66,7 +66,7 @@ error EmptyDiscordChannelId();
 /**
  * @title VirtualFloorMetadataValidator extension of BaseDoubleDice contract
  * @author 🎲🎲 <dev@doubledice.com>
- * @notice This contract extends base contract to restrict VF-creation to VFs with valid metadata only.
+ * @notice This contract extends the BaseDoubleDice contract to restrict VF-creation to VFs with valid metadata only.
  */
 contract VirtualFloorMetadataValidator is BaseDoubleDice {
 

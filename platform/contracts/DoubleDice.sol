@@ -23,6 +23,14 @@ import "./VirtualFloorMetadataValidator.sol";
  *
  * @title DoubleDice protocol contract
  * @author 🎲🎲 <dev@doubledice.com>
+ * @custom:security-contact dev@doubledice.com
+ * @notice Enables accounts to commit an amount of ERC-20 tokens to a prediction that a specific future event,
+ * or VirtualFloor (VF), resolves to a specific outcome from a predefined list of 2 or more mutually-exclusive
+ * possible outcomes.
+ * Users committing funds to a specific VF outcome at a specific timepoint are issued with a commitment receipt
+ * in the form of a ERC-1155 commitment-balance.
+ * If a VF is resolved to a winning outcome and winner profits are available, the commitment-balance may be redeemed
+ * by its holder for the corresponding share of the profit.
  * @dev Merges all the multiple BaseDoubleDice contract extensions into one final contract.
  */
 contract DoubleDice is

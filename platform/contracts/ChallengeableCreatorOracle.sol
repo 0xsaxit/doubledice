@@ -13,7 +13,7 @@ import "./BaseDoubleDice.sol";
 /**
  * @title ChallengeableCreatorOracle extension of BaseDoubleDice contract
  * @author 🎲🎲 <dev@doubledice.com>
- * @notice This contract extends base contract to allow VFs to be resolved by VF-creator,
+ * @notice This contract extends the BaseDoubleDice contract to allow VFs to be resolved by VF-creator,
  * and to subsequently allow that set result to be challenged by a member of the public.
  */
 contract ChallengeableCreatorOracle is BaseDoubleDice {

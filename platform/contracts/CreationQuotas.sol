@@ -10,7 +10,7 @@ error CreationQuotaExceeded();
 /**
  * @title CreationQuotas extension of BaseDoubleDice contract
  * @author 🎲🎲 <dev@doubledice.com>
- * @notice This contract extends base contract to enforce VF-creation quotas for creators.
+ * @notice This contract extends the BaseDoubleDice contract to enforce VF-creation quotas for creators.
  * @dev Quota is temporarily decremented by 1 when creator creates a VF,
  * and quota is restored when VF goes back to a Claimable state.
  */

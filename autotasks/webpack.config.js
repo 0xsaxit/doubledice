@@ -3,8 +3,8 @@ const webpack = require('webpack');
 
 module.exports = {
   entry: {
-    vfbot: './src/vfbot.ts',
-    'vf-creation-notifier': './src/vf-creation-notifier.ts',
+    'vf- maintainer': './src/vf-maintainer.ts',
+    'new-vf-notifier': './src/new-vf-notifier.ts',
   },
   target: 'node',
   mode: 'development',

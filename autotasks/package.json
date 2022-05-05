@@ -7,14 +7,14 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "webpack",
-    "vfbot:beta:run-local": "DD_ENV=beta ts-node src/vfbot.ts",
-    "vfbot:live:run-local": "DD_ENV=live ts-node src/vfbot.ts",
-    "vfbot:beta:update-code": "DD_ENV=beta npm run build && defender-autotask update-code e366c6d9-77d0-4149-a37d-9b6d6b88b9cb ./dist/vfbot",
-    "vfbot:live:update-code": "DD_ENV=live npm run build && defender-autotask update-code cc1459ea-0878-417a-9f23-73f05ddc5035 ./dist/vfbot",
-    "vf-creation-notifier:beta:run-local": "DD_ENV=beta ts-node src/vf-creation-notifier.ts",
-    "vf-creation-notifier:live:run-local": "DD_ENV=live ts-node src/vf-creation-notifier.ts",
-    "vf-creation-notifier:beta:update-code": "DD_ENV=beta npm run build && defender-autotask update-code f2bbdada-bcda-42e9-9e1e-c8e7eb4f4dad ./dist/vf-creation-notifier",
-    "vf-creation-notifier:live:update-code": "DD_ENV=live npm run build && defender-autotask update-code c9db3449-136d-4968-b7d0-785501c72808 ./dist/vf-creation-notifier"
+    "vf-maintainer:beta:run-local": "DD_ENV=beta ts-node src/vf-maintainer.ts",
+    "vf-maintainer:live:run-local": "DD_ENV=live ts-node src/vf-maintainer.ts",
+    "vf-maintainer:beta:update-code": "DD_ENV=beta npm run build && defender-autotask update-code e366c6d9-77d0-4149-a37d-9b6d6b88b9cb ./dist/vf-maintainer",
+    "vf-maintainer:live:update-code": "DD_ENV=live npm run build && defender-autotask update-code cc1459ea-0878-417a-9f23-73f05ddc5035 ./dist/vf-maintainer",
+    "new-vf-notifier:beta:run-local": "DD_ENV=beta ts-node src/new-vf-notifier.ts",
+    "new-vf-notifier:live:run-local": "DD_ENV=live ts-node src/new-vf-notifier.ts",
+    "new-vf-notifier:beta:update-code": "DD_ENV=beta npm run build && defender-autotask update-code f2bbdada-bcda-42e9-9e1e-c8e7eb4f4dad ./dist/new-vf-notifier",
+    "new-vf-notifier:live:update-code": "DD_ENV=live npm run build && defender-autotask update-code c9db3449-136d-4968-b7d0-785501c72808 ./dist/new-vf-notifier"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.21.0",

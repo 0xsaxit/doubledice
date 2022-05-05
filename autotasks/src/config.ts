@@ -13,6 +13,8 @@ const configs = {
     BLOCK_EXPLORER_HOST: 'https://mumbai.polygonscan.com',
     DOUBLEDICE_CONTRACT_ADDRESS: '0x5848A6Df71aE96e9C7544fC07815Ab5B13530c6b',
     LOG_NO_ACTION: false,
+    // Generated once via hexlify(randomBytes(32)).slice(2)
+    DISCORD_MAINTAINER_API_KEY: 'cc2531ddbc006bae87b129db3022d2fee593d7c4129deca1672154753a69a2ef',
   },
   live: {
     GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/ddvfs-com/ddvfs-polygon',
@@ -22,6 +24,8 @@ const configs = {
     BLOCK_EXPLORER_HOST: 'https://polygonscan.com',
     DOUBLEDICE_CONTRACT_ADDRESS: '0x29370D56050FaA11f971B9b7Dc498c99Fd57fEc7',
     LOG_NO_ACTION: false,
+    // Generated once via hexlify(randomBytes(32)).slice(2)
+    DISCORD_MAINTAINER_API_KEY: '15b43972271fb4ed1735bc84d10444565e321eab29666e48830b695c0aba2477',
   },
 };
 
@@ -32,6 +36,7 @@ const {
   BLOCK_EXPLORER_HOST,
   DOUBLEDICE_CONTRACT_ADDRESS,
   LOG_NO_ACTION,
+  DISCORD_MAINTAINER_API_KEY,
 } = configs[DD_ENV];
 
 export {
@@ -41,4 +46,5 @@ export {
   BLOCK_EXPLORER_HOST,
   DOUBLEDICE_CONTRACT_ADDRESS,
   LOG_NO_ACTION,
+  DISCORD_MAINTAINER_API_KEY,
 };

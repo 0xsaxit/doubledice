@@ -14,7 +14,11 @@
     "new-vf-notifier:beta:run-local": "DD_ENV=beta ts-node src/new-vf-notifier.ts",
     "new-vf-notifier:live:run-local": "DD_ENV=live ts-node src/new-vf-notifier.ts",
     "new-vf-notifier:beta:update-code": "DD_ENV=beta npm run build && defender-autotask update-code f2bbdada-bcda-42e9-9e1e-c8e7eb4f4dad ./dist/new-vf-notifier",
-    "new-vf-notifier:live:update-code": "DD_ENV=live npm run build && defender-autotask update-code c9db3449-136d-4968-b7d0-785501c72808 ./dist/new-vf-notifier"
+    "new-vf-notifier:live:update-code": "DD_ENV=live npm run build && defender-autotask update-code c9db3449-136d-4968-b7d0-785501c72808 ./dist/new-vf-notifier",
+    "discord-maintainer:beta:run-local": "DD_ENV=beta ts-node src/discord-maintainer.ts",
+    "discord-maintainer:live:run-local": "DD_ENV=live ts-node src/discord-maintainer.ts",
+    "discord-maintainer:beta:update-code": "DD_ENV=beta npm run build && defender-autotask update-code 8e9ab279-d9d1-48c0-b975-1c32da8a09cd ./dist/discord-maintainer",
+    "discord-maintainer:live:update-code": "DD_ENV=live npm run build && defender-autotask update-code babc05b7-da27-4993-bdfd-35166d35a338 ./dist/discord-maintainer"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.21.0",

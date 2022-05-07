@@ -7,7 +7,7 @@ if (!(DD_ENV === 'beta' || DD_ENV === 'live')) {
 const configs = {
   beta: {
     GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/doubledicedev/doubledice-mumbai2',
-    APP_BASE_URL: 'https://beta.doubledice.com/bet/',
+    APP_ORIGIN: 'https://beta.doubledice.com',
     // See https://doubledice.slack.com/services/B03AUCBPLJU
     SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',
     BLOCK_EXPLORER_HOST: 'https://mumbai.polygonscan.com',
@@ -16,7 +16,7 @@ const configs = {
   },
   live: {
     GRAPHQL_ENDPOINT: 'https://api.thegraph.com/subgraphs/name/ddvfs-com/ddvfs-polygon',
-    APP_BASE_URL: 'https://ddvfs.com/bet/',
+    APP_ORIGIN: 'https://ddvfs.com',
     // See https://doubledice.slack.com/services/B03AUCBPLJU
     SLACK_WEBHOOK_ENDPOINT: 'https://hooks.slack.com/services/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',
     BLOCK_EXPLORER_HOST: 'https://polygonscan.com',
@@ -27,7 +27,7 @@ const configs = {
 
 const {
   GRAPHQL_ENDPOINT,
-  APP_BASE_URL,
+  APP_ORIGIN,
   SLACK_WEBHOOK_ENDPOINT,
   BLOCK_EXPLORER_HOST,
   DOUBLEDICE_CONTRACT_ADDRESS,
@@ -36,7 +36,7 @@ const {
 
 export {
   GRAPHQL_ENDPOINT,
-  APP_BASE_URL,
+  APP_ORIGIN,
   SLACK_WEBHOOK_ENDPOINT,
   BLOCK_EXPLORER_HOST,
   DOUBLEDICE_CONTRACT_ADDRESS,

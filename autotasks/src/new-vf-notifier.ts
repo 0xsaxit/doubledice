@@ -6,7 +6,7 @@ import { AutotaskEvent, BlockTriggerEvent } from 'defender-autotask-utils';
 import { gql, GraphQLClient } from 'graphql-request';
 import moment from 'moment';
 import {
-  APP_BASE_URL,
+  APP_ORIGIN,
   BLOCK_EXPLORER_HOST,
   GRAPHQL_ENDPOINT,
   SLACK_WEBHOOK_ENDPOINT
@@ -42,7 +42,7 @@ type QueryOutput = {
   virtualFloors: VirtualFloor[]
 }
 
-const constructVfUrl = (intId: string) => `${APP_BASE_URL}${intId}`;
+const constructVfUrl = (intId: string) => `${APP_ORIGIN}/bet/${intId}`;
 
 
 // Entrypoint for the Autotask

@@ -10,7 +10,7 @@ import { ContractTransaction } from 'ethers';
 import { gql, GraphQLClient } from 'graphql-request';
 import moment from 'moment';
 import {
-  APP_BASE_URL,
+  APP_ORIGIN,
   BLOCK_EXPLORER_HOST,
   DD_ENV,
   DOUBLEDICE_CONTRACT_ADDRESS,
@@ -160,7 +160,7 @@ const splitVfs = async ({
 };
 
 
-const constructVfUrl = (intId: string) => `${APP_BASE_URL}${intId}`;
+const constructVfUrl = (intId: string) => `${APP_ORIGIN}/bet/${intId}`;
 
 
 // Entrypoint for the Autotask

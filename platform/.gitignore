@@ -5,9 +5,6 @@ typechain-types/
 generated/
 build/
 .env
-.env.*
-!.env.local
-!.env.template
 
 coverage.json
 coverage/

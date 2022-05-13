@@ -29,12 +29,12 @@ const {
 
 async function main() {
 
-  assert(CHAIN_ID);
-  assert(OWNER_ADDRESS);
-  assert(INIT_TOKEN_METADATA_URI_TEMPLATE);
-  assert(INIT_PLATFORM_FEE_RATE);
-  assert(INIT_PLATFORM_FEE_BENEFICIARY);
-  assert(INIT_CONTRACT_URI);
+  assert(CHAIN_ID, 'Error: CHAIN_ID');
+  assert(OWNER_ADDRESS, 'Error: OWNER_ADDRESS');
+  assert(INIT_TOKEN_METADATA_URI_TEMPLATE, 'Error: INIT_TOKEN_METADATA_URI_TEMPLATE');
+  assert(INIT_PLATFORM_FEE_RATE, 'Error: INIT_PLATFORM_FEE_RATE');
+  assert(INIT_PLATFORM_FEE_BENEFICIARY, 'Error: INIT_PLATFORM_FEE_BENEFICIARY');
+  assert(INIT_CONTRACT_URI, 'Error: INIT_CONTRACT_URI');
 
   const { chainId } = await ethers.provider.getNetwork();
   assert(parseInt(CHAIN_ID) === chainId, `${CHAIN_ID} !== ${chainId}; wrong .env config?`);

@@ -26,7 +26,7 @@
     "graph:deploy:doubledicedev:doubledice-mumbai2": "        npm run graph:build && graph deploy doubledicedev/doubledice-mumbai2         --node https://api.thegraph.com/deploy/ --version-label v1 ./subgraph/generated/subgraph.yaml",
     "graph:deploy:doubledicedev:doubledice-polygon-mainnet": "npm run graph:build && graph deploy doubledicedev/doubledice-polygon-mainnet --node https://api.thegraph.com/deploy/ --version-label v1 ./subgraph/generated/subgraph.yaml",
     "graph:deploy:ddvfs-com:ddvfs-polygon": "                 npm run graph:build && graph deploy ddvfs-com/ddvfs-polygon                  --node https://api.thegraph.com/deploy/ --version-label v1 ./subgraph/generated/subgraph.yaml",
-    "graph:all:docker": "npm run graph:build && npm run graph:create:docker && npm run graph:deploy:docker",
+    "graph:all:docker": "npm run graph:build && npm run graph:create:docker && npm run graph:deploy:local:local",
     "test:local:create-vf": "hardhat run --network localhost ./scripts/create-test-vf.ts",
     "codegen": "hardhat compile && npm run graph:codegen",
     "postinstall": "npm run codegen",

@@ -1,4 +1,5 @@
 import { Contract, BigNumber } from 'ethers';
+import { APP_ORIGIN, DD_ENV } from './config';
 
 export async function getTotalSupply(contract: Contract): Promise<number> {
   const atto: BigNumber = await contract.totalSupply();
@@ -21,5 +22,13 @@ export const zipArrays3 = <A, B, C>(aaa: A[], bbb: B[], ccc: C[]): [A, B, C][] =
   } else {
     const [[a, ...aa], [b, ...bb], [c, ...cc]] = [aaa, bbb, ccc];
     return [[a, b, c], ...zipArrays3(aa, bb, cc)];
+  }
+};
+
+export const constructVfUrl = (intId: string) => {
+  if (DD_ENV === 'dev') {
+    return `${APP_ORIGIN}/bet/#!/${intId}`;
+  } else {
+    return `${APP_ORIGIN}/bet/${intId}`;
   }
 };

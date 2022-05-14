@@ -10,7 +10,6 @@ import { ContractTransaction } from 'ethers';
 import { gql, GraphQLClient } from 'graphql-request';
 import moment from 'moment';
 import {
-  APP_ORIGIN,
   BLOCK_EXPLORER_HOST,
   DD_ENV,
   DOUBLEDICE_CONTRACT_ADDRESS,
@@ -18,7 +17,7 @@ import {
   LOG_NO_ACTION,
   SLACK_WEBHOOK_ENDPOINT
 } from './config';
-import { zipArrays3 } from './utils';
+import { constructVfUrl, zipArrays3 } from './utils';
 
 const QUERY_UNSET = gql`
   query ($now: BigInt) {
@@ -158,10 +157,6 @@ const splitVfs = async ({
     challenged
   };
 };
-
-
-const constructVfUrl = (intId: string) => `${APP_ORIGIN}/bet/${intId}`;
-
 
 // Entrypoint for the Autotask
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

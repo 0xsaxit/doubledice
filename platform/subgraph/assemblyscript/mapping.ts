@@ -87,6 +87,9 @@ const VirtualFloorState__Claimable_Refunds_Flagged = 'Claimable_Refunds_Flagged'
 const VirtualFloorState__Claimable_Refunds_ResolvableNever = 'Claimable_Refunds_ResolvableNever';
 const VirtualFloorState__Claimable_Refunds_ResolvedNoWinners = 'Claimable_Refunds_ResolvedNoWinners';
 
+const MIN_POSSIBLE_COMMITMENT_AMOUNT = BigInt.fromString('1');
+const MAX_POSSIBLE_COMMITMENT_AMOUNT = BigInt.fromString('115792089237316195423570985008687907853269984665640564039457584007913129639935');
+
 /**
  * It doesn't matter whether this token is being enabled or disabled, we are only using it to discover
  * new ERC-20 payment tokens that might later be used in virtual-floors.
@@ -173,8 +176,14 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   vf.bonusAmount = decimalBonusAmount;
   vf.totalSupply = vf.totalSupply.plus(decimalBonusAmount);
 
-  vf.minCommitmentAmount = bigIntFixedPointToBigDecimal(event.params.minCommitmentAmount, paymentToken.decimals);
-  vf.maxCommitmentAmount = bigIntFixedPointToBigDecimal(event.params.maxCommitmentAmount, paymentToken.decimals);
+  // It turns out that BigDecimal cannot hold more than 34 significant digits, so it cannot represent MaxUint256 precisely.
+  // As MaxUint256 is being used as a "special value" anyway, to signify "no maximum", we represent "no maximum" with `null` instead.
+  const unsafeMinCommitmentAmount = bigIntFixedPointToBigDecimal(event.params.minCommitmentAmount, paymentToken.decimals);
+  const unsafeMaxCommitmentAmount = bigIntFixedPointToBigDecimal(event.params.maxCommitmentAmount, paymentToken.decimals);
+  vf.optionalMinCommitmentAmount = event.params.minCommitmentAmount.equals(MIN_POSSIBLE_COMMITMENT_AMOUNT) ? null : unsafeMinCommitmentAmount;
+  vf.optionalMaxCommitmentAmount = event.params.maxCommitmentAmount.equals(MAX_POSSIBLE_COMMITMENT_AMOUNT) ? null : unsafeMaxCommitmentAmount;
+  vf.minCommitmentAmount = unsafeMinCommitmentAmount; // ToDo: Drop
+  vf.maxCommitmentAmount = unsafeMaxCommitmentAmount; // ToDo: Drop
 
   vf.save();
 

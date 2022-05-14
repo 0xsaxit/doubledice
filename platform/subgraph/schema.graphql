@@ -97,8 +97,12 @@ type VirtualFloor @entity {
   tClose: BigInt!
   tResolve: BigInt!
   bonusAmount: BigDecimal!
-  minCommitmentAmount: BigDecimal!
-  maxCommitmentAmount: BigDecimal!
+
+  optionalMinCommitmentAmount: BigDecimal
+  optionalMaxCommitmentAmount: BigDecimal
+
+  minCommitmentAmount: BigDecimal! @deprecated(reason: "Use `optionalMinCommitmentAmount`")
+  maxCommitmentAmount: BigDecimal! @deprecated(reason: "Not good for comparison to MaxUint256; use `optionalMaxCommitmentAmount`")
 
   """Optional: Only set if VF has been resolved or cancelled."""
   resolutionOrCancellationTxHash: Bytes

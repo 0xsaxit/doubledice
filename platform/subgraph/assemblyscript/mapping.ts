@@ -67,7 +67,7 @@ import {
   resultUpdateActionSolEnumToGraphEnum
 } from './result-update-action';
 import {
-  toBigDecimal
+  bigIntFixedPointToBigDecimal
 } from './utils';
 
 export * from './roles';
@@ -150,10 +150,10 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   // when the token was originally whitelisted.
   vf.paymentToken = event.params.paymentToken.toHex();
 
-  vf.betaOpen = toBigDecimal(event.params.betaOpen_e18);
-  vf.totalFeeRate = toBigDecimal(event.params.totalFeeRate_e18);
+  vf.betaOpen = bigIntFixedPointToBigDecimal(event.params.betaOpen_e18, 18);
+  vf.totalFeeRate = bigIntFixedPointToBigDecimal(event.params.totalFeeRate_e18, 18);
   vf.creationFeeRate = vf.totalFeeRate; // ToDo: Drop
-  vf.protocolFeeRate = toBigDecimal(event.params.protocolFeeRate_e18);
+  vf.protocolFeeRate = bigIntFixedPointToBigDecimal(event.params.protocolFeeRate_e18, 18);
   vf.platformFeeRate = vf.protocolFeeRate; // ToDo: Drop
 
   vf.creationTxHash = event.transaction.hash;
@@ -169,12 +169,12 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
   const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, vf.paymentToken);
 
-  const decimalBonusAmount = toBigDecimal(event.params.bonusAmount, paymentToken.decimals);
+  const decimalBonusAmount = bigIntFixedPointToBigDecimal(event.params.bonusAmount, paymentToken.decimals);
   vf.bonusAmount = decimalBonusAmount;
   vf.totalSupply = vf.totalSupply.plus(decimalBonusAmount);
 
-  vf.minCommitmentAmount = toBigDecimal(event.params.minCommitmentAmount, paymentToken.decimals);
-  vf.maxCommitmentAmount = toBigDecimal(event.params.maxCommitmentAmount, paymentToken.decimals);
+  vf.minCommitmentAmount = bigIntFixedPointToBigDecimal(event.params.minCommitmentAmount, paymentToken.decimals);
+  vf.maxCommitmentAmount = bigIntFixedPointToBigDecimal(event.params.maxCommitmentAmount, paymentToken.decimals);
 
   vf.save();
 
@@ -194,13 +194,13 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
 
 function convertPaymentTokenAmountToDecimal(vf: Vf, amount: BigInt): BigDecimal {
   const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, vf.paymentToken);
-  return toBigDecimal(amount, paymentToken.decimals);
+  return bigIntFixedPointToBigDecimal(amount, paymentToken.decimals);
 }
 
 export function handleUserCommitment(event: UserCommitmentEvent): void {
   const vfOutcome = loadExistentVfOutcomeEntity(event.params.vfId, event.params.outcomeIndex);
 
-  const beta = toBigDecimal(event.params.beta_e18);
+  const beta = bigIntFixedPointToBigDecimal(event.params.beta_e18, 18);
   assertVfOutcomeTimeslotEntity(vfOutcome, event.params.timeslot, event.params.tokenId, beta);
 
   const fromUser = Address.zero();

@@ -3,4 +3,9 @@
 
 import { BigDecimal, BigInt } from '@graphprotocol/graph-ts';
 
-export const toBigDecimal = (wei: BigInt, decimals: i32 = 18): BigDecimal => wei.divDecimal(new BigDecimal(BigInt.fromU32(10).pow(u8(decimals))));
+export const bigIntFixedPointToBigDecimal = (bigIntFixedPoint: BigInt, decimals: i32): BigDecimal => {
+  const bigIntDivisor = BigInt.fromU32(10).pow(u8(decimals));
+  const bigDecimalDivisor = new BigDecimal(bigIntDivisor);
+  const bigDecimalDividend = new BigDecimal(bigIntFixedPoint);
+  return bigDecimalDividend.div(bigDecimalDivisor);
+};

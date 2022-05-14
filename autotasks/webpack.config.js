@@ -3,7 +3,7 @@ const webpack = require('webpack');
 
 module.exports = {
   entry: {
-    'vf- maintainer': './src/vf-maintainer.ts',
+    'vf-maintainer': './src/vf-maintainer.ts',
     'new-vf-notifier': './src/new-vf-notifier.ts',
     'discord-maintainer': './src/discord-maintainer.ts',
   },

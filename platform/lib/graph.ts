@@ -10,6 +10,10 @@ import {
   VirtualFloor as VirtualFloorEntity,
   VirtualFloorState as VirtualFloorEntityState
 } from './generated/graphql';
+import { VirtualFloorState as ContractVirtualFloorState } from './helpers/sol-enums';
+
+// e.g. sum([1, 2, 3, 4]) => 10
+export const sum = (values: number[]): number => values.reduce((a, b) => a + b)
 
 export enum VirtualFloorClaimType {
   Payouts,
@@ -127,3 +131,79 @@ export const prepareVirtualFloorClaim = (vf: Partial<VirtualFloorEntity>): Prepa
       return null;
   }
 };
+
+/**
+ * Mirrors logic in VirtualFloors.sol
+ */
+export const computeContractVirtualFloorState = (vf: VirtualFloorEntity, timestamp: number): ContractVirtualFloorState => {
+  // ensure fields have been included on query
+  assert(vf.tClose !== undefined);
+  assert(vf.tResolve !== undefined);
+  assert(vf.bonusAmount !== undefined);
+  assert(vf.outcomes != undefined);
+  assert(vf.outcomes.every(({ totalSupply }) => totalSupply !== undefined));
+
+  const tClose = Number(vf.tClose);
+  const tResolve = Number(vf.tResolve);
+
+  // bonusAmount contributes to nonzeroOutcomeCount as if it were another outcome
+  const totals = [...vf.outcomes.map(({ totalSupply }) => totalSupply), vf.bonusAmount];
+  const nonzeroOutcomeCount = sum(totals.map(value => new BigDecimal(value).eq(0) ? 0 : 1));
+
+  switch (vf.state) {
+    case VirtualFloorEntityState.Active_ResultSet:
+    case VirtualFloorEntityState.Active_ResultChallenged:
+      return ContractVirtualFloorState.Active_Closed_ResolvableNow;
+    case VirtualFloorEntityState.Active_ResultNone: {
+      // solhint-disable-next-line not-rely-on-time
+      if (timestamp < tClose) {
+        if (nonzeroOutcomeCount >= 2) {
+          return ContractVirtualFloorState.Active_Open_ResolvableLater;
+        } else {
+          return ContractVirtualFloorState.Active_Open_MaybeResolvableNever;
+        }
+      } else {
+        if (nonzeroOutcomeCount >= 2) {
+          if (timestamp < tResolve) {
+            return ContractVirtualFloorState.Active_Closed_ResolvableLater;
+          } else {
+            return ContractVirtualFloorState.Active_Closed_ResolvableNow;
+          }
+        } else {
+          return ContractVirtualFloorState.Active_Closed_ResolvableNever;
+        }
+      }
+    }
+    case VirtualFloorEntityState.Claimable_Refunds_Flagged:
+      return ContractVirtualFloorState.Claimable_Refunds_Flagged;
+    case VirtualFloorEntityState.Claimable_Refunds_ResolvableNever:
+      return ContractVirtualFloorState.Claimable_Refunds_ResolvableNever;
+    case VirtualFloorEntityState.Claimable_Refunds_ResolvedNoWinners:
+      return ContractVirtualFloorState.Claimable_Refunds_ResolvedNoWinners;
+    case VirtualFloorEntityState.Claimable_Payouts:
+      return ContractVirtualFloorState.Claimable_Payouts;
+  }
+}
+
+/**
+ * Returns whether an Outcome in a Claimable_Payouts-state VF is the winner or not.
+ */
+export const isWinningOutcome = (outcomeOfVfInClaimablePayoutsState: OutcomeEntity) => {
+  assert(outcomeOfVfInClaimablePayoutsState.index !== undefined, 'Missing .index');
+
+  const vf = outcomeOfVfInClaimablePayoutsState.virtualFloor;
+  assert(vf !== undefined, 'Missing .virtualFloor');
+
+  const winningOutcome = vf.winningOutcome;
+  // Before assert TypeScript knows that winningOutcome type is: Outcome | null | undefined
+  // After assert TypeScript knows that winningOutcome type is: Outcome | null
+  assert(winningOutcome !== undefined, 'Missing .virtualFloor.winningOutcome');
+
+  assert(vf.state !== undefined, 'Missing .virtualFloor.state');
+
+  assert(vf.state === VirtualFloorEntityState.Claimable_Payouts, 'isWinningOutcome(outcome) can only be called on a VF in Claimable_Payouts state');
+
+  assert(winningOutcome !== null, 'Broken assumption: Outcome of a VF in Claimable_Payouts state always has non-null winningOutcome');
+
+  return outcomeOfVfInClaimablePayoutsState.index === winningOutcome.index;
+}

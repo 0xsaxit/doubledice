@@ -265,7 +265,9 @@ function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Addre
 
     // We debit (credit -amount) the "from" hierarchy, and credit the "to" hierarchy.
 
-    if (!isMint) {
+    if (isMint) {
+      // Do not debit the 0-address
+    } else {
       creditEntityHierarchy(vfOutcomeTimeslot, fromUser, amount.neg());
     }
 

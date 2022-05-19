@@ -305,7 +305,11 @@ function creditEntityHierarchy(vfOutcomeTimeslot: VfOutcomeTimeslot, user: User,
   vf.totalSupply = vf.totalSupply.plus(amount);
   vf.save();
 
-  const vfOutcomeUser = assertVfOutcomeUserEntity(vfOutcome, user);
+  const vfUser = assertVfUserEntity(vf, user);
+  vfUser.totalBalance = vfUser.totalBalance.plus(amount);
+  vfUser.save();
+
+  const vfOutcomeUser = assertVfOutcomeUserEntity(vfOutcome, user, vfUser);
   vfOutcomeUser.totalBalance = vfOutcomeUser.totalBalance.plus(amount);
   vfOutcomeUser.totalWeightedBalance = vfOutcomeUser.totalWeightedBalance.plus(amountTimesBeta);
   vfOutcomeUser.save();
@@ -313,10 +317,6 @@ function creditEntityHierarchy(vfOutcomeTimeslot: VfOutcomeTimeslot, user: User,
   const vfOutcomeTimeslotUser = assertVfOutcomeTimeslotUserEntity(vfOutcome, user, vfOutcomeTimeslot, vfOutcomeUser);
   vfOutcomeTimeslotUser.balance = vfOutcomeTimeslotUser.balance.plus(amount);
   vfOutcomeTimeslotUser.save();
-
-  const vfUser = assertVfUserEntity(vf, user);
-  vfUser.totalBalance = vfUser.totalBalance.plus(amount);
-  vfUser.save();
 }
 
 export function handleVirtualFloorCancellationUnresolvable(event: VirtualFloorCancellationUnresolvableEvent): void {

@@ -103,7 +103,7 @@ export function assertUserEntity(addr: Address): User {
 }
 
 
-export function assertVfOutcomeUserEntity(vfOutcome: VfOutcome, user: User): VfOutcomeUser {
+export function assertVfOutcomeUserEntity(vfOutcome: VfOutcome, user: User, vfUser: VfUser): VfOutcomeUser {
   const id = `${vfOutcome.id}-${user.id}`;
   const loaded = VfOutcomeUser.load(id);
   if (loaded == null) {
@@ -111,6 +111,7 @@ export function assertVfOutcomeUserEntity(vfOutcome: VfOutcome, user: User): VfO
     {
       created.outcome = vfOutcome.id;
       created.user = user.id;
+      created.userVirtualFloor = vfUser.id;
     }
     created.save();
     return created;
@@ -118,6 +119,7 @@ export function assertVfOutcomeUserEntity(vfOutcome: VfOutcome, user: User): VfO
     {
       assertFieldEqual('VfOutcomeUser', id, 'outcome', loaded.outcome, vfOutcome.id);
       assertFieldEqual('VfOutcomeUser', id, 'user', loaded.user, user.id);
+      assertFieldEqual('VfOutcomeUser', id, 'userVirtualFloor', loaded.userVirtualFloor, vfUser.id);
     }
     return loaded;
   }

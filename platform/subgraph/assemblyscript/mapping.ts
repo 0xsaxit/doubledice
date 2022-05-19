@@ -249,6 +249,7 @@ function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Addre
   assert(ids.length == values.length);
 
   const isMint = fromAddr.equals(Address.zero());
+  const isBurn = toAddr.equals(Address.zero());
 
   const fromUser = assertUserEntity(fromAddr);
   const toUser = assertUserEntity(toAddr);
@@ -268,7 +269,8 @@ function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Addre
     if (isMint) {
       // Do not debit the 0-address
     } else {
-      creditEntityHierarchy(vfOutcomeTimeslot, fromUser, amount.neg());
+      const claimAmount = isBurn ? amount : BigDecimal.zero();
+      creditEntityHierarchy(vfOutcomeTimeslot, fromUser, amount.neg(), claimAmount);
     }
 
     // Credit `to` even if it is address(0) and this is an ERC-1155 balance-burn,
@@ -276,7 +278,7 @@ function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Addre
     // They will be credited to address(0), so this address will eventually accumulate a lot of balance,
     // but it doesn't matter!
     // Doing it this way keeps things simple: the balance doesn't perish, it simply "changes ownership" to address(0)
-    creditEntityHierarchy(vfOutcomeTimeslot, toUser, amount);
+    creditEntityHierarchy(vfOutcomeTimeslot, toUser, amount, BigDecimal.zero());
 
     const posOfEventInTx = event.transactionLogIndex;
     const outcomeTimeslotTransferEntityId = `${vfOutcomeTimeslot.id}-${event.transaction.hash.toHex()}-${posOfEventInTx}-${i}`;
@@ -292,7 +294,7 @@ function handleTransfers(event: ethereum.Event, fromAddr: Address, toAddr: Addre
   }
 }
 
-function creditEntityHierarchy(vfOutcomeTimeslot: VfOutcomeTimeslot, user: User, amount: BigDecimal): void {
+function creditEntityHierarchy(vfOutcomeTimeslot: VfOutcomeTimeslot, user: User, amount: BigDecimal, claimAmount: BigDecimal): void {
   const amountTimesBeta = amount.times(vfOutcomeTimeslot.beta);
 
   vfOutcomeTimeslot.totalSupply = vfOutcomeTimeslot.totalSupply.plus(amount);
@@ -309,15 +311,21 @@ function creditEntityHierarchy(vfOutcomeTimeslot: VfOutcomeTimeslot, user: User,
 
   const vfUser = assertVfUserEntity(vf, user);
   vfUser.totalBalance = vfUser.totalBalance.plus(amount);
+  vfUser.totalClaimedBalance = vfUser.totalClaimedBalance.plus(claimAmount);
+  vfUser.totalBalancePlusTotalClaimedBalance = vfUser.totalBalance.plus(vfUser.totalClaimedBalance);
   vfUser.save();
 
   const vfOutcomeUser = assertVfOutcomeUserEntity(vfOutcome, user, vfUser);
   vfOutcomeUser.totalBalance = vfOutcomeUser.totalBalance.plus(amount);
   vfOutcomeUser.totalWeightedBalance = vfOutcomeUser.totalWeightedBalance.plus(amountTimesBeta);
+  vfOutcomeUser.totalClaimedBalance = vfOutcomeUser.totalClaimedBalance.plus(claimAmount);
+  vfOutcomeUser.totalBalancePlusTotalClaimedBalance = vfOutcomeUser.totalBalance.plus(vfOutcomeUser.totalClaimedBalance);
   vfOutcomeUser.save();
 
   const vfOutcomeTimeslotUser = assertVfOutcomeTimeslotUserEntity(vfOutcome, user, vfOutcomeTimeslot, vfOutcomeUser);
   vfOutcomeTimeslotUser.balance = vfOutcomeTimeslotUser.balance.plus(amount);
+  vfOutcomeTimeslotUser.claimedBalance = vfOutcomeTimeslotUser.claimedBalance.plus(claimAmount);
+  vfOutcomeTimeslotUser.balancePlusClaimedBalance = vfOutcomeTimeslotUser.balance.plus(vfOutcomeTimeslotUser.claimedBalance);
   vfOutcomeTimeslotUser.save();
 }
 

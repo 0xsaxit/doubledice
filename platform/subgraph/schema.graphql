@@ -231,8 +231,14 @@ type UserOutcome @entity {
   userOutcomeTimeslots: [UserOutcomeTimeslot!]! @derivedFrom(field: "userOutcome")
 
   # properties
+
+  """Mirrors on-chain ERC-1155 balance of this `User` summed over all `OutcomeTimeslot`s under this `Outcome`."""
   totalBalance: BigDecimal!
+
   totalWeightedBalance: BigDecimal!
+
+  totalClaimedBalance: BigDecimal!
+  totalBalancePlusTotalClaimedBalance: BigDecimal!
 }
 
 """
@@ -276,7 +282,17 @@ type UserOutcomeTimeslot @entity {
   # outcomeTimeslotTransfersTo: [OutcomeTimeslotTransfer!]! @derivedFrom(field: "toUserOutcomeTimeslot")
 
   # properties
+
+  """Mirrors on-chain ERC-1155 balance of this `User` on this `OutcomeTimeslot`."""
   balance: BigDecimal!
+
+  claimedBalance: BigDecimal!
+  """
+  This will always be updated to be `= balance + claimedBalance`.
+  Since we cannot query Graph for entities that have balance_gt: 0 OR claimedBalance_gt: 0,
+  we work around it by quering for balancePlusClaimedBalance_gt: 0
+  """
+  balancePlusClaimedBalance: BigDecimal!
 }
 
 """
@@ -352,7 +368,12 @@ type UserVirtualFloor @entity {
   userOutcomes: [UserOutcome!]! @derivedFrom(field: "userVirtualFloor")
 
   # properties
+
+  """Mirrors on-chain ERC-1155 balance of this `User` summed over all `OutcomeTimeslot`s under all `Outcome`s under this VF."""
   totalBalance: BigDecimal!
+
+  totalClaimedBalance: BigDecimal!
+  totalBalancePlusTotalClaimedBalance: BigDecimal!
 }
 
 

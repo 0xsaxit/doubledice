@@ -1,16 +1,16 @@
 export * from './generated/typechain-types';
-export * from './generated/typechain-types/BaseDoubleDice';
 export * from './helpers/sol-enums';
 export type {
   VirtualFloorMetadataV1Struct,
   VirtualFloorMetadataV1Struct as RoomEventInfo,
+  VirtualFloorCreationParamsStruct
 };
 
 import { BytesLike, ethers } from 'ethers';
 import { Result } from 'ethers/lib/utils';
 import { DoubleDice__factory, GraphHelper__factory } from './generated/typechain-types';
-import { EncodedVirtualFloorMetadataStruct } from './generated/typechain-types/BaseDoubleDice';
-import { VirtualFloorMetadataV1Struct } from './generated/typechain-types/GraphHelper';
+import { EncodedVirtualFloorMetadataStruct, VirtualFloorCreationParamsStruct } from './generated/typechain-types/artifacts/contracts/BaseDoubleDice';
+import { VirtualFloorMetadataV1Struct } from './generated/typechain-types/artifacts/contracts/helper/GraphHelper';
 
 export const encodeVirtualFloorMetadata = (metadata: VirtualFloorMetadataV1Struct): EncodedVirtualFloorMetadataStruct => {
   const encodedWithSelector = GraphHelper__factory.createInterface().encodeFunctionData('encodeVirtualFloorMetadataV1', [metadata]);

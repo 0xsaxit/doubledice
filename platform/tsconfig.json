@@ -1,11 +1,5 @@
 {
-    "compilerOptions": {
-        "target": "ES2020",
-        "moduleResolution": "Node",
-        "esModuleInterop": true,
-        "strictNullChecks": true,
-        "resolveJsonModule": true
-    },
+    "extends": "ts-node/node16/tsconfig.json",
     "include": [
         "./lib",
         "./scripts",

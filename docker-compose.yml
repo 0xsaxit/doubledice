@@ -9,7 +9,7 @@ services:
       - ./:/dev_workdir
     command: ./start.sh
   graph-node:
-    image: graphprotocol/graph-node:v0.25.2
+    image: graphprotocol/graph-node:f4a6aa5
     ports:
       - '8000:8000'
       - '8001:8001'

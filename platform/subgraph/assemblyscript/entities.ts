@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import {
   Address,
   BigDecimal,
@@ -31,23 +32,11 @@ export function createNewEntity<T extends Entity>(load: LoadEntity<T>, id: strin
   let entity = load(id);
   assert(entity == null, `createNewEntity: Expected entity ${id} to NOT already exist`);
   entity = instantiate<T>(id);
-  entity.save();
   return entity;
 }
 
 export function loadExistentEntity<T extends Entity>(load: LoadEntity<T>, id: string): T {
   return assert(load(id), `loadExistentEntity: Expected entity ${id} to already exist`);
-}
-
-// ToDo: Ideally this would return { entity, isNew },
-// so that caller could use isNew to run some code only the first time.
-export function loadOrCreateEntity<T extends Entity>(load: LoadEntity<T>, id: string): T {
-  let entity = load(id);
-  if (entity == null) {
-    entity = instantiate<T>(id);
-    entity.save();
-  }
-  return entity;
 }
 
 function assertFieldEqual<T>(entityName: string, id: string, fieldName: string, actualFieldValue: T, expectedFieldValue: T): void {
@@ -71,6 +60,9 @@ export function assertVfOutcomeTimeslotEntity(
       created.tokenId = tokenId;
       created.beta = beta;
     }
+    {
+      created.totalSupply = BigDecimal.zero();
+    }
     created.save();
     return created;
   } else {
@@ -92,6 +84,10 @@ export function assertUserEntity(addr: Address): User {
     // eslint-disable-next-line no-empty
     {
     }
+    {
+      created.maxConcurrentVirtualFloors = BigInt.zero();
+      created.concurrentVirtualFloors = BigInt.zero();
+    }
     created.save();
     return created;
   } else {
@@ -112,6 +108,12 @@ export function assertVfOutcomeUserEntity(vfOutcome: VfOutcome, user: User, vfUs
       created.outcome = vfOutcome.id;
       created.user = user.id;
       created.userVirtualFloor = vfUser.id;
+    }
+    {
+      created.totalBalance = BigDecimal.zero();
+      created.totalClaimedBalance = BigDecimal.zero();
+      created.totalBalancePlusTotalClaimedBalance = BigDecimal.zero();
+      created.totalWeightedBalance = BigDecimal.zero();
     }
     created.save();
     return created;
@@ -145,6 +147,11 @@ export function assertVfOutcomeTimeslotUserEntity(
       created.outcome = vfOutcome.id;
       created.userOutcome = vfOutcomeUser.id;
       created.outcomeTimeslot = vfOutcomeTimeslot.id;
+    }
+    {
+      created.balance = BigDecimal.zero();
+      created.claimedBalance = BigDecimal.zero();
+      created.balancePlusClaimedBalance = BigDecimal.zero();
     }
     created.save();
     return created;
@@ -225,6 +232,11 @@ export function assertVfUserEntity(vf: Vf, user: User): VfUser {
       created.virtualFloor = vf.id;
       created.user = user.id;
     }
+    {
+      created.totalBalance = BigDecimal.zero();
+      created.totalClaimedBalance = BigDecimal.zero();
+      created.totalBalancePlusTotalClaimedBalance = BigDecimal.zero();
+    }
     created.save();
     return created;
   } else {
@@ -262,6 +274,8 @@ export function createVfOutcomeEntity(vf: Vf, outcomeIndex: i32, title: string):
   vfOutcome.virtualFloor = vf.id;
   vfOutcome.title = title;
   vfOutcome.index = outcomeIndex;
+  vfOutcome.totalSupply = BigDecimal.zero();
+  vfOutcome.totalWeightedSupply = BigDecimal.zero();
   vfOutcome.save();
   return vfOutcome;
 }
@@ -318,6 +332,7 @@ export function assertPaymentTokenEntity(token: Address): PaymentToken {
       created.name = paymentTokenContract.name();
       created.symbol = symbol;
       created.decimals = paymentTokenContract.decimals();
+      created.isWhitelisted = false;
       created.isTest = symbol.startsWith('TEST');
     }
     created.save();

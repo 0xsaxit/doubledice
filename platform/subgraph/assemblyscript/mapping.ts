@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable indent */
 // Note: Despite the .ts file extension, this is AssemblyScript not TypeScript!
 
@@ -56,8 +57,7 @@ import {
   genVfOutcomeTimeslotEntityId,
   loadExistentEntity,
   loadExistentVfEntity,
-  loadExistentVfOutcomeEntity,
-  loadOrCreateEntity
+  loadExistentVfOutcomeEntity
 } from './entities';
 import {
   decodeMetadata
@@ -114,11 +114,12 @@ function migrateMetadataCategory(old: string): string {
 }
 
 export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): void {
-  // Although this is "info" or "debug", we log as "warning" as it is easier to find because there are less
-  log.warning('Creating VirtualFloorCreation({})...', [event.params.vfId.toString()]);
-
   {
-    const aggregate = loadOrCreateEntity<VirtualFloorsAggregate>(VirtualFloorsAggregate.load, SINGLETON_AGGREGATE_ENTITY_ID);
+    let aggregate = VirtualFloorsAggregate.load(SINGLETON_AGGREGATE_ENTITY_ID);
+    if (aggregate == null) {
+      aggregate = new VirtualFloorsAggregate(SINGLETON_AGGREGATE_ENTITY_ID);
+      aggregate.totalVirtualFloorsCreated = 0;
+    }
     aggregate.totalVirtualFloorsCreated += 1;
     aggregate.save();
   }
@@ -151,7 +152,9 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   // Since the platform contract will reject VirtualFloors created with a PaymentToken that is not whitelisted,
   // we are sure that the PaymentToken entity referenced here will have always been created beforehand
   // when the token was originally whitelisted.
-  vf.paymentToken = event.params.paymentToken.toHex();
+  const paymentToken = assertPaymentTokenEntity(event.params.paymentToken);
+  assert(paymentToken.isWhitelisted);
+  vf.paymentToken = paymentToken.id;
 
   vf.betaOpen = bigIntFixedPointToBigDecimal(event.params.betaOpen_e18, 18);
   vf.totalFeeRate = bigIntFixedPointToBigDecimal(event.params.totalFeeRate_e18, 18);
@@ -170,11 +173,9 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   vf.tResultSetMax = event.params.tResolve.plus(SET_WINDOW_DURATION); // ToDo: Include this as event param tResultSetMax
   vf.state = VirtualFloorState__Active_ResultNone;
 
-  const paymentToken = loadExistentEntity<PaymentToken>(PaymentToken.load, vf.paymentToken);
-
   const decimalBonusAmount = bigIntFixedPointToBigDecimal(event.params.bonusAmount, paymentToken.decimals);
   vf.bonusAmount = decimalBonusAmount;
-  vf.totalSupply = vf.totalSupply.plus(decimalBonusAmount);
+  vf.totalSupply = decimalBonusAmount;
 
   // It turns out that BigDecimal cannot hold more than 34 significant digits, so it cannot represent MaxUint256 precisely.
   // As MaxUint256 is being used as a "special value" anyway, to signify "no maximum", we represent "no maximum" with `null` instead.

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable indent */
 // Note: Despite the .ts file extension, this is AssemblyScript not TypeScript!
 

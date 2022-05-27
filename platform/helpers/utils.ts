@@ -1,27 +1,18 @@
+import { Log } from '@ethersproject/providers';
 import assert from 'assert';
-import { BigNumber, BigNumberish, ContractReceipt, ethers } from 'ethers';
+import { BigNumber, BigNumberish, Contract, ContractReceipt, ethers } from 'ethers';
+import { Interface, Result } from 'ethers/lib/utils';
 import {
   encodeVirtualFloorMetadata,
-  RoomEventInfo
+  RoomEventInfo,
+  VirtualFloorMetadataV1Struct
 } from '../lib/contracts';
+import { BigNumber as BigDecimal } from 'bignumber.js';
+
+const MULTIPLIER = new BigDecimal(10).pow(18);
 
 export const toFp18 = (value: number | string): BigNumber => {
-  const numericValue = typeof value === 'number' ? value : parseFloat(value);
-  const sign = Math.sign(numericValue);
-  const magnitude = Math.abs(numericValue);
-  if (magnitude === 0) {
-    return BigNumber.from(0);
-  }
-  let intermediate = magnitude;
-  let i = 0;
-  while ((intermediate * 10) <= Number.MAX_SAFE_INTEGER) {
-    intermediate *= 10;
-    i++; // eslint-disable-line no-plusplus
-  }
-  if (Math.trunc(intermediate) !== intermediate) {
-    throw new Error('!');
-  }
-  return BigNumber.from(intermediate).mul(BigNumber.from(10).pow(BigNumber.from(18 - i))).mul(BigNumber.from(sign));
+  return BigNumber.from(new BigDecimal(value).dp(18, BigDecimal.ROUND_FLOOR).multipliedBy(MULTIPLIER).toString());
 };
 
 export const sumOf = (...values: BigNumber[]): BigNumber =>
@@ -116,3 +107,48 @@ export const $ = (dollars: BigNumberish, millionths: BigNumberish = 0): BigNumbe
     .add(millionths);
 
 export const UNSPECIFIED_COMMITMENT_DEADLINE = 0;
+
+const range = (n: number): number[] => new Array(n).fill(undefined).map((_, i) => i);
+
+type DummyMetadataParams = {
+  nOutcomes: number;
+  nOpponents?: number;
+  nResultSources?: number;
+}
+
+export const genDummyMetadata = ({ nOutcomes, nOpponents = 2, nResultSources = 2 }: DummyMetadataParams): VirtualFloorMetadataV1Struct => ({
+  category: 'category',
+  subcategory: 'subcategory',
+  title: 'Title',
+  description: 'Description',
+  isListed: false,
+  opponents: range(nOpponents).map(i => ({ title: `Opponent ${i}`, image: `https://example.com/opponents/${i}/image.jpg` })),
+  outcomes: range(nOutcomes).map(i => ({ title: `Outcome ${i}` })),
+  resultSources: range(nResultSources).map(i => ({ title: `Result source ${i}`, url: `https://example.com/result-sources/${i}` })),
+  discordChannelId: 'discordChannelId',
+  extraData: '0x',
+});
+
+export function decodeEventLog(iface: Interface, log: Log): { event: string, args: Result } | undefined {
+  for (const eventFragment of Object.values(iface.events)) {
+    try {
+      return {
+        event: eventFragment.name,
+        args: iface.decodeEventLog(eventFragment, log.data, log.topics)
+      };
+    } catch (e) {
+      continue;
+    }
+  }
+  return undefined;
+}
+
+export function decodeEventLogs(contract: Contract, logs: Log[]): { event: string, args: Result }[] {
+  return logs
+    .filter(({ address }) => address === contract.address)
+    .map(log => {
+      const decoded = decodeEventLog(contract.interface, log);
+      assert(decoded);
+      return decoded;
+    });
+}

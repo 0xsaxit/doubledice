@@ -10,7 +10,10 @@ import { BytesLike, ethers } from 'ethers';
 import { Result } from 'ethers/lib/utils';
 import { DoubleDice__factory, GraphHelper__factory } from './generated/typechain-types';
 import { EncodedVirtualFloorMetadataStruct, VirtualFloorCreationParamsStruct } from './generated/typechain-types/artifacts/contracts/BaseDoubleDice';
+import { BaseDoubleDice } from './generated/typechain-types/artifacts/contracts/DoubleDice';
 import { VirtualFloorMetadataV1Struct } from './generated/typechain-types/artifacts/contracts/helper/GraphHelper';
+
+export type BaseDoubleDiceInitParamsStruct = BaseDoubleDice.BaseDoubleDiceInitParamsStruct;
 
 export const encodeVirtualFloorMetadata = (metadata: VirtualFloorMetadataV1Struct): EncodedVirtualFloorMetadataStruct => {
   const encodedWithSelector = GraphHelper__factory.createInterface().encodeFunctionData('encodeVirtualFloorMetadataV1', [metadata]);

@@ -99,7 +99,7 @@ describe('DoubleDice/FeeRelated', function () {
     const betaOpen_e18 = BigNumber.from(10)
       .pow(18)
       .mul(13); // 1 unit per hour
-    const tOpen = toTimestamp('2022-06-01T10:00:00');
+    const tOpen = toTimestamp('2031-06-01T10:00:00');
     const tClose = toTimestamp('2032-01-01T10:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
     const nOutcomes = 3;
@@ -198,12 +198,12 @@ describe('DoubleDice/FeeRelated', function () {
 
 
       // set to open time
-      await evm.setNextBlockTimestamp('2022-06-01T10:00:00');
+      await evm.setNextBlockTimestamp('2031-06-01T10:00:00');
       // winners commitment
       const user1CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(vfId, 1, user1Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
-      await evm.setNextBlockTimestamp('2028-06-01T10:00:00');
+      await evm.setNextBlockTimestamp('2031-07-01T10:00:00');
       const user2CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(vfId, 1, user2Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
-      await evm.setNextBlockTimestamp('2029-06-01T10:00:00');
+      await evm.setNextBlockTimestamp('2031-08-01T10:00:00');
       const user3CommitmentEventArgs: UserCommitment = await helper.commitToVirtualFloor(vfId, 1, user3Signer, amountToCommit, UNSPECIFIED_COMMITMENT_DEADLINE);
 
       console.log('user1 commitment', user1CommitmentEventArgs.timeslot.toNumber());

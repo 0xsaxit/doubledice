@@ -102,7 +102,7 @@ describe('DoubleDice/Resolve', function () {
     const vfId = generateRandomVirtualFloorId();
     const vfId2 = generateRandomVirtualFloorId();
     const allWinnersVf = generateRandomVirtualFloorId();
-    const tOpen = toTimestamp('2022-06-01T12:00:00');
+    const tOpen = toTimestamp('2031-06-01T12:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
     const nOutcomes = 3;

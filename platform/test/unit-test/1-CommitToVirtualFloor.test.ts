@@ -101,7 +101,7 @@ describe('DoubleDice/Commit', function () {
   describe('Commit To Virtual Floor', function () {
     // Random virtual floor for each test case
     let vfId: BigNumberish;
-    const tOpen = toTimestamp('2022-06-01T12:00:00');
+    const tOpen = toTimestamp('2031-06-01T12:00:00');
     const tClose = toTimestamp('2032-01-01T12:00:00');
     const tResolve = toTimestamp('2032-01-02T00:00:00');
     const nOutcomes = 3;

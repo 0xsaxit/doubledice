@@ -151,6 +151,13 @@ type VirtualFloor @entity {
 
   # aggregates
   totalSupply: BigDecimal!
+
+  # Instead of using Graph's [fulltext](https://thegraph.com/docs/en/developer/create-subgraph-hosted/#defining-fulltext-search-fields) functionality,
+  # we manually combine all fields and subfields into a single top-level field that we can then search using `allText_contains_nocase`, as:
+  # 1. native fulltext feature cannot search subfields anyway
+  # 2. we retain more control over how the results are ordered
+  # 3. we don't really need to be able to rank results by text relevance
+  allText: String!
 }
 
 type Opponent @entity {

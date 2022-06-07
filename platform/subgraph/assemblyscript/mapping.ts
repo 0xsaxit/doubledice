@@ -186,7 +186,28 @@ export function handleVirtualFloorCreation(event: VirtualFloorCreationEvent): vo
   vf.minCommitmentAmount = unsafeMinCommitmentAmount; // ToDo: Drop
   vf.maxCommitmentAmount = unsafeMaxCommitmentAmount; // ToDo: Drop
 
+
+  const allTextTokens: string[] = [
+    metadata.title,
+    metadata.description,
+    metadata.category,
+    metadata.subcategory,
+  ];
+  for (let i = 0; i < metadata.opponents.length; i++) {
+    allTextTokens.push(metadata.opponents[i].title);
+  }
+  for (let i = 0; i < metadata.resultSources.length; i++) {
+    allTextTokens.push(metadata.resultSources[i].title);
+  }
+  for (let i = 0; i < metadata.outcomes.length; i++) {
+    allTextTokens.push(metadata.outcomes[i].title);
+  }
+  vf.allText = allTextTokens.join(' ');
+
+
+  // VirtualFloor entity must be saved before calling createVfOpponentEntity, createVfResultSourceEntity, createVfOutcomeEntity
   vf.save();
+
 
   for (let i = 0; i < metadata.opponents.length; i++) {
     createVfOpponentEntity(vf, i, metadata.opponents[i].title, metadata.opponents[i].image);

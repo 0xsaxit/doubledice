@@ -4,6 +4,7 @@ import {
   FixedPointTypesMock,
   FixedPointTypesMock__factory
 } from '../lib/contracts';
+import { getError } from './helpers';
 
 describe('FixedPointTypes', function () {
 
@@ -66,21 +67,46 @@ describe('FixedPointTypes', function () {
     expect(await lib.gte(7_000000_000000_000001n, 7_000000_000000_000000n)).to.be.true;
   });
 
-  it.skip('toUFixed16x4', async function () {
+  it('toUFixed16x4', async function () {
     expect(await lib.toUFixed16x4(234500_000000_000000n)).to.eq(2345);
+
     expect(await lib.toUFixed16x4(1_234500_000000_000000n)).to.eq(1_2345);
-    await expect(lib.toUFixed16x4(1_234560_000000_000000n)).to.be.revertedWith('UFixed16x4LossOfPrecision(1234560000000000000)');
+
+    { // ToDo: Replace with hardhat-waffle typed revertWith when it starts to exist
+      const err = await getError(lib.toUFixed16x4(1_234560_000000_000000n));
+      expect(err).to.containSubset({ code: 'CALL_EXCEPTION', errorName: 'UFixed16x4LossOfPrecision' });
+      expect(err.errorArgs.value).to.eq(1_234560_000000_000000n);
+    }
+
     expect(await lib.toUFixed16x4(6_553500_000000_000000n)).to.eq(6_5535);
-    await expect(lib.toUFixed16x4(6_553510_000000_000000n)).to.be.revertedWith('UFixed16x4LossOfPrecision(6553510000000000000)');
+    { // ToDo: Replace with hardhat-waffle typed revertWith when it starts to exist
+      const err = await getError(lib.toUFixed16x4(6_553510_000000_000000n));
+      expect(err).to.containSubset({ code: 'CALL_EXCEPTION', errorName: 'UFixed16x4LossOfPrecision' });
+      expect(err.errorArgs.value).to.eq(6_553510_000000_000000n);
+    }
+
     await expect(lib.toUFixed16x4(6_553600_000000_000000n)).to.be.revertedWith('SafeCast: value doesn\'t fit in 16 bits');
   });
 
-  it.skip('toUFixed32x6', async function () {
+  it('toUFixed32x6', async function () {
     expect(await lib.toUFixed32x6(234567_000000_000000n)).to.eq(234567);
+
     expect(await lib.toUFixed32x6(1_234567_000000_000000n)).to.eq(1_234567);
-    await expect(lib.toUFixed32x6(1_234567_800000_000000n)).to.be.revertedWith('UFixed32x6LossOfPrecision(1234567800000000000)');
+
+    { // ToDo: Replace with hardhat-waffle typed revertWith when it starts to exist
+      const err = await getError(lib.toUFixed32x6(1_234567_800000_000000n));
+      expect(err).to.containSubset({ code: 'CALL_EXCEPTION', errorName: 'UFixed32x6LossOfPrecision' });
+      expect(err.errorArgs.value).to.eq(1_234567_800000_000000n);
+    }
+
     expect(await lib.toUFixed32x6(4294_967295_000000_000000n)).to.eq(4294_967295);
-    await expect(lib.toUFixed32x6(4294_967295_100000_000000n)).to.be.revertedWith('UFixed32x6LossOfPrecision(4294967295100000000000)');
+
+    { // ToDo: Replace with hardhat-waffle typed revertWith when it starts to exist
+      const err = await getError(lib.toUFixed32x6(4294_967295_100000_000000n));
+      expect(err).to.containSubset({ code: 'CALL_EXCEPTION', errorName: 'UFixed32x6LossOfPrecision' });
+      expect(err.errorArgs.value).to.eq(4294_967295_100000_000000n);
+    }
+
     await expect(lib.toUFixed32x6(4294_967296_000000_000000n)).to.be.revertedWith('SafeCast: value doesn\'t fit in 32 bits');
   });
 

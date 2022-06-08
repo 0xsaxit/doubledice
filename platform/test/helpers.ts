@@ -33,3 +33,13 @@ export const deploySimpleOracle = async (deployer: SignerWithAddress, baseParams
   });
   return SimpleOracle__factory.connect(proxyAddress, deployer);
 };
+
+// ToDo: Drop this function when hardhat-waffle typed revertWith starts to exist
+export const getError = async (promise: Promise<unknown>): Promise<any> => {
+  try {
+    await promise;
+  } catch (e: any) {
+    return e;
+  }
+  throw new Error('Was expecting error to be thrown');
+};
